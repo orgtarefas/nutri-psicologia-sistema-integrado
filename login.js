@@ -3,8 +3,8 @@ import { HomeManager, FuncoesCompartilhadas } from './home.js';
 
 export class LoginManager {
     constructor() {
-        this.setupEventListeners();
         this.renderLoginScreen();
+        this.setupEventListeners();
         this.checkAutoLogin();
     }
 
@@ -13,7 +13,9 @@ export class LoginManager {
         if (app) {
             app.innerHTML = `
                 <div class="login-container">
-                    <h2>🏥 Sistema de Avaliação</h2>
+                    <div class="login-logo">
+                        <img src="imagens/logo.png" alt="Vitality Logo" class="logo-img">
+                    </div>
                     <form id="loginForm">
                         <div class="input-group">
                             <label>📱 Login:</label>
@@ -32,16 +34,13 @@ export class LoginManager {
     }
 
     setupEventListeners() {
-        // Os eventos serão configurados após renderizar a tela
-        setTimeout(() => {
-            const loginForm = document.getElementById('loginForm');
-            if (loginForm) {
-                loginForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    this.handleLogin();
-                });
-            }
-        }, 100);
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin();
+            });
+        }
     }
 
     checkAutoLogin() {
