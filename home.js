@@ -7,22 +7,35 @@ export class HomeManager {
         this.weightChart = null;
         this.imcChart = null;
         this.muscleChart = null;
+        console.log('HomeManager iniciado para:', userInfo);
     }
 
     render() {
         const app = document.getElementById('app');
         
-        if (this.userInfo.cargo === 'nutricionista') {
+        // Verificar se é nutricionista (cargo ou tipo)
+        if (this.userInfo.cargo === 'nutricionista' || this.userInfo.perfil === 'nutricionista') {
             app.innerHTML = this.renderNutricionistaHome();
             this.attachNutricionistaEvents();
             this.loadEvaluationData();
-        } else if (this.userInfo.cargo === 'psicologo') {
+        } 
+        // Verificar se é psicólogo
+        else if (this.userInfo.cargo === 'psicologo' || this.userInfo.perfil === 'psicologo') {
             app.innerHTML = this.renderPsicologoHome();
             this.attachGenericEvents();
-        } else if (this.userInfo.perfil === 'cliente') {
+        } 
+        // Verificar se é admin
+        else if (this.userInfo.tipo === 'admin' || this.userInfo.perfil === 'admin') {
+            app.innerHTML = this.renderAdminHome();
+            this.attachAdminEvents();
+        }
+        // Verificar se é cliente
+        else if (this.userInfo.tipo === 'clientes' || this.userInfo.perfil === 'cliente') {
             app.innerHTML = this.renderClienteHome();
             this.loadClientEvaluations();
-        } else {
+        } 
+        // Perfil genérico
+        else {
             app.innerHTML = this.renderGenericHome();
             this.attachGenericEvents();
         }
@@ -35,7 +48,7 @@ export class HomeManager {
                     <h1>🍎 Sistema de Avaliação Nutricional</h1>
                     <div class="user-info">
                         <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ ${this.userInfo.cargo}</span>
+                        <span>🏷️ Nutricionista</span>
                         <button class="logout-btn" id="logoutBtn">Sair</button>
                     </div>
                 </div>
@@ -122,7 +135,7 @@ export class HomeManager {
                     <h1>🧠 Sistema de Avaliação Psicológica</h1>
                     <div class="user-info">
                         <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ ${this.userInfo.cargo}</span>
+                        <span>🏷️ Psicólogo</span>
                         <button class="logout-btn" id="logoutBtn">Sair</button>
                     </div>
                 </div>
@@ -136,6 +149,35 @@ export class HomeManager {
                     <div style="text-align: center; padding: 40px;">
                         <h2>🚧 Em Desenvolvimento</h2>
                         <p>Módulo de avaliação psicológica será implementado em breve!</p>
+                        <p style="margin-top: 20px; color: #666;">Área reservada para avaliação psicológica</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderAdminHome() {
+        return `
+            <div class="home-container">
+                <div class="header">
+                    <h1>👑 Painel Administrativo</h1>
+                    <div class="user-info">
+                        <span>👋 Olá, ${this.userInfo.nome}</span>
+                        <span>🏷️ Administrador</span>
+                        <button class="logout-btn" id="logoutBtn">Sair</button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="nav-buttons">
+                        <button class="nav-btn" data-module="users">👥 Gerenciar Usuários</button>
+                        <button class="nav-btn" data-module="reports">📊 Relatórios</button>
+                        <button class="nav-btn" data-module="config">⚙️ Configurações</button>
+                        <button class="nav-btn" data-module="backup">💾 Backup</button>
+                    </div>
+                    <div style="text-align: center; padding: 40px;">
+                        <h2>🚧 Em Desenvolvimento</h2>
+                        <p>Painel administrativo será implementado em breve!</p>
+                        <p style="margin-top: 20px; color: #666;">Área restrita para administradores</p>
                     </div>
                 </div>
             </div>
@@ -149,15 +191,16 @@ export class HomeManager {
                     <h1>📋 Minhas Avaliações</h1>
                     <div class="user-info">
                         <span>👋 Olá, ${this.userInfo.nome}</span>
+                        <span>🏷️ Cliente</span>
                         <button class="logout-btn" id="logoutBtn">Sair</button>
                     </div>
                 </div>
                 <div class="content">
                     <div class="nav-buttons">
-                        <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
-                        <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
-                        <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
-                        <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
+                        <button class="nav-btn" data-module="history">📜 Histórico</button>
+                        <button class="nav-btn" data-module="results">📈 Resultados</button>
+                        <button class="nav-btn" data-module="schedule">📅 Agendamentos</button>
+                        <button class="nav-btn" data-module="messages">💬 Mensagens</button>
                     </div>
                     <div id="clientEvaluations" class="client-evaluations">
                         <h3>📊 Histórico de Avaliações</h3>
@@ -187,7 +230,7 @@ export class HomeManager {
                     </div>
                     <div style="text-align: center; padding: 40px;">
                         <h2>🚧 Em Desenvolvimento</h2>
-                        <p>Personalização para seu perfil em breve!</p>
+                        <p>Sistema em desenvolvimento para seu perfil!</p>
                     </div>
                 </div>
             </div>
@@ -234,6 +277,20 @@ export class HomeManager {
         }
     }
 
+    attachAdminEvents() {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => this.logout());
+        }
+
+        const navBtns = document.querySelectorAll('.nav-btn');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                alert('🚧 Funcionalidade administrativa em desenvolvimento!');
+            });
+        });
+    }
+
     attachGenericEvents() {
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
@@ -264,6 +321,7 @@ export class HomeManager {
             const evaluationData = {
                 paciente: patientName,
                 profissional: this.userInfo.nome,
+                profissional_login: this.userInfo.login,
                 cargo: this.userInfo.cargo,
                 data_avaliacao: evaluationDate,
                 dados_antropometricos: {
@@ -303,6 +361,7 @@ export class HomeManager {
                 this.currentEvaluations.push({ id: doc.id, ...doc.data() });
             });
             
+            console.log('Avaliações carregadas:', this.currentEvaluations.length);
             this.renderCharts();
         } catch (error) {
             console.error("Erro ao carregar avaliações:", error);
@@ -311,6 +370,7 @@ export class HomeManager {
 
     async loadClientEvaluations() {
         try {
+            // Buscar avaliações do cliente logado
             const q = query(collection(db, "avaliacao_nutricional"), where("paciente", "==", this.userInfo.nome), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
             const evaluationsList = document.getElementById('evaluationsList');
@@ -337,6 +397,7 @@ export class HomeManager {
                             ${data.bioimpedancia.massa_muscular ? `<div><strong>Massa Muscular:</strong> ${data.bioimpedancia.massa_muscular} kg</div>` : ''}
                             ${data.bioimpedancia.gordura_corporal ? `<div><strong>Gordura:</strong> ${data.bioimpedancia.gordura_corporal}%</div>` : ''}
                             ${data.exames_laboratoriais.glicemia ? `<div><strong>Glicemia:</strong> ${data.exames_laboratoriais.glicemia} mg/dL</div>` : ''}
+                            ${data.exames_laboratoriais.colesterol_total ? `<div><strong>Colesterol:</strong> ${data.exames_laboratoriais.colesterol_total} mg/dL</div>` : ''}
                         </div>
                     `;
                     evaluationsList.appendChild(card);
@@ -349,10 +410,12 @@ export class HomeManager {
 
     renderCharts() {
         if (this.currentEvaluations.length === 0) {
+            console.log('Sem dados para gráficos');
             return;
         }
         
         if (typeof Chart === 'undefined') {
+            console.log('Aguardando Chart.js...');
             setTimeout(() => this.renderCharts(), 500);
             return;
         }
@@ -388,7 +451,12 @@ export class HomeManager {
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
                 }
             });
         }
