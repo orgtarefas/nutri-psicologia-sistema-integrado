@@ -4,53 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Avaliação Nutricional</title>
-    <link rel="stylesheet" href="./0_style.css">
+    <link rel="stylesheet" href="0_style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 </head>
 <body>
     <div id="app"></div>
     
-    <script type="module">
-        // Importa a configuração do Firebase
-        import { db, collection, getDocs, query, where } from './0_firebase_api_config.js';
-        
-        // Torna disponível globalmente
-        window.db = db;
-        window.collection = collection;
-        window.getDocs = getDocs;
-        window.query = query;
-        window.where = where;
-        
-        // Função para verificar usuário logado
-        async function checkLoggedUser() {
-            const currentUser = localStorage.getItem('currentUser');
-            if (currentUser) {
-                const userInfo = JSON.parse(currentUser);
-                try {
-                    const module = await import('./home.js');
-                    const homeManager = new module.HomeManager(userInfo);
-                    homeManager.render();
-                } catch (error) {
-                    console.error('Erro ao carregar home:', error);
-                    // Se erro, mostra login
-                    showLogin();
-                }
-            } else {
-                showLogin();
-            }
-        }
-        
-        function showLogin() {
-            import('./login.js').then(module => {
-                const loginManager = new module.LoginManager();
-            }).catch(error => {
-                console.error('Erro ao carregar login:', error);
-                document.getElementById('app').innerHTML = '<div style="color:white;text-align:center;padding:20px;">Erro ao carregar sistema. Verifique o console.</div>';
-            });
-        }
-        
-        // Inicia o sistema
-        checkLoggedUser();
-    </script>
+    <script type="module" src="login.js"></script>
 </body>
 </html>
