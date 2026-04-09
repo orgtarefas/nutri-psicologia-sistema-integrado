@@ -15,6 +15,12 @@ import {
     getDoc,
     setDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAO8iQ-Fo16MFjq17MDKvqUFT3n2tlHyFc",
@@ -29,12 +35,14 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 console.log('Firebase inicializado! Project ID:', firebaseConfig.projectId);
 
 // Export tudo que será usado nos outros arquivos
 export { 
     db, 
+    auth,
     collection, 
     addDoc, 
     getDocs, 
@@ -46,5 +54,8 @@ export {
     updateDoc,
     deleteDoc,
     getDoc,
-    setDoc
+    setDoc,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut
 };
