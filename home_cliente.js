@@ -1,4 +1,4 @@
-import { FuncoesCompartilhadas } from './home_funcoescompartilhadas.js';
+import { FuncoesCompartilhadas } from './home.js';
 
 export class HomeCliente {
     constructor(userInfo) {
@@ -48,22 +48,24 @@ export class HomeCliente {
     }
 
     attachEvents() {
-        // Logout
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.funcoes.logout());
         }
 
-        // Admin role selector
         const adminSelector = document.getElementById('adminRoleSelector');
         if (adminSelector) {
             adminSelector.addEventListener('change', (e) => {
-                this.funcoes.switchAdminRole(e.target.value, this.userInfo);
+                const event = new CustomEvent('adminRoleChange', { 
+                    detail: { role: e.target.value } 
+                });
+                window.dispatchEvent(event);
             });
         }
 
-        // Navegação
-        this.funcoes.setupNavButtons();
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => alert('🚧 Em desenvolvimento!'));
+        });
     }
 
     async loadClientEvaluations() {
@@ -88,9 +90,7 @@ export class HomeCliente {
                         <div><strong>Peso:</strong> ${data.dados_antropometricos.peso} kg</div>
                         <div><strong>Altura:</strong> ${data.dados_antropometricos.altura} m</div>
                         <div><strong>IMC:</strong> ${data.dados_antropometricos.imc} - ${data.dados_antropometricos.classificacao_imc}</div>
-                        ${data.bioimpedancia.massa_muscular ? `<div><strong>Massa Muscular:</strong> ${data.bioimpedancia.massa_muscular} kg (Ideal: ${data.bioimpedancia.massa_muscular_ideal} kg)</div>` : ''}
-                        ${data.bioimpedancia.gordura_corporal ? `<div><strong>Gordura:</strong> ${data.bioimpedancia.gordura_corporal}% (Ideal: ${data.bioimpedancia.gordura_corporal_ideal})</div>` : ''}
-                        ${data.exames_laboratoriais.glicemia ? `<div><strong>Glicemia:</strong> ${data.exames_laboratoriais.glicemia} mg/dL</div>` : ''}
+                        ${data.bioimpedancia.massa_muscular ? `<div><strong>Massa Muscular:</strong> ${data.bioimpedancia.massa_muscular} kg</div>` : ''}
                     </div>
                 `;
                 evaluationsList.appendChild(card);
