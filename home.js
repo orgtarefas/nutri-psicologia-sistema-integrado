@@ -1,4 +1,4 @@
-import { db, collection, addDoc, getDocs, query, where, orderBy, limit, doc, updateDoc, setDoc } from './0_firebase_api_config.js';
+import { db, collection, addDoc, getDocs, query, where, orderBy, limit, doc, updateDoc, setDoc, getDoc } from './0_firebase_api_config.js';
 
 export class HomeManager {
     constructor(userInfo) {
@@ -226,6 +226,7 @@ export class HomeManager {
                 if (selectedLogin) {
                     this.selectedClient = this.clientsList.find(c => c.login === selectedLogin);
                     this.displayClientInfo();
+                    this.loadEvaluationData(); // Recarregar gráficos para o cliente selecionado
                 } else {
                     this.selectedClient = null;
                     document.getElementById('clientInfo').style.display = 'none';
@@ -468,9 +469,16 @@ export class HomeManager {
 
             await addDoc(collection(db, "avaliacao_nutricional"), evaluationData);
             alert('✅ Avaliação salva com sucesso!');
-            document.getElementById('nutritionalForm').reset();
             
-            // Resetar campos
+            // Resetar campos do formulário
+            document.getElementById('weight').value = '';
+            document.getElementById('height').value = '';
+            document.getElementById('muscleMass').value = '';
+            document.getElementById('bodyFat').value = '';
+            document.getElementById('bodyWater').value = '';
+            document.getElementById('glucose').value = '';
+            document.getElementById('cholesterol').value = '';
+            
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('evaluationDate').value = today;
             
