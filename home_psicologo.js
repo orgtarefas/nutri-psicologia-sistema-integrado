@@ -57,8 +57,8 @@ export class HomePsicologo {
                                     </select>
                                 </div>
                                 <div class="form-field">
-                                    <label>🔑 Login:</label>
-                                    <input type="text" id="regLogin" placeholder="Ex: nome.sobrenome" required>
+                                    <label>🔑 Login (ex: bia.santos):</label>
+                                    <input type="text" id="regLogin" placeholder="Ex: bia.santos" required>
                                 </div>
                                 <div class="form-field">
                                     <label>🔒 Senha:</label>
