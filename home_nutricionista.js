@@ -1,3 +1,4 @@
+import { addDoc, collection } from './0_firebase_api_config.js';
 import { FuncoesCompartilhadas } from './home.js';
 
 export class HomeNutricionista {
@@ -64,8 +65,8 @@ export class HomeNutricionista {
                                     </select>
                                 </div>
                                 <div class="form-field">
-                                    <label>🔑 Login:</label>
-                                    <input type="text" id="regLogin" placeholder="Ex: nome.sobrenome" required>
+                                    <label>🔑 Login (ex: bia.santos):</label>
+                                    <input type="text" id="regLogin" placeholder="Ex: bia.santos" required>
                                 </div>
                                 <div class="form-field">
                                     <label>🔒 Senha:</label>
@@ -111,7 +112,7 @@ export class HomeNutricionista {
                                     <input type="text" id="imcClassification" readonly>
                                 </div>
                                 <div class="form-field">
-                                    <label>💪 Massa Muscular Ideal:</label>
+                                    <label>💪 Massa Muscular Ideal (kg):</label>
                                     <input type="text" id="idealMuscleMass" readonly>
                                 </div>
                                 <div class="form-field">
@@ -119,7 +120,7 @@ export class HomeNutricionista {
                                     <input type="number" id="muscleMass" step="0.1">
                                 </div>
                                 <div class="form-field">
-                                    <label>🧈 Gordura Ideal:</label>
+                                    <label>🧈 Gordura Ideal (%):</label>
                                     <input type="text" id="idealBodyFat" readonly>
                                 </div>
                                 <div class="form-field">
@@ -127,19 +128,19 @@ export class HomeNutricionista {
                                     <input type="number" id="bodyFat" step="0.1">
                                 </div>
                                 <div class="form-field">
-                                    <label>💧 Água Ideal:</label>
+                                    <label>💧 Água Ideal (%):</label>
                                     <input type="text" id="idealBodyWater" readonly>
                                 </div>
                                 <div class="form-field">
-                                    <label>🩸 Glicemia:</label>
+                                    <label>🩸 Glicemia (mg/dL):</label>
                                     <input type="number" id="glucose">
                                 </div>
                                 <div class="form-field">
-                                    <label>🩸 Colesterol:</label>
+                                    <label>🩸 Colesterol (mg/dL):</label>
                                     <input type="number" id="cholesterol">
                                 </div>
                             </div>
-                            <button type="submit" class="submit-btn">Salvar</button>
+                            <button type="submit" class="submit-btn">Salvar Avaliação</button>
                         </form>
                     </div>
                     
@@ -322,7 +323,7 @@ export class HomeNutricionista {
         const idade = parseInt(document.getElementById('infoIdade').textContent) || 30;
         const sexo = this.selectedClient?.sexo || 'feminino';
         
-        const params = this.funcoes.calculateNutritionalParameters(weight, height, idade, sexo);
+        const params = this.calculateNutritionalParams(weight, height, idade, sexo);
         
         if (params) {
             document.getElementById('imc').value = params.imc;
@@ -331,6 +332,83 @@ export class HomeNutricionista {
             document.getElementById('idealBodyFat').value = params.idealBodyFat;
             document.getElementById('idealBodyWater').value = params.idealBodyWater;
         }
+    }
+
+    calculateNutritionalParams(weight, height, idade, sexo) {
+        if (!weight || !height || height <= 0) return null;
+        
+        const imc = weight / (height * height);
+        
+        let classification = '';
+        if (imc < 18.5) classification = 'Abaixo do peso';
+        else if (imc < 25) classification = 'Peso normal';
+        else if (imc < 30) classification = 'Sobrepeso';
+        else if (imc < 35) classification = 'Obesidade grau I';
+        else if (imc < 40) classification = 'Obesidade grau II';
+        else classification = 'Obesidade grau III';
+        
+        let percentualMassaMuscularIdeal = 0;
+        
+        if (sexo === 'masculino') {
+            if (idade <= 35) percentualMassaMuscularIdeal = 42;
+            else if (idade <= 55) percentualMassaMuscularIdeal = 38;
+            else if (idade <= 75) percentualMassaMuscularIdeal = 33.5;
+            else percentualMassaMuscularIdeal = 30;
+        } else {
+            if (idade <= 35) percentualMassaMuscularIdeal = 27.5;
+            else if (idade <= 55) percentualMassaMuscularIdeal = 26;
+            else if (idade <= 75) percentualMassaMuscularIdeal = 24;
+            else percentualMassaMuscularIdeal = 22;
+        }
+        
+        if (imc > 25 && imc < 30) percentualMassaMuscularIdeal -= 1;
+        else if (imc >= 30) percentualMassaMuscularIdeal -= 2;
+        else if (imc < 18.5) percentualMassaMuscularIdeal -= 2;
+        
+        percentualMassaMuscularIdeal = Math.min(50, Math.max(20, percentualMassaMuscularIdeal));
+        const massaMuscularIdealKg = (weight * percentualMassaMuscularIdeal) / 100;
+        
+        let percentualGorduraIdeal = 0;
+        
+        if (sexo === 'masculino') {
+            if (idade < 30) percentualGorduraIdeal = 14;
+            else if (idade < 50) percentualGorduraIdeal = 16;
+            else percentualGorduraIdeal = 18;
+        } else {
+            if (idade < 30) percentualGorduraIdeal = 21;
+            else if (idade < 50) percentualGorduraIdeal = 23;
+            else percentualGorduraIdeal = 25;
+        }
+        
+        if (imc < 18.5) percentualGorduraIdeal -= 2;
+        else if (imc > 25) percentualGorduraIdeal += 2;
+        if (imc > 30) percentualGorduraIdeal += 2;
+        
+        percentualGorduraIdeal = Math.min(35, Math.max(10, percentualGorduraIdeal));
+        
+        let idealBodyWater = 0;
+        
+        if (sexo === 'masculino') {
+            if (idade < 30) idealBodyWater = 62;
+            else if (idade < 50) idealBodyWater = 60;
+            else idealBodyWater = 58;
+        } else {
+            if (idade < 30) idealBodyWater = 58;
+            else if (idade < 50) idealBodyWater = 56;
+            else idealBodyWater = 54;
+        }
+        
+        if (imc > 25) idealBodyWater -= 3;
+        if (imc > 30) idealBodyWater -= 2;
+        idealBodyWater = Math.min(70, Math.max(45, idealBodyWater));
+        
+        return {
+            imc: imc.toFixed(2),
+            classification: classification,
+            idealMuscleMass: massaMuscularIdealKg.toFixed(1),
+            idealBodyFat: percentualGorduraIdeal + '%',
+            idealBodyWater: idealBodyWater + '%'
+        };
     }
 
     async saveNutritionalEvaluation() {
@@ -361,8 +439,12 @@ export class HomeNutricionista {
                 }
             };
 
-            const result = await this.funcoes.saveNutritionalEvaluation(evaluationData);
-            alert(result.message);
+            const docRef = await addDoc(collection(db, "avaliacao_nutricional"), {
+                ...evaluationData,
+                timestamp: new Date().toISOString()
+            });
+            
+            alert('✅ Avaliação salva com sucesso!');
             
             document.getElementById('weight').value = '';
             document.getElementById('height').value = '';
@@ -374,7 +456,8 @@ export class HomeNutricionista {
             await this.loadEvaluationData();
             
         } catch (error) {
-            alert('❌ ' + error.message);
+            console.error("Erro ao salvar avaliação:", error);
+            alert('❌ Erro ao salvar avaliação: ' + error.message);
         }
     }
 
