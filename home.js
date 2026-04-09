@@ -96,8 +96,9 @@ export class FuncoesCompartilhadas {
             
             if (clientesDoc.exists()) {
                 const currentData = clientesDoc.data();
-                currentData[login] = newClientData[login];
-                await updateDoc(clientesRef, currentData);
+                await updateDoc(clientesRef, {
+                  [login]: newClientData[login]
+                });
             } else {
                 await setDoc(clientesRef, newClientData);
             }
