@@ -43,26 +43,51 @@ class LoginManager {
 
     async validateLogin(login, password) {
         try {
-            // Buscar em todas as pastas possíveis
-            const pastas = ['funcionarios', 'clientes', 'admin'];
+            // A estrutura correta: logins -> funcionarios (documento)
+            // O documento "funcionarios" contém um MAP com os logins
+            const funcionariosRef = doc(db, "logins", "funcionarios");
+            const funcionariosDoc = await getDoc(funcionariosRef);
+            
             let userFound = null;
             let userData = null;
-            let userType = null;
             
-            for (const pasta of pastas) {
-                try {
-                    const userRef = doc(db, "logins", pasta, login);
-                    const userDoc = await getDoc(userRef);
-                    
-                    if (userDoc.exists()) {
-                        userFound = userDoc;
-                        userData = userDoc.data();
-                        userType = pasta;
-                        console.log(`Usuário encontrado na pasta: ${pasta}`, userData);
-                        break;
+            if (funcionariosDoc.exists()) {
+                const data = funcionariosDoc.data();
+                // Buscar o login no MAP dentro do documento
+                if (data[login]) {
+                    userFound = true;
+                    userData = data[login];
+                    console.log('Usuário encontrado em funcionarios:', userData);
+                }
+            }
+            
+            // Se não encontrou em funcionarios, tentar em clientes
+            if (!userFound) {
+                const clientesRef = doc(db, "logins", "clientes");
+                const clientesDoc = await getDoc(clientesRef);
+                
+                if (clientesDoc.exists()) {
+                    const data = clientesDoc.data();
+                    if (data[login]) {
+                        userFound = true;
+                        userData = data[login];
+                        console.log('Usuário encontrado em clientes:', userData);
                     }
-                } catch (error) {
-                    console.log(`Erro ao buscar em ${pasta}:`, error);
+                }
+            }
+            
+            // Se não encontrou em clientes, tentar em admin
+            if (!userFound) {
+                const adminRef = doc(db, "logins", "admin");
+                const adminDoc = await getDoc(adminRef);
+                
+                if (adminDoc.exists()) {
+                    const data = adminDoc.data();
+                    if (data[login]) {
+                        userFound = true;
+                        userData = data[login];
+                        console.log('Usuário encontrado em admin:', userData);
+                    }
                 }
             }
             
@@ -78,7 +103,6 @@ class LoginManager {
                     nome: userData.nome,
                     perfil: userData.perfil,
                     cargo: userData.cargo,
-                    tipo: userType, // funcionarios, clientes ou admin
                     status_ativo: userData.status_ativo
                 };
                 localStorage.setItem('currentUser', JSON.stringify(userInfo));
