@@ -1,4 +1,4 @@
-// Firebase Configuration File - Tudo relacionado ao Firebase está aqui
+// Firebase Configuration File
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
     getFirestore, 
@@ -15,7 +15,6 @@ import {
     getDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAO8iQ-Fo16MFjq17MDKvqUFT3n2tlHyFc",
     authDomain: "data-base-online-evox1.firebaseapp.com",
@@ -26,13 +25,9 @@ const firebaseConfig = {
     appId: "1:972957988116:web:072faae5fdfcceab767e01"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-console.log('Firebase inicializado com sucesso!');
-
-// Export tudo que será usado nos outros arquivos
 export { 
     db, 
     collection, 
