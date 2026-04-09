@@ -2,45 +2,68 @@ import { db, collection, getDocs, doc, setDoc, getDoc } from './0_firebase_api_c
 import { HomeCliente } from './home_cliente.js';
 import { HomeNutricionista } from './home_nutricionista.js';
 import { HomePsicologo } from './home_psicologo.js';
+import { HomeDesenvolvedor } from './home_desenvolvedor.js';
 
 // ==================== FUNÇÕES COMPARTILHADAS ====================
 
 export class FuncoesCompartilhadas {
     
-    // ==================== FUNÇÕES DE CLIENTE ====================
+    // Mapeamento de perfis padrão por cargo
+    static getPerfilPadrao(cargo) {
+        const mapaPerfis = {
+            'paciente': 'operador',
+            'cliente': 'operador',  // Compatibilidade
+            'nutricionista': 'supervisor_nutricionista',
+            'psicologo': 'supervisor_psicologo',
+            'desenvolvedor': 'admin',
+            'admin': 'admin'
+        };
+        return mapaPerfis[cargo] || 'operador';
+    }
     
-    static async loadClientsList() {
+    // Formatar data de YYYY-MM-DD para DD/MM/YYYY para exibição
+    static formatDateToDisplay(dateString) {
+        if (!dateString) return '';
+        const partes = dateString.split('-');
+        if (partes.length === 3) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        return dateString;
+    }
+    
+    // ==================== FUNÇÕES DE PACIENTE ====================
+    
+    static async loadPacientesList() {
         try {
             const querySnapshot = await getDocs(collection(db, "logins"));
-            const clientsList = [];
+            const pacientesList = [];
             
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                if (data.perfil === 'paciente') {  // Mudado de cargo para perfil
-                    clientsList.push({
+                if (data.cargo === 'paciente') {
+                    pacientesList.push({
                         login: doc.id,
                         nome: data.nome,
                         senha: data.senha,
                         dataNascimento: data.dataNascimento,
-                        dataNascimentoExibir: this.formatDateToDisplay(data.dataNascimento),
                         sexo: data.sexo,
                         status_ativo: data.status_ativo,
-                        cargo: data.cargo || 'paciente',  // Para exibição
+                        cargo: data.cargo,
                         perfil: data.perfil,
                         dataHoraCadastro: data.dataHoraCadastro
                     });
                 }
             });
             
-            return clientsList;
+            return pacientesList;
         } catch (error) {
-            console.error("Erro ao carregar clientes:", error);
+            console.error("Erro ao carregar pacientes:", error);
             return [];
         }
     }
     
-    static async registerClient(clientData) {
-        const { nome, login, senha, dataNascimento, sexo } = clientData;
+    static async registerPaciente(pacienteData) {
+        const { nome, login, senha, dataNascimento, sexo } = pacienteData;
         
         if (!nome || !login || !senha || !dataNascimento || !sexo) {
             throw new Error('Preencha todos os campos!');
@@ -54,7 +77,7 @@ export class FuncoesCompartilhadas {
             throw new Error('A senha deve ter no mínimo 4 caracteres!');
         }
         
-        // Converter data de nascimento do formato DD/MM/YYYY para YYYY-MM-DD
+        // Converter data de nascimento
         let dataNascimentoFormatada = dataNascimento;
         if (dataNascimento.includes('/')) {
             const partes = dataNascimento.split('/');
@@ -74,19 +97,19 @@ export class FuncoesCompartilhadas {
         }
         
         if (idade < 18) {
-            throw new Error('Cliente deve ter 18 anos ou mais!');
+            throw new Error('Paciente deve ter 18 anos ou mais!');
         }
         
-        const existingClients = await this.loadClientsList();
-        const existingClient = existingClients.find(c => c.login === login);
-        if (existingClient) {
+        const existingPacientes = await this.loadPacientesList();
+        const existingPaciente = existingPacientes.find(c => c.login === login);
+        if (existingPaciente) {
             throw new Error('Este login já existe! Escolha outro.');
         }
         
         try {
-            const clientRef = doc(db, "logins", login);
+            const pacienteRef = doc(db, "logins", login);
             
-            // Formatar data e hora no padrão solicitado
+            // Formatar data e hora
             const agora = new Date();
             const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
                            'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -98,56 +121,37 @@ export class FuncoesCompartilhadas {
             const minutos = agora.getMinutes().toString().padStart(2, '0');
             const segundos = agora.getSeconds().toString().padStart(2, '0');
             
-            // Obter offset do timezone
             const offset = -agora.getTimezoneOffset() / 60;
             const offsetSinal = offset >= 0 ? '+' : '';
             const offsetStr = `UTC${offsetSinal}${offset}`;
             
             const dataHoraCadastro = `${dia} de ${mes} de ${ano} às ${horas}:${minutos}:${segundos} ${offsetStr}`;
             
-            const clientDataToSave = {
+            // Cargo define a tela (navegação)
+            // Perfil define funcionalidades especiais
+            const pacienteDataToSave = {
                 nome: nome.toUpperCase(),
                 senha: senha,
                 dataNascimento: dataNascimentoFormatada,
                 sexo: sexo,
-                cargo: "paciente",  // Para exibição
-                perfil: "paciente",  // Para navegação e regras
+                cargo: "paciente",           // Navegação: Tela do Paciente
+                perfil: "operador",          // Funcionalidades: Básicas
                 status_ativo: true,
                 dataHoraCadastro: dataHoraCadastro,
                 dataCadastro: agora.toISOString()
             };
             
-            await setDoc(clientRef, clientDataToSave);
+            await setDoc(pacienteRef, pacienteDataToSave);
             
             return { success: true, message: `Paciente "${nome}" cadastrado com sucesso!\nLogin: ${login}\nSenha: ${senha}` };
             
         } catch (error) {
-            console.error("Erro ao cadastrar cliente:", error);
-            throw new Error('Erro ao cadastrar cliente: ' + error.message);
+            console.error("Erro ao cadastrar paciente:", error);
+            throw new Error('Erro ao cadastrar paciente: ' + error.message);
         }
     }
     
-    // ==================== FUNÇÕES DE FORMATAÇÃO ====================
-    
-    static formatDateToDisplay(dateString) {
-        if (!dateString) return '';
-        const partes = dateString.split('-');
-        if (partes.length === 3) {
-            return `${partes[2]}/${partes[1]}/${partes[0]}`;
-        }
-        return dateString;
-    }
-    
-    static formatDateToSave(dateString) {
-        if (!dateString) return '';
-        if (dateString.includes('/')) {
-            const partes = dateString.split('/');
-            return `${partes[2]}-${partes[1]}-${partes[0]}`;
-        }
-        return dateString;
-    }
-    
-    // ==================== FUNÇÕES DE AVALIAÇÃO (LEITURA) ====================
+    // ==================== FUNÇÕES DE AVALIAÇÃO ====================
     
     static async loadEvaluationsByPatient(patientLogin) {
         try {
@@ -170,7 +174,97 @@ export class FuncoesCompartilhadas {
         }
     }
     
-    // ==================== FUNÇÕES DE UTILITÁRIOS ====================
+    static async saveNutritionalEvaluation(evaluationData) {
+        try {
+            const docRef = await addDoc(collection(db, "avaliacao_nutricional"), {
+                ...evaluationData,
+                timestamp: new Date().toISOString()
+            });
+            return { success: true, message: '✅ Avaliação salva com sucesso!', id: docRef.id };
+        } catch (error) {
+            console.error("Erro ao salvar avaliação:", error);
+            throw new Error('Erro ao salvar avaliação: ' + error.message);
+        }
+    }
+    
+    // ==================== FUNÇÕES DE CÁLCULO NUTRICIONAL ====================
+    
+    static calculateNutritionalParameters(weight, height, idade, sexo) {
+        if (!weight || !height || height <= 0) return null;
+        
+        const imc = weight / (height * height);
+        
+        let classification = '';
+        if (imc < 18.5) classification = 'Abaixo do peso';
+        else if (imc < 25) classification = 'Peso normal';
+        else if (imc < 30) classification = 'Sobrepeso';
+        else if (imc < 35) classification = 'Obesidade grau I';
+        else if (imc < 40) classification = 'Obesidade grau II';
+        else classification = 'Obesidade grau III';
+        
+        let percentualMassaMuscularIdeal = 0;
+        
+        if (sexo === 'masculino') {
+            if (idade <= 35) percentualMassaMuscularIdeal = 42;
+            else if (idade <= 55) percentualMassaMuscularIdeal = 38;
+            else if (idade <= 75) percentualMassaMuscularIdeal = 33.5;
+            else percentualMassaMuscularIdeal = 30;
+        } else {
+            if (idade <= 35) percentualMassaMuscularIdeal = 27.5;
+            else if (idade <= 55) percentualMassaMuscularIdeal = 26;
+            else if (idade <= 75) percentualMassaMuscularIdeal = 24;
+            else percentualMassaMuscularIdeal = 22;
+        }
+        
+        if (imc > 25 && imc < 30) percentualMassaMuscularIdeal -= 1;
+        else if (imc >= 30) percentualMassaMuscularIdeal -= 2;
+        else if (imc < 18.5) percentualMassaMuscularIdeal -= 2;
+        
+        percentualMassaMuscularIdeal = Math.min(50, Math.max(20, percentualMassaMuscularIdeal));
+        const massaMuscularIdealKg = (weight * percentualMassaMuscularIdeal) / 100;
+        
+        let percentualGorduraIdeal = 0;
+        
+        if (sexo === 'masculino') {
+            if (idade < 30) percentualGorduraIdeal = 14;
+            else if (idade < 50) percentualGorduraIdeal = 16;
+            else percentualGorduraIdeal = 18;
+        } else {
+            if (idade < 30) percentualGorduraIdeal = 21;
+            else if (idade < 50) percentualGorduraIdeal = 23;
+            else percentualGorduraIdeal = 25;
+        }
+        
+        if (imc < 18.5) percentualGorduraIdeal -= 2;
+        else if (imc > 25) percentualGorduraIdeal += 2;
+        if (imc > 30) percentualGorduraIdeal += 2;
+        
+        percentualGorduraIdeal = Math.min(35, Math.max(10, percentualGorduraIdeal));
+        
+        let idealBodyWater = 0;
+        
+        if (sexo === 'masculino') {
+            if (idade < 30) idealBodyWater = 62;
+            else if (idade < 50) idealBodyWater = 60;
+            else idealBodyWater = 58;
+        } else {
+            if (idade < 30) idealBodyWater = 58;
+            else if (idade < 50) idealBodyWater = 56;
+            else idealBodyWater = 54;
+        }
+        
+        if (imc > 25) idealBodyWater -= 3;
+        if (imc > 30) idealBodyWater -= 2;
+        idealBodyWater = Math.min(70, Math.max(45, idealBodyWater));
+        
+        return {
+            imc: imc.toFixed(2),
+            classification: classification,
+            idealMuscleMass: massaMuscularIdealKg.toFixed(1),
+            idealBodyFat: percentualGorduraIdeal + '%',
+            idealBodyWater: idealBodyWater + '%'
+        };
+    }
     
     static calculateAge(birthDate) {
         if (!birthDate) return null;
@@ -184,10 +278,30 @@ export class FuncoesCompartilhadas {
         return age;
     }
     
-    static formatDateTime(date) {
-        if (!date) return '';
-        const d = new Date(date);
-        return d.toLocaleString('pt-BR');
+    // ==================== FUNÇÕES DE UTILITÁRIOS ====================
+    
+    static getPerfilBadgeClass(perfil) {
+        const classes = {
+            'operador': 'perfil-operador',
+            'operador_membro': 'perfil-operador-membro',
+            'supervisor_nutricionista': 'perfil-supervisor',
+            'supervisor_psicologo': 'perfil-supervisor',
+            'gerente_nutricionista': 'perfil-gerente',
+            'admin': 'perfil-admin'
+        };
+        return classes[perfil] || 'perfil-operador';
+    }
+    
+    static getPerfilDisplayName(perfil) {
+        const nomes = {
+            'operador': 'Operador',
+            'operador_membro': 'Membro',
+            'supervisor_nutricionista': 'Supervisor Nutrição',
+            'supervisor_psicologo': 'Supervisor Psicologia',
+            'gerente_nutricionista': 'Gerente Nutrição',
+            'admin': 'Administrador'
+        };
+        return nomes[perfil] || perfil;
     }
     
     static logout() {
@@ -230,24 +344,43 @@ export class HomeManager {
     }
 
     render() {
-        // Usa 'perfil' para navegação
-        if (this.userInfo.perfil === 'admin') {
-            this.showHomeByRole(this.userInfo.perfil || 'admin');
-        } else {
-            this.showHomeByRole(this.userInfo.perfil);
+        // Navegação baseada no CARGO (não no perfil)
+        const cargo = this.userInfo.cargo;
+        
+        switch(cargo) {
+            case 'paciente':
+                this.currentHome = new HomeCliente(this.userInfo);
+                break;
+            case 'cliente':  // Compatibilidade
+                this.currentHome = new HomeCliente(this.userInfo);
+                break;
+            case 'nutricionista':
+                this.currentHome = new HomeNutricionista(this.userInfo);
+                break;
+            case 'psicologo':
+                this.currentHome = new HomePsicologo(this.userInfo);
+                break;
+            case 'desenvolvedor':
+                this.currentHome = new HomeDesenvolvedor(this.userInfo);
+                break;
+            default:
+                this.currentHome = new HomeCliente(this.userInfo);
         }
         
+        this.currentHome.render();
+        
+        // Listener para admin trocar de perfil
         window.addEventListener('adminRoleChange', (e) => {
-            if (this.userInfo.perfil === 'admin') {
-                this.userInfo.perfil = e.detail.role;
-                this.userInfo.cargo = e.detail.role === 'paciente' ? 'paciente' : e.detail.role;
-                this.showHomeByRole(e.detail.role);
+            if (this.userInfo.perfil === 'admin' || this.userInfo.cargo === 'desenvolvedor') {
+                this.userInfo.cargo = e.detail.cargo;
+                this.userInfo.perfil = e.detail.perfil;
+                this.showHomeByCargo(e.detail.cargo);
             }
         });
     }
     
-    showHomeByRole(role) {
-        switch(role) {
+    showHomeByCargo(cargo) {
+        switch(cargo) {
             case 'paciente':
                 this.currentHome = new HomeCliente(this.userInfo);
                 break;
@@ -257,9 +390,8 @@ export class HomeManager {
             case 'psicologo':
                 this.currentHome = new HomePsicologo(this.userInfo);
                 break;
-            case 'admin':
-                // Admin pode escolher, por padrão mostra nutricionista
-                this.currentHome = new HomeNutricionista(this.userInfo);
+            case 'desenvolvedor':
+                this.currentHome = new HomeDesenvolvedor(this.userInfo);
                 break;
             default:
                 this.currentHome = new HomeCliente(this.userInfo);
