@@ -1,4 +1,4 @@
-import { FuncoesCompartilhadas } from './home_funcoescompartilhadas.js';
+import { FuncoesCompartilhadas } from './home.js';
 
 export class HomePsicologo {
     constructor(userInfo) {
@@ -39,7 +39,6 @@ export class HomePsicologo {
                         <button class="nav-btn" id="registerClientBtn" style="background: #48bb78; color: white;">➕ Cadastrar Cliente</button>
                     </div>
                     
-                    <!-- Modal de Cadastro de Cliente -->
                     <div id="registerModal" class="modal" style="display: none;">
                         <div class="modal-content">
                             <span class="close">&times;</span>
@@ -47,7 +46,7 @@ export class HomePsicologo {
                             <form id="registerClientForm">
                                 <div class="form-field">
                                     <label>👤 Nome Completo:</label>
-                                    <input type="text" id="regNome" placeholder="Digite o nome completo" required>
+                                    <input type="text" id="regNome" required>
                                 </div>
                                 <div class="form-field">
                                     <label>⚥ Sexo:</label>
@@ -58,18 +57,18 @@ export class HomePsicologo {
                                     </select>
                                 </div>
                                 <div class="form-field">
-                                    <label>🔑 Login (será usado para acesso):</label>
+                                    <label>🔑 Login:</label>
                                     <input type="text" id="regLogin" placeholder="Ex: bia.santos" required>
                                 </div>
                                 <div class="form-field">
                                     <label>🔒 Senha:</label>
-                                    <input type="password" id="regSenha" placeholder="Digite a senha" required>
+                                    <input type="password" id="regSenha" required>
                                 </div>
                                 <div class="form-field">
                                     <label>📅 Data de Nascimento:</label>
                                     <input type="date" id="regDataNascimento" required>
                                 </div>
-                                <button type="submit" class="submit-btn">Cadastrar Cliente</button>
+                                <button type="submit" class="submit-btn">Cadastrar</button>
                             </form>
                         </div>
                     </div>
@@ -84,33 +83,31 @@ export class HomePsicologo {
     }
 
     attachEvents() {
-        // Logout
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.funcoes.logout());
         }
 
-        // Admin role selector
         const adminSelector = document.getElementById('adminRoleSelector');
         if (adminSelector) {
             adminSelector.addEventListener('change', (e) => {
-                this.funcoes.switchAdminRole(e.target.value, this.userInfo);
+                const event = new CustomEvent('adminRoleChange', { 
+                    detail: { role: e.target.value } 
+                });
+                window.dispatchEvent(event);
             });
         }
 
-        // Modal de cadastro
         const registerBtn = document.getElementById('registerClientBtn');
-        
         if (registerBtn) {
             registerBtn.addEventListener('click', () => {
-                this.limparFormularioCadastro();
+                this.clearRegisterForm();
                 this.funcoes.showModal('registerModal');
             });
         }
-        
+
         this.funcoes.setupModalEvents('registerModal');
-        
-        // Form de cadastro
+
         const registerForm = document.getElementById('registerClientForm');
         if (registerForm) {
             registerForm.addEventListener('submit', async (e) => {
@@ -119,11 +116,12 @@ export class HomePsicologo {
             });
         }
 
-        // Navegação
-        this.funcoes.setupNavButtons();
+        document.querySelectorAll('.nav-btn:not(#registerClientBtn)').forEach(btn => {
+            btn.addEventListener('click', () => alert('🚧 Em desenvolvimento!'));
+        });
     }
 
-    limparFormularioCadastro() {
+    clearRegisterForm() {
         document.getElementById('regNome').value = '';
         document.getElementById('regLogin').value = '';
         document.getElementById('regSenha').value = '';
