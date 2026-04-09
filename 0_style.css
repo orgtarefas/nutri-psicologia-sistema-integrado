@@ -6,36 +6,22 @@
 
 body {
     font-family: 'Segoe UI', 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: linear-gradient(135deg, #1a237e 0%, #0d1b4a 100%);
+    background: linear-gradient(135deg, #1a237e 0%, #0f1a5c 50%, #0d1b4a 100%);
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    position: relative;
-}
-
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.05"><path fill="white" d="M20,20 L80,20 L80,80 L20,80 Z"/><circle cx="50" cy="50" r="10"/></svg>');
-    background-repeat: repeat;
-    pointer-events: none;
 }
 
 /* ==================== LOGIN SCREEN ==================== */
 
 .login-container {
-    background: rgba(255, 255, 255, 0.98);
+    background: white;
     border-radius: 24px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
     padding: 48px 40px;
     width: 100%;
     max-width: 440px;
-    backdrop-filter: blur(10px);
     transition: transform 0.3s ease;
 }
 
@@ -53,14 +39,6 @@ body::before {
     height: auto;
 }
 
-.login-container h2 {
-    text-align: center;
-    color: #1a237e;
-    margin-bottom: 32px;
-    font-size: 28px;
-    font-weight: 600;
-}
-
 .input-group {
     margin-bottom: 24px;
 }
@@ -69,7 +47,7 @@ body::before {
     display: block;
     margin-bottom: 8px;
     color: #1a237e;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 14px;
 }
 
@@ -122,7 +100,7 @@ body::before {
 /* ==================== HOME CONTAINER ==================== */
 
 .home-container {
-    background: #f1f5f9;
+    background: #f8fafc;
     border-radius: 24px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     width: 100%;
@@ -161,7 +139,6 @@ body::before {
     font-size: 22px;
     font-weight: 600;
     margin: 0;
-    letter-spacing: -0.3px;
 }
 
 .user-info {
