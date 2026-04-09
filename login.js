@@ -1,5 +1,4 @@
-import { db } from './0_firebase_api_config.js';
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { db, collection, getDocs, query, where } from './firebase-imports.js';
 
 class LoginManager {
     constructor() {
