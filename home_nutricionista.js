@@ -6,21 +6,26 @@ export class HomeNutricionista {
         this.userInfo = userInfo;
         this.funcoes = FuncoesCompartilhadas;
         this.currentEvaluations = [];
-        this.clientsList = [];
+        this.pacientesList = [];
         this.weightChart = null;
         this.imcChart = null;
         this.muscleChart = null;
-        this.selectedClient = null;
+        this.selectedPaciente = null;
     }
 
     render() {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         this.attachEvents();
-        this.loadClientsList();
+        this.loadPacientesList();
     }
 
     renderHTML() {
+        const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
+        const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
+        const isGerente = this.userInfo.perfil === 'gerente_nutricionista';
+        const isSupervisor = this.userInfo.perfil === 'supervisor_nutricionista';
+        
         return `
             <div class="home-container">
                 <div class="header">
@@ -28,11 +33,14 @@ export class HomeNutricionista {
                     <div class="user-info">
                         <span>👋 Olá, ${this.userInfo.nome}</span>
                         <span>🏷️ Nutricionista</span>
-                        ${this.userInfo.perfil === 'admin' ? `
+                        <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
+                        ${this.userInfo.perfil === 'admin' || this.userInfo.cargo === 'desenvolvedor' ? `
                             <select id="adminRoleSelector" class="role-selector">
-                                <option value="nutricionista">🍎 Nutricionista</option>
-                                <option value="cliente">👤 Cliente</option>
-                                <option value="psicologo">🧠 Psicólogo</option>
+                                <option value="paciente|operador">👤 Paciente (Operador)</option>
+                                <option value="paciente|operador_membro">👤 Paciente (Membro)</option>
+                                <option value="nutricionista|supervisor_nutricionista">🍎 Nutricionista (Supervisor)</option>
+                                <option value="nutricionista|gerente_nutricionista">🍎 Nutricionista (Gerente)</option>
+                                <option value="psicologo|supervisor_psicologo">🧠 Psicólogo</option>
                             </select>
                         ` : ''}
                         <button class="logout-btn" id="logoutBtn">Sair</button>
@@ -44,14 +52,21 @@ export class HomeNutricionista {
                         <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
                         <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
                         <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
-                        <button class="nav-btn" id="registerClientBtn" style="background: #48bb78; color: white;">➕ Cadastrar Cliente</button>
+                        <button class="nav-btn" id="registerPacienteBtn" style="background: #48bb78; color: white;">➕ Cadastrar Paciente</button>
+                        ${isSupervisor ? `
+                            <button class="nav-btn" id="approveEvaluationsBtn" style="background: #4299e1; color: white;">✓ Aprovar Avaliações</button>
+                        ` : ''}
+                        ${isGerente ? `
+                            <button class="nav-btn" id="manageTeamBtn" style="background: #9f7aea; color: white;">👥 Gerenciar Equipe</button>
+                            <button class="nav-btn" id="reportsBtn" style="background: #ed8936; color: white;">📊 Relatórios Gerenciais</button>
+                        ` : ''}
                     </div>
                     
                     <div id="registerModal" class="modal" style="display: none;">
                         <div class="modal-content">
                             <span class="close">&times;</span>
-                            <h3>📝 Cadastrar Novo Cliente</h3>
-                            <form id="registerClientForm">
+                            <h3>📝 Cadastrar Novo Paciente</h3>
+                            <form id="registerPacienteForm">
                                 <div class="form-field">
                                     <label>👤 Nome Completo:</label>
                                     <input type="text" id="regNome" required>
@@ -86,8 +101,8 @@ export class HomeNutricionista {
                         <form id="nutritionalForm">
                             <div class="form-grid">
                                 <div class="form-field">
-                                    <label>👤 Cliente:</label>
-                                    <select id="clientSelect" required>
+                                    <label>👤 Paciente:</label>
+                                    <select id="pacienteSelect" required>
                                         <option value="">-- Selecione --</option>
                                     </select>
                                 </div>
@@ -144,8 +159,8 @@ export class HomeNutricionista {
                         </form>
                     </div>
                     
-                    <div id="clientInfo" class="client-info" style="display: none;">
-                        <h3>📋 Informações do Cliente</h3>
+                    <div id="pacienteInfo" class="client-info" style="display: none;">
+                        <h3>📋 Informações do Paciente</h3>
                         <div class="info-card">
                             <p><strong>Nome:</strong> <span id="infoNome"></span></p>
                             <p><strong>Login:</strong> <span id="infoLogin"></span></p>
@@ -183,14 +198,15 @@ export class HomeNutricionista {
         const adminSelector = document.getElementById('adminRoleSelector');
         if (adminSelector) {
             adminSelector.addEventListener('change', (e) => {
+                const [cargo, perfil] = e.target.value.split('|');
                 const event = new CustomEvent('adminRoleChange', { 
-                    detail: { role: e.target.value } 
+                    detail: { cargo: cargo, perfil: perfil } 
                 });
                 window.dispatchEvent(event);
             });
         }
 
-        const registerBtn = document.getElementById('registerClientBtn');
+        const registerBtn = document.getElementById('registerPacienteBtn');
         if (registerBtn) {
             registerBtn.addEventListener('click', () => {
                 this.clearRegisterForm();
@@ -200,24 +216,43 @@ export class HomeNutricionista {
 
         this.funcoes.setupModalEvents('registerModal');
 
-        const registerForm = document.getElementById('registerClientForm');
+        const registerForm = document.getElementById('registerPacienteForm');
         if (registerForm) {
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                await this.registerClient();
+                await this.registerPaciente();
             });
         }
 
-        document.querySelectorAll('.nav-btn:not(#registerClientBtn)').forEach(btn => {
-            btn.addEventListener('click', () => alert('🚧 Em desenvolvimento!'));
+        // Botões específicos por perfil
+        const approveBtn = document.getElementById('approveEvaluationsBtn');
+        if (approveBtn) {
+            approveBtn.addEventListener('click', () => this.approveEvaluations());
+        }
+
+        const manageTeamBtn = document.getElementById('manageTeamBtn');
+        if (manageTeamBtn) {
+            manageTeamBtn.addEventListener('click', () => this.manageTeam());
+        }
+
+        const reportsBtn = document.getElementById('reportsBtn');
+        if (reportsBtn) {
+            reportsBtn.addEventListener('click', () => this.showReports());
+        }
+
+        document.querySelectorAll('.nav-btn:not(#registerPacienteBtn):not(#approveEvaluationsBtn):not(#manageTeamBtn):not(#reportsBtn)').forEach(btn => {
+            const module = btn.getAttribute('data-module');
+            if (module) {
+                btn.addEventListener('click', () => alert(`🚧 Módulo ${module} em desenvolvimento!`));
+            }
         });
 
         const form = document.getElementById('nutritionalForm');
         if (form) {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                if (!this.selectedClient) {
-                    alert('❌ Selecione um cliente primeiro!');
+                if (!this.selectedPaciente) {
+                    alert('❌ Selecione um paciente primeiro!');
                     return;
                 }
                 await this.saveNutritionalEvaluation();
@@ -228,7 +263,7 @@ export class HomeNutricionista {
         const heightInput = document.getElementById('height');
         
         const calculateFields = () => {
-            if (this.selectedClient) {
+            if (this.selectedPaciente) {
                 this.calculateNutritionalParameters();
             }
         };
@@ -244,6 +279,19 @@ export class HomeNutricionista {
         }
     }
 
+    // Funções específicas por perfil
+    approveEvaluations() {
+        alert('✓ Funcionalidade de aprovação de avaliações!\n(Apenas supervisores e gerentes)');
+    }
+
+    manageTeam() {
+        alert('👥 Painel de Gerenciamento de Equipe!\n(Apenas gerentes)');
+    }
+
+    showReports() {
+        alert('📊 Relatórios Gerenciais!\n(Apenas gerentes)');
+    }
+
     clearRegisterForm() {
         document.getElementById('regNome').value = '';
         document.getElementById('regLogin').value = '';
@@ -252,8 +300,8 @@ export class HomeNutricionista {
         document.getElementById('regSexo').value = '';
     }
 
-    async registerClient() {
-        const clientData = {
+    async registerPaciente() {
+        const pacienteData = {
             nome: document.getElementById('regNome').value,
             login: document.getElementById('regLogin').value,
             senha: document.getElementById('regSenha').value,
@@ -262,41 +310,41 @@ export class HomeNutricionista {
         };
         
         try {
-            const result = await this.funcoes.registerClient(clientData);
+            const result = await this.funcoes.registerPaciente(pacienteData);
             alert(result.message);
             this.funcoes.closeModal('registerModal');
-            await this.loadClientsList();
+            await this.loadPacientesList();
         } catch (error) {
             alert('❌ ' + error.message);
         }
     }
 
-    async loadClientsList() {
-        this.clientsList = await this.funcoes.loadClientsList();
-        this.populateClientSelect();
+    async loadPacientesList() {
+        this.pacientesList = await this.funcoes.loadPacientesList();
+        this.populatePacienteSelect();
     }
 
-    populateClientSelect() {
-        const clientSelect = document.getElementById('clientSelect');
-        if (clientSelect) {
-            clientSelect.innerHTML = '<option value="">-- Selecione um cliente --</option>';
+    populatePacienteSelect() {
+        const pacienteSelect = document.getElementById('pacienteSelect');
+        if (pacienteSelect) {
+            pacienteSelect.innerHTML = '<option value="">-- Selecione um paciente --</option>';
             
-            this.clientsList.forEach(client => {
+            this.pacientesList.forEach(paciente => {
                 const option = document.createElement('option');
-                option.value = client.login;
-                option.textContent = `${client.nome} (${client.login})`;
-                clientSelect.appendChild(option);
+                option.value = paciente.login;
+                option.textContent = `${paciente.nome} (${paciente.login})`;
+                pacienteSelect.appendChild(option);
             });
             
-            clientSelect.addEventListener('change', async (e) => {
+            pacienteSelect.addEventListener('change', async (e) => {
                 const selectedLogin = e.target.value;
                 if (selectedLogin) {
-                    this.selectedClient = this.clientsList.find(c => c.login === selectedLogin);
-                    this.displayClientInfo();
+                    this.selectedPaciente = this.pacientesList.find(p => p.login === selectedLogin);
+                    this.displayPacienteInfo();
                     await this.loadEvaluationData();
                 } else {
-                    this.selectedClient = null;
-                    document.getElementById('clientInfo').style.display = 'none';
+                    this.selectedPaciente = null;
+                    document.getElementById('pacienteInfo').style.display = 'none';
                     this.currentEvaluations = [];
                     this.renderCharts();
                 }
@@ -304,15 +352,18 @@ export class HomeNutricionista {
         }
     }
 
-    displayClientInfo() {
-        if (this.selectedClient) {
-            document.getElementById('clientInfo').style.display = 'block';
-            document.getElementById('infoNome').textContent = this.selectedClient.nome || 'Não informado';
-            document.getElementById('infoLogin').textContent = this.selectedClient.login || 'Não informado';
-            document.getElementById('infoDataNasc').textContent = this.selectedClient.dataNascimento || 'Não informado';
-            document.getElementById('infoSexo').textContent = this.selectedClient.sexo || 'Não informado';
+    displayPacienteInfo() {
+        if (this.selectedPaciente) {
+            document.getElementById('pacienteInfo').style.display = 'block';
+            document.getElementById('infoNome').textContent = this.selectedPaciente.nome || 'Não informado';
+            document.getElementById('infoLogin').textContent = this.selectedPaciente.login || 'Não informado';
             
-            const idade = this.funcoes.calculateAge(this.selectedClient.dataNascimento);
+            const dataNascimentoExibir = this.funcoes.formatDateToDisplay(this.selectedPaciente.dataNascimento);
+            document.getElementById('infoDataNasc').textContent = dataNascimentoExibir || 'Não informado';
+            
+            document.getElementById('infoSexo').textContent = this.selectedPaciente.sexo || 'Não informado';
+            
+            const idade = this.funcoes.calculateAge(this.selectedPaciente.dataNascimento);
             document.getElementById('infoIdade').textContent = idade || 'Não informado';
         }
     }
@@ -321,9 +372,9 @@ export class HomeNutricionista {
         const weight = parseFloat(document.getElementById('weight').value);
         const height = parseFloat(document.getElementById('height').value);
         const idade = parseInt(document.getElementById('infoIdade').textContent) || 30;
-        const sexo = this.selectedClient?.sexo || 'feminino';
+        const sexo = this.selectedPaciente?.sexo || 'feminino';
         
-        const params = this.calculateNutritionalParams(weight, height, idade, sexo);
+        const params = this.funcoes.calculateNutritionalParameters(weight, height, idade, sexo);
         
         if (params) {
             document.getElementById('imc').value = params.imc;
@@ -334,88 +385,11 @@ export class HomeNutricionista {
         }
     }
 
-    calculateNutritionalParams(weight, height, idade, sexo) {
-        if (!weight || !height || height <= 0) return null;
-        
-        const imc = weight / (height * height);
-        
-        let classification = '';
-        if (imc < 18.5) classification = 'Abaixo do peso';
-        else if (imc < 25) classification = 'Peso normal';
-        else if (imc < 30) classification = 'Sobrepeso';
-        else if (imc < 35) classification = 'Obesidade grau I';
-        else if (imc < 40) classification = 'Obesidade grau II';
-        else classification = 'Obesidade grau III';
-        
-        let percentualMassaMuscularIdeal = 0;
-        
-        if (sexo === 'masculino') {
-            if (idade <= 35) percentualMassaMuscularIdeal = 42;
-            else if (idade <= 55) percentualMassaMuscularIdeal = 38;
-            else if (idade <= 75) percentualMassaMuscularIdeal = 33.5;
-            else percentualMassaMuscularIdeal = 30;
-        } else {
-            if (idade <= 35) percentualMassaMuscularIdeal = 27.5;
-            else if (idade <= 55) percentualMassaMuscularIdeal = 26;
-            else if (idade <= 75) percentualMassaMuscularIdeal = 24;
-            else percentualMassaMuscularIdeal = 22;
-        }
-        
-        if (imc > 25 && imc < 30) percentualMassaMuscularIdeal -= 1;
-        else if (imc >= 30) percentualMassaMuscularIdeal -= 2;
-        else if (imc < 18.5) percentualMassaMuscularIdeal -= 2;
-        
-        percentualMassaMuscularIdeal = Math.min(50, Math.max(20, percentualMassaMuscularIdeal));
-        const massaMuscularIdealKg = (weight * percentualMassaMuscularIdeal) / 100;
-        
-        let percentualGorduraIdeal = 0;
-        
-        if (sexo === 'masculino') {
-            if (idade < 30) percentualGorduraIdeal = 14;
-            else if (idade < 50) percentualGorduraIdeal = 16;
-            else percentualGorduraIdeal = 18;
-        } else {
-            if (idade < 30) percentualGorduraIdeal = 21;
-            else if (idade < 50) percentualGorduraIdeal = 23;
-            else percentualGorduraIdeal = 25;
-        }
-        
-        if (imc < 18.5) percentualGorduraIdeal -= 2;
-        else if (imc > 25) percentualGorduraIdeal += 2;
-        if (imc > 30) percentualGorduraIdeal += 2;
-        
-        percentualGorduraIdeal = Math.min(35, Math.max(10, percentualGorduraIdeal));
-        
-        let idealBodyWater = 0;
-        
-        if (sexo === 'masculino') {
-            if (idade < 30) idealBodyWater = 62;
-            else if (idade < 50) idealBodyWater = 60;
-            else idealBodyWater = 58;
-        } else {
-            if (idade < 30) idealBodyWater = 58;
-            else if (idade < 50) idealBodyWater = 56;
-            else idealBodyWater = 54;
-        }
-        
-        if (imc > 25) idealBodyWater -= 3;
-        if (imc > 30) idealBodyWater -= 2;
-        idealBodyWater = Math.min(70, Math.max(45, idealBodyWater));
-        
-        return {
-            imc: imc.toFixed(2),
-            classification: classification,
-            idealMuscleMass: massaMuscularIdealKg.toFixed(1),
-            idealBodyFat: percentualGorduraIdeal + '%',
-            idealBodyWater: idealBodyWater + '%'
-        };
-    }
-
     async saveNutritionalEvaluation() {
         try {
             const evaluationData = {
-                paciente_login: this.selectedClient.login,
-                paciente_nome: this.selectedClient.nome || '',
+                paciente_login: this.selectedPaciente.login,
+                paciente_nome: this.selectedPaciente.nome || '',
                 profissional: this.userInfo.nome || '',
                 profissional_login: this.userInfo.login || '',
                 cargo: this.userInfo.cargo || 'nutricionista',
@@ -439,12 +413,7 @@ export class HomeNutricionista {
                 }
             };
 
-            const docRef = await addDoc(collection(db, "avaliacao_nutricional"), {
-                ...evaluationData,
-                timestamp: new Date().toISOString()
-            });
-            
-            alert('✅ Avaliação salva com sucesso!');
+            await this.funcoes.saveNutritionalEvaluation(evaluationData);
             
             document.getElementById('weight').value = '';
             document.getElementById('height').value = '';
@@ -456,15 +425,14 @@ export class HomeNutricionista {
             await this.loadEvaluationData();
             
         } catch (error) {
-            console.error("Erro ao salvar avaliação:", error);
-            alert('❌ Erro ao salvar avaliação: ' + error.message);
+            alert('❌ ' + error.message);
         }
     }
 
     async loadEvaluationData() {
-        if (!this.selectedClient) return;
+        if (!this.selectedPaciente) return;
         
-        this.currentEvaluations = await this.funcoes.loadEvaluationsByPatient(this.selectedClient.login);
+        this.currentEvaluations = await this.funcoes.loadEvaluationsByPatient(this.selectedPaciente.login);
         this.renderCharts();
     }
 
