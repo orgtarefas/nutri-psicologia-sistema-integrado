@@ -13,6 +13,9 @@ export class HomePsicologo {
     }
 
     renderHTML() {
+        const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
+        const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
+        
         return `
             <div class="home-container">
                 <div class="header">
@@ -20,11 +23,14 @@ export class HomePsicologo {
                     <div class="user-info">
                         <span>👋 Olá, ${this.userInfo.nome}</span>
                         <span>🏷️ Psicólogo</span>
-                        ${this.userInfo.perfil === 'admin' ? `
+                        <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
+                        ${this.userInfo.perfil === 'admin' || this.userInfo.cargo === 'desenvolvedor' ? `
                             <select id="adminRoleSelector" class="role-selector">
-                                <option value="psicologo">🧠 Psicólogo</option>
-                                <option value="cliente">👤 Cliente</option>
-                                <option value="nutricionista">🍎 Nutricionista</option>
+                                <option value="paciente|operador">👤 Paciente (Operador)</option>
+                                <option value="paciente|operador_membro">👤 Paciente (Membro)</option>
+                                <option value="nutricionista|supervisor_nutricionista">🍎 Nutricionista (Supervisor)</option>
+                                <option value="nutricionista|gerente_nutricionista">🍎 Nutricionista (Gerente)</option>
+                                <option value="psicologo|supervisor_psicologo">🧠 Psicólogo</option>
                             </select>
                         ` : ''}
                         <button class="logout-btn" id="logoutBtn">Sair</button>
@@ -36,14 +42,14 @@ export class HomePsicologo {
                         <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
                         <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
                         <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
-                        <button class="nav-btn" id="registerClientBtn" style="background: #48bb78; color: white;">➕ Cadastrar Cliente</button>
+                        <button class="nav-btn" id="registerPacienteBtn" style="background: #48bb78; color: white;">➕ Cadastrar Paciente</button>
                     </div>
                     
                     <div id="registerModal" class="modal" style="display: none;">
                         <div class="modal-content">
                             <span class="close">&times;</span>
-                            <h3>📝 Cadastrar Novo Cliente</h3>
-                            <form id="registerClientForm">
+                            <h3>📝 Cadastrar Novo Paciente</h3>
+                            <form id="registerPacienteForm">
                                 <div class="form-field">
                                     <label>👤 Nome Completo:</label>
                                     <input type="text" id="regNome" required>
@@ -76,6 +82,14 @@ export class HomePsicologo {
                     <div style="text-align: center; padding: 40px;">
                         <h2>🚧 Em Desenvolvimento</h2>
                         <p>Módulo de avaliação psicológica será implementado em breve!</p>
+                        ${this.userInfo.perfil === 'supervisor_psicologo' ? `
+                            <div style="margin-top: 20px; padding: 20px; background: #e0f0ff; border-radius: 12px;">
+                                <h3>🔒 Funcionalidades de Supervisor</h3>
+                                <p>✓ Aprovar avaliações</p>
+                                <p>✓ Revisar relatórios</p>
+                                <p>✓ Supervisionar equipe</p>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -91,14 +105,15 @@ export class HomePsicologo {
         const adminSelector = document.getElementById('adminRoleSelector');
         if (adminSelector) {
             adminSelector.addEventListener('change', (e) => {
+                const [cargo, perfil] = e.target.value.split('|');
                 const event = new CustomEvent('adminRoleChange', { 
-                    detail: { role: e.target.value } 
+                    detail: { cargo: cargo, perfil: perfil } 
                 });
                 window.dispatchEvent(event);
             });
         }
 
-        const registerBtn = document.getElementById('registerClientBtn');
+        const registerBtn = document.getElementById('registerPacienteBtn');
         if (registerBtn) {
             registerBtn.addEventListener('click', () => {
                 this.clearRegisterForm();
@@ -108,16 +123,19 @@ export class HomePsicologo {
 
         this.funcoes.setupModalEvents('registerModal');
 
-        const registerForm = document.getElementById('registerClientForm');
+        const registerForm = document.getElementById('registerPacienteForm');
         if (registerForm) {
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                await this.registerClient();
+                await this.registerPaciente();
             });
         }
 
-        document.querySelectorAll('.nav-btn:not(#registerClientBtn)').forEach(btn => {
-            btn.addEventListener('click', () => alert('🚧 Em desenvolvimento!'));
+        document.querySelectorAll('.nav-btn:not(#registerPacienteBtn)').forEach(btn => {
+            const module = btn.getAttribute('data-module');
+            if (module) {
+                btn.addEventListener('click', () => alert(`🚧 Módulo ${module} em desenvolvimento!`));
+            }
         });
     }
 
@@ -129,8 +147,8 @@ export class HomePsicologo {
         document.getElementById('regSexo').value = '';
     }
 
-    async registerClient() {
-        const clientData = {
+    async registerPaciente() {
+        const pacienteData = {
             nome: document.getElementById('regNome').value,
             login: document.getElementById('regLogin').value,
             senha: document.getElementById('regSenha').value,
@@ -139,7 +157,7 @@ export class HomePsicologo {
         };
         
         try {
-            const result = await this.funcoes.registerClient(clientData);
+            const result = await this.funcoes.registerPaciente(pacienteData);
             alert(result.message);
             this.funcoes.closeModal('registerModal');
         } catch (error) {
