@@ -30,6 +30,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+console.log('Firebase inicializado com sucesso!');
+
 // Export tudo que será usado nos outros arquivos
 export { 
     db, 
