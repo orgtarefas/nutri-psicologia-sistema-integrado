@@ -480,12 +480,21 @@ export class HomeManager {
     calculateNutritionalParameters() {
         const weight = parseFloat(document.getElementById('weight').value);
         const height = parseFloat(document.getElementById('height').value);
-        const age = parseInt(document.getElementById('infoIdade').textContent) || 30;
+        const idade = parseInt(document.getElementById('infoIdade').textContent) || 30;
+        const nomeCompleto = this.selectedClient?.nome || '';
+        
+        // Detectar sexo pelo nome (simplificado - recomendo adicionar campo sexo)
+        const isMasculino = !nomeCompleto.toUpperCase().includes('IA') && 
+                            !nomeCompleto.toUpperCase().includes('A') && 
+                            nomeCompleto.length > 0;
+        const sexo = isMasculino ? 'masculino' : 'feminino';
         
         if (weight && height && height > 0) {
+            // Calcular IMC
             const imc = weight / (height * height);
             document.getElementById('imc').value = imc.toFixed(2);
             
+            // Classificação IMC
             let classification = '';
             if (imc < 18.5) classification = 'Abaixo do peso';
             else if (imc < 25) classification = 'Peso normal';
@@ -493,31 +502,106 @@ export class HomeManager {
             else if (imc < 35) classification = 'Obesidade grau I';
             else if (imc < 40) classification = 'Obesidade grau II';
             else classification = 'Obesidade grau III';
-            
             document.getElementById('imcClassification').value = classification;
             
-            let idealMuscleMass = 0;
-            if (imc < 18.5) idealMuscleMass = (height * height) * 9.5;
-            else if (imc < 25) idealMuscleMass = (height * height) * 10.5;
-            else if (imc < 30) idealMuscleMass = (height * height) * 11.5;
-            else idealMuscleMass = (height * height) * 12.5;
-            document.getElementById('idealMuscleMass').value = idealMuscleMass.toFixed(1);
+            // ==================== MASSA MUSCULAR IDEAL (%) ====================
+            // Baseado nos parâmetros fornecidos:
+            // Homens (18-35 anos): 40% a 44%
+            // Homens (36-55 anos): 36% a 40%
+            // Mulheres (adultas): 25% a 30% (considerado bom)
+            // Idosos (56-75 anos): 32% a 35%
             
-            let idealBodyFat = 0;
-            if (age < 30) idealBodyFat = 21;
-            else if (age < 50) idealBodyFat = 23;
-            else idealBodyFat = 25;
+            let percentualMassaMuscularIdeal = 0;
             
-            if (imc > 25) idealBodyFat += 2;
-            document.getElementById('idealBodyFat').value = idealBodyFat + '%';
+            if (sexo === 'masculino') {
+                if (idade <= 35) {
+                    percentualMassaMuscularIdeal = 42; // Média de 40-44%
+                } else if (idade <= 55) {
+                    percentualMassaMuscularIdeal = 38; // Média de 36-40%
+                } else if (idade <= 75) {
+                    percentualMassaMuscularIdeal = 33.5; // Média de 32-35%
+                } else {
+                    percentualMassaMuscularIdeal = 30; // Acima de 75 anos
+                }
+            } else {
+                // Mulheres
+                if (idade <= 35) {
+                    percentualMassaMuscularIdeal = 27.5; // Média de 25-30%
+                } else if (idade <= 55) {
+                    percentualMassaMuscularIdeal = 26; // Leve redução
+                } else if (idade <= 75) {
+                    percentualMassaMuscularIdeal = 24; // Redução natural
+                } else {
+                    percentualMassaMuscularIdeal = 22; // Acima de 75 anos
+                }
+            }
             
+            // Ajuste por IMC (pessoas com sobrepeso tendem a ter menos % muscular)
+            if (imc > 25 && imc < 30) {
+                percentualMassaMuscularIdeal -= 1;
+            } else if (imc >= 30) {
+                percentualMassaMuscularIdeal -= 2;
+            } else if (imc < 18.5) {
+                percentualMassaMuscularIdeal -= 2;
+            }
+            
+            // Garantir limites saudáveis
+            percentualMassaMuscularIdeal = Math.min(50, Math.max(20, percentualMassaMuscularIdeal));
+            
+            // Calcular Massa Muscular Ideal em kg
+            const massaMuscularIdealKg = (weight * percentualMassaMuscularIdeal) / 100;
+            document.getElementById('idealMuscleMass').value = massaMuscularIdealKg.toFixed(1);
+            
+            // ==================== GORDURA CORPORAL IDEAL ====================
+            let percentualGorduraIdeal = 0;
+            
+            if (sexo === 'masculino') {
+                if (idade < 30) percentualGorduraIdeal = 14;
+                else if (idade < 50) percentualGorduraIdeal = 16;
+                else percentualGorduraIdeal = 18;
+            } else {
+                if (idade < 30) percentualGorduraIdeal = 21;
+                else if (idade < 50) percentualGorduraIdeal = 23;
+                else percentualGorduraIdeal = 25;
+            }
+            
+            // Ajuste por IMC
+            if (imc < 18.5) percentualGorduraIdeal -= 2;
+            else if (imc > 25) percentualGorduraIdeal += 2;
+            if (imc > 30) percentualGorduraIdeal += 2;
+            
+            percentualGorduraIdeal = Math.min(35, Math.max(10, percentualGorduraIdeal));
+            document.getElementById('idealBodyFat').value = percentualGorduraIdeal + '%';
+            
+            // ==================== ÁGUA CORPORAL IDEAL ====================
             let idealBodyWater = 0;
-            if (age < 30) idealBodyWater = 60;
-            else if (age < 50) idealBodyWater = 55;
-            else idealBodyWater = 50;
             
-            if (imc > 25) idealBodyWater -= 5;
+            if (sexo === 'masculino') {
+                if (idade < 30) idealBodyWater = 62;
+                else if (idade < 50) idealBodyWater = 60;
+                else idealBodyWater = 58;
+            } else {
+                if (idade < 30) idealBodyWater = 58;
+                else if (idade < 50) idealBodyWater = 56;
+                else idealBodyWater = 54;
+            }
+            
+            if (imc > 25) idealBodyWater -= 3;
+            if (imc > 30) idealBodyWater -= 2;
+            idealBodyWater = Math.min(70, Math.max(45, idealBodyWater));
             document.getElementById('idealBodyWater').value = idealBodyWater + '%';
+            
+            // ==================== EXIBIR RESUMO ====================
+            console.log('=== RESUMO DO CLIENTE ===');
+            console.log(`Nome: ${this.selectedClient?.nome}`);
+            console.log(`Idade: ${idade} anos`);
+            console.log(`Sexo: ${sexo === 'masculino' ? 'Masculino' : 'Feminino'}`);
+            console.log(`Peso: ${weight} kg`);
+            console.log(`Altura: ${height} m`);
+            console.log(`IMC: ${imc.toFixed(2)} - ${classification}`);
+            console.log(`Massa Muscular Ideal: ${percentualMassaMuscularIdeal}% (${massaMuscularIdealKg.toFixed(1)} kg)`);
+            console.log(`Gordura Ideal: ${percentualGorduraIdeal}%`);
+            console.log(`Água Ideal: ${idealBodyWater}%`);
         }
     }
 
