@@ -29,7 +29,10 @@ export class HomeNutricionista {
         return `
             <div class="home-container">
                 <div class="header">
-                    <h1>🍎 Sistema de Avaliação Nutricional</h1>
+                    <div class="header-logo">
+                        <img src="imagens/logo.png" alt="Vitality" class="header-logo-img">
+                        <h1>Sistema de Avaliação Nutricional</h1>
+                    </div>
                     <div class="user-info">
                         <span>👋 Olá, ${this.userInfo.nome}</span>
                         <span>🏷️ Nutricionista</span>
