@@ -1,6 +1,3 @@
-import { db } from './0_firebase_api_config.js';
-import { collection, addDoc, getDocs, query, orderBy, limit, where } from "firebase/firestore";
-
 export class HomeManager {
     constructor(userInfo) {
         this.userInfo = userInfo;
@@ -274,31 +271,33 @@ export class HomeManager {
                     imc: imc
                 },
                 bioimpedancia: {
-                    massa_muscular: muscleMass,
-                    gordura_corporal: bodyFat,
-                    agua_corporal: bodyWater
+                    massa_muscular: muscleMass || null,
+                    gordura_corporal: bodyFat || null,
+                    agua_corporal: bodyWater || null
                 },
                 exames_laboratoriais: {
-                    glicemia: glucose,
-                    colesterol_total: cholesterol
+                    glicemia: glucose || null,
+                    colesterol_total: cholesterol || null
                 },
                 timestamp: new Date().toISOString()
             };
 
-            await addDoc(collection(db, "avaliacao_nutricional"), evaluationData);
+            const collectionRef = window.collection(window.db, "avaliacao_nutricional");
+            await window.addDoc(collectionRef, evaluationData);
             alert('✅ Avaliação salva com sucesso!');
             document.getElementById('nutritionalForm').reset();
             this.loadEvaluationData();
         } catch (error) {
             console.error("Erro ao salvar avaliação:", error);
-            alert('❌ Erro ao salvar avaliação!');
+            alert('❌ Erro ao salvar avaliação: ' + error.message);
         }
     }
 
     async loadEvaluationData() {
         try {
-            const q = query(collection(db, "avaliacao_nutricional"), orderBy("timestamp", "desc"), limit(10));
-            const querySnapshot = await getDocs(q);
+            const collectionRef = window.collection(window.db, "avaliacao_nutricional");
+            const q = window.query(collectionRef, window.orderBy("timestamp", "desc"), window.limit(10));
+            const querySnapshot = await window.getDocs(q);
             this.currentEvaluations = [];
             
             querySnapshot.forEach((doc) => {
@@ -313,8 +312,9 @@ export class HomeManager {
 
     async loadClientEvaluations() {
         try {
-            const q = query(collection(db, "avaliacao_nutricional"), where("paciente", "==", this.userInfo.nome), orderBy("timestamp", "desc"));
-            const querySnapshot = await getDocs(q);
+            const collectionRef = window.collection(window.db, "avaliacao_nutricional");
+            const q = window.query(collectionRef, window.where("paciente", "==", this.userInfo.nome), window.orderBy("timestamp", "desc"));
+            const querySnapshot = await window.getDocs(q);
             const evaluationsList = document.getElementById('evaluationsList');
             
             if (evaluationsList) {
@@ -349,31 +349,37 @@ export class HomeManager {
         }
     }
 
-    async renderCharts() {
-        if (this.currentEvaluations.length === 0) return;
-        
-        // Load Chart.js library
-        if (typeof Chart === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
-            script.onload = () => this.createCharts();
-            document.head.appendChild(script);
-        } else {
-            this.createCharts();
+    renderCharts() {
+        if (this.currentEvaluations.length === 0) {
+            console.log("Sem dados para exibir gráficos");
+            return;
         }
+        
+        // Check if Chart is available
+        if (typeof Chart === 'undefined') {
+            console.error("Chart.js não carregado");
+            return;
+        }
+        
+        this.createCharts();
     }
 
     createCharts() {
-        const evaluations = this.currentEvaluations.reverse();
+        const evaluations = [...this.currentEvaluations].reverse();
         const labels = evaluations.map(e => e.data_avaliacao);
         const weights = evaluations.map(e => e.dados_antropometricos.peso);
         const imcs = evaluations.map(e => e.dados_antropometricos.imc);
         const muscles = evaluations.map(e => e.bioimpedancia.massa_muscular || 0);
         
+        // Destroy existing charts if any
+        if (this.weightChart) this.weightChart.destroy();
+        if (this.imcChart) this.imcChart.destroy();
+        if (this.muscleChart) this.muscleChart.destroy();
+        
         // Weight Chart
         const weightCtx = document.getElementById('weightChart')?.getContext('2d');
         if (weightCtx) {
-            new Chart(weightCtx, {
+            this.weightChart = new Chart(weightCtx, {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -401,7 +407,7 @@ export class HomeManager {
         // IMC Chart
         const imcCtx = document.getElementById('imcChart')?.getContext('2d');
         if (imcCtx) {
-            new Chart(imcCtx, {
+            this.imcChart = new Chart(imcCtx, {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -424,7 +430,7 @@ export class HomeManager {
         // Muscle Mass Chart
         const muscleCtx = document.getElementById('muscleChart')?.getContext('2d');
         if (muscleCtx && muscles.some(m => m > 0)) {
-            new Chart(muscleCtx, {
+            this.muscleChart = new Chart(muscleCtx, {
                 type: 'line',
                 data: {
                     labels: labels,
