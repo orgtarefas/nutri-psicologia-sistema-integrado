@@ -18,11 +18,11 @@ export class LoginManager {
                     </div>
                     <form id="loginForm">
                         <div class="input-group">
-                            <label>📱 Login:</label>
+                            <label>Login:</label>
                             <input type="text" id="login" placeholder="Digite seu login" required>
                         </div>
                         <div class="input-group">
-                            <label>🔒 Senha:</label>
+                            <label>Senha:</label>
                             <input type="password" id="password" placeholder="Digite sua senha" required>
                         </div>
                         <button type="submit" class="login-btn">Entrar</button>
