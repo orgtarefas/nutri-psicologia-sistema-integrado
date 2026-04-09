@@ -1,8 +1,7 @@
-import { db, collection, getDocs, doc, setDoc, getDoc } from './0_firebase_api_config.js';
+import { db, collection, getDocs, doc, setDoc, getDoc, addDoc } from './0_firebase_api_config.js';
 import { HomeCliente } from './home_cliente.js';
 import { HomeNutricionista } from './home_nutricionista.js';
 import { HomePsicologo } from './home_psicologo.js';
-import { HomeDesenvolvedor } from './home_desenvolvedor.js';
 
 // ==================== FUNÇÕES COMPARTILHADAS ====================
 
@@ -127,15 +126,13 @@ export class FuncoesCompartilhadas {
             
             const dataHoraCadastro = `${dia} de ${mes} de ${ano} às ${horas}:${minutos}:${segundos} ${offsetStr}`;
             
-            // Cargo define a tela (navegação)
-            // Perfil define funcionalidades especiais
             const pacienteDataToSave = {
                 nome: nome.toUpperCase(),
                 senha: senha,
                 dataNascimento: dataNascimentoFormatada,
                 sexo: sexo,
-                cargo: "paciente",           // Navegação: Tela do Paciente
-                perfil: "operador",          // Funcionalidades: Básicas
+                cargo: "paciente",
+                perfil: "operador",
                 status_ativo: true,
                 dataHoraCadastro: dataHoraCadastro,
                 dataCadastro: agora.toISOString()
@@ -344,34 +341,22 @@ export class HomeManager {
     }
 
     render() {
-        // Navegação baseada no CARGO (não no perfil)
-        const cargo = this.userInfo.cargo;
-        
-        switch(cargo) {
-            case 'paciente':
-                this.currentHome = new HomeCliente(this.userInfo);
-                break;
-            case 'cliente':  // Compatibilidade
-                this.currentHome = new HomeCliente(this.userInfo);
-                break;
-            case 'nutricionista':
-                this.currentHome = new HomeNutricionista(this.userInfo);
-                break;
-            case 'psicologo':
-                this.currentHome = new HomePsicologo(this.userInfo);
-                break;
-            case 'desenvolvedor':
-                this.currentHome = new HomeDesenvolvedor(this.userInfo);
-                break;
-            default:
-                this.currentHome = new HomeCliente(this.userInfo);
+        // Desenvolvedor (admin) pode escolher qual tela ver
+        // Por padrão, mostra a tela de nutricionista
+        if (this.userInfo.cargo === 'desenvolvedor' || this.userInfo.perfil === 'admin') {
+            // Mostra seletor na tela e carrega tela padrão (nutricionista)
+            this.userInfo.cargo = 'nutricionista';
+            this.userInfo.perfil = 'gerente_nutricionista';
+            this.currentHome = new HomeNutricionista(this.userInfo);
+            this.currentHome.render();
+        } else {
+            // Navegação baseada no CARGO para usuários normais
+            this.showHomeByCargo(this.userInfo.cargo);
         }
         
-        this.currentHome.render();
-        
-        // Listener para admin trocar de perfil
+        // Listener para admin/desenvolvedor trocar de perfil
         window.addEventListener('adminRoleChange', (e) => {
-            if (this.userInfo.perfil === 'admin' || this.userInfo.cargo === 'desenvolvedor') {
+            if (this.userInfo.cargo === 'desenvolvedor' || this.userInfo.perfil === 'admin') {
                 this.userInfo.cargo = e.detail.cargo;
                 this.userInfo.perfil = e.detail.perfil;
                 this.showHomeByCargo(e.detail.cargo);
@@ -389,9 +374,6 @@ export class HomeManager {
                 break;
             case 'psicologo':
                 this.currentHome = new HomePsicologo(this.userInfo);
-                break;
-            case 'desenvolvedor':
-                this.currentHome = new HomeDesenvolvedor(this.userInfo);
                 break;
             default:
                 this.currentHome = new HomeCliente(this.userInfo);
