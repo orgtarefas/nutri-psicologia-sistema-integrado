@@ -29,6 +29,7 @@ export class HomeManager {
         }
         else if (this.userInfo.tipo === 'clientes' || this.userInfo.perfil === 'cliente') {
             app.innerHTML = this.renderClienteHome();
+            this.attachClienteEvents(); // Usar evento específico para cliente
             this.loadClientEvaluations();
         } 
         else {
@@ -69,7 +70,7 @@ export class HomeManager {
                                 </div>
                                 <div class="form-field">
                                     <label>🔑 Login (será usado para acesso):</label>
-                                    <input type="text" id="regLogin" placeholder="Ex: jose.silva" required>
+                                    <input type="text" id="regLogin" placeholder="Ex: bia.santos" required>
                                 </div>
                                 <div class="form-field">
                                     <label>🔒 Senha:</label>
@@ -176,6 +177,174 @@ export class HomeManager {
         `;
     }
 
+    renderClienteHome() {
+        return `
+            <div class="home-container">
+                <div class="header">
+                    <h1>📋 Minhas Avaliações</h1>
+                    <div class="user-info">
+                        <span>👋 Olá, ${this.userInfo.nome}</span>
+                        <span>🏷️ Cliente</span>
+                        <button class="logout-btn" id="logoutBtn">Sair</button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="nav-buttons">
+                        <button class="nav-btn" data-module="history">📜 Histórico</button>
+                        <button class="nav-btn" data-module="results">📈 Resultados</button>
+                        <button class="nav-btn" data-module="schedule">📅 Agendamentos</button>
+                        <button class="nav-btn" data-module="messages">💬 Mensagens</button>
+                    </div>
+                    <div id="clientEvaluations" class="client-evaluations">
+                        <h3>📊 Histórico de Avaliações</h3>
+                        <div id="evaluationsList"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderPsicologoHome() {
+        return `
+            <div class="home-container">
+                <div class="header">
+                    <h1>🧠 Sistema de Avaliação Psicológica</h1>
+                    <div class="user-info">
+                        <span>👋 Olá, ${this.userInfo.nome}</span>
+                        <span>🏷️ Psicólogo</span>
+                        <button class="logout-btn" id="logoutBtn">Sair</button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="nav-buttons">
+                        <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
+                        <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
+                        <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
+                        <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
+                    </div>
+                    <div style="text-align: center; padding: 40px;">
+                        <h2>🚧 Em Desenvolvimento</h2>
+                        <p>Módulo de avaliação psicológica será implementado em breve!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderAdminHome() {
+        return `
+            <div class="home-container">
+                <div class="header">
+                    <h1>👑 Painel Administrativo</h1>
+                    <div class="user-info">
+                        <span>👋 Olá, ${this.userInfo.nome}</span>
+                        <span>🏷️ Administrador</span>
+                        <button class="logout-btn" id="logoutBtn">Sair</button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="nav-buttons">
+                        <button class="nav-btn" data-module="users">👥 Gerenciar Usuários</button>
+                        <button class="nav-btn" data-module="reports">📊 Relatórios</button>
+                        <button class="nav-btn" data-module="config">⚙️ Configurações</button>
+                        <button class="nav-btn" data-module="backup">💾 Backup</button>
+                    </div>
+                    <div style="text-align: center; padding: 40px;">
+                        <h2>🚧 Em Desenvolvimento</h2>
+                        <p>Painel administrativo será implementado em breve!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderGenericHome() {
+        return `
+            <div class="home-container">
+                <div class="header">
+                    <h1>🏠 Sistema de Avaliação</h1>
+                    <div class="user-info">
+                        <span>👋 Olá, ${this.userInfo.nome}</span>
+                        <button class="logout-btn" id="logoutBtn">Sair</button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="nav-buttons">
+                        <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
+                        <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
+                        <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
+                        <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
+                    </div>
+                    <div style="text-align: center; padding: 40px;">
+                        <h2>🚧 Em Desenvolvimento</h2>
+                        <p>Sistema em desenvolvimento para seu perfil!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Método de logout centralizado
+    logout() {
+        localStorage.removeItem('currentUser');
+        window.location.reload();
+    }
+
+    attachClienteEvents() {
+        // Logout para cliente
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.logout();
+            });
+        }
+
+        // Navegação
+        const navBtns = document.querySelectorAll('.nav-btn');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                alert('🚧 Esta funcionalidade está em desenvolvimento!');
+            });
+        });
+    }
+
+    attachGenericEvents() {
+        // Logout para outros perfis
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.logout();
+            });
+        }
+
+        const navBtns = document.querySelectorAll('.nav-btn');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                alert('🚧 Esta funcionalidade está em desenvolvimento!');
+            });
+        });
+    }
+
+    attachAdminEvents() {
+        // Logout para admin
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.logout();
+            });
+        }
+
+        const navBtns = document.querySelectorAll('.nav-btn');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                alert('🚧 Funcionalidade administrativa em desenvolvimento!');
+            });
+        });
+    }
+
     async loadClientsList() {
         try {
             const clientesRef = doc(db, "logins", "clientes");
@@ -253,19 +422,16 @@ export class HomeManager {
     }
 
     async registerClient() {
-        // Pegar valores do formulário (todos vazios inicialmente)
         const nome = document.getElementById('regNome').value;
         const login = document.getElementById('regLogin').value;
         const senha = document.getElementById('regSenha').value;
         const dataNascimento = document.getElementById('regDataNascimento').value;
         
-        // Validar campos
         if (!nome || !login || !senha || !dataNascimento) {
             alert('❌ Preencha todos os campos!');
             return;
         }
         
-        // Validar se login já existe
         const existingClient = this.clientsList.find(c => c.login === login);
         if (existingClient) {
             alert('❌ Este login já existe!');
@@ -276,7 +442,6 @@ export class HomeManager {
             const clientesRef = doc(db, "logins", "clientes");
             const clientesDoc = await getDoc(clientesRef);
             
-            // Criar o MAP com o login como chave
             const newClientData = {
                 [login]: {
                     nome: nome,
@@ -289,27 +454,21 @@ export class HomeManager {
             };
             
             if (clientesDoc.exists()) {
-                // Atualizar documento existente, adicionando novo cliente
                 const currentData = clientesDoc.data();
                 currentData[login] = newClientData[login];
                 await updateDoc(clientesRef, currentData);
             } else {
-                // Criar novo documento com o primeiro cliente
                 await setDoc(clientesRef, newClientData);
             }
             
             alert('✅ Cliente cadastrado com sucesso!');
             
-            // Limpar formulário
             document.getElementById('regNome').value = '';
             document.getElementById('regLogin').value = '';
             document.getElementById('regSenha').value = '';
             document.getElementById('regDataNascimento').value = '';
             
-            // Fechar modal
             document.getElementById('registerModal').style.display = 'none';
-            
-            // Recarregar lista de clientes
             await this.loadClientsList();
             
         } catch (error) {
@@ -337,7 +496,6 @@ export class HomeManager {
             
             document.getElementById('imcClassification').value = classification;
             
-            // Massa Muscular Ideal
             let idealMuscleMass = 0;
             if (imc < 18.5) idealMuscleMass = (height * height) * 9.5;
             else if (imc < 25) idealMuscleMass = (height * height) * 10.5;
@@ -345,7 +503,6 @@ export class HomeManager {
             else idealMuscleMass = (height * height) * 12.5;
             document.getElementById('idealMuscleMass').value = idealMuscleMass.toFixed(1);
             
-            // Gordura Corporal Ideal
             let idealBodyFat = 0;
             if (age < 30) idealBodyFat = 21;
             else if (age < 50) idealBodyFat = 23;
@@ -354,7 +511,6 @@ export class HomeManager {
             if (imc > 25) idealBodyFat += 2;
             document.getElementById('idealBodyFat').value = idealBodyFat + '%';
             
-            // Água Corporal Ideal
             let idealBodyWater = 0;
             if (age < 30) idealBodyWater = 60;
             else if (age < 50) idealBodyWater = 55;
@@ -368,7 +524,10 @@ export class HomeManager {
     attachNutricionistaEvents() {
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => this.logout());
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.logout();
+            });
         }
 
         const registerBtn = document.getElementById('registerClientBtn');
@@ -377,7 +536,6 @@ export class HomeManager {
         
         if (registerBtn) {
             registerBtn.addEventListener('click', () => {
-                // Limpar formulário ao abrir modal
                 document.getElementById('regNome').value = '';
                 document.getElementById('regLogin').value = '';
                 document.getElementById('regSenha').value = '';
@@ -483,7 +641,6 @@ export class HomeManager {
             await addDoc(collection(db, "avaliacao_nutricional"), evaluationData);
             alert('✅ Avaliação salva com sucesso!');
             
-            // Limpar campos do formulário
             document.getElementById('weight').value = '';
             document.getElementById('height').value = '';
             document.getElementById('muscleMass').value = '';
@@ -513,7 +670,6 @@ export class HomeManager {
                 return;
             }
             
-            // Buscar todas as avaliações e filtrar no frontend
             const querySnapshot = await getDocs(collection(db, "avaliacao_nutricional"));
             this.currentEvaluations = [];
             
@@ -524,7 +680,6 @@ export class HomeManager {
                 }
             });
             
-            // Ordenar por data
             this.currentEvaluations.sort((a, b) => {
                 return new Date(a.timestamp) - new Date(b.timestamp);
             });
@@ -538,7 +693,6 @@ export class HomeManager {
 
     renderCharts() {
         if (this.currentEvaluations.length === 0) {
-            // Limpar gráficos se não houver dados
             if (this.weightChart) this.weightChart.destroy();
             if (this.imcChart) this.imcChart.destroy();
             if (this.muscleChart) this.muscleChart.destroy();
@@ -630,141 +784,6 @@ export class HomeManager {
         }
     }
 
-    attachGenericEvents() {
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => this.logout());
-        }
-
-        const navBtns = document.querySelectorAll('.nav-btn');
-        navBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                alert('🚧 Esta funcionalidade está em desenvolvimento!');
-            });
-        });
-    }
-
-    attachAdminEvents() {
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => this.logout());
-        }
-
-        const navBtns = document.querySelectorAll('.nav-btn');
-        navBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                alert('🚧 Funcionalidade administrativa em desenvolvimento!');
-            });
-        });
-    }
-
-    renderPsicologoHome() {
-        return `
-            <div class="home-container">
-                <div class="header">
-                    <h1>🧠 Sistema de Avaliação Psicológica</h1>
-                    <div class="user-info">
-                        <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ Psicólogo</span>
-                        <button class="logout-btn" id="logoutBtn">Sair</button>
-                    </div>
-                </div>
-                <div class="content">
-                    <div class="nav-buttons">
-                        <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
-                        <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
-                        <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
-                        <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
-                    </div>
-                    <div style="text-align: center; padding: 40px;">
-                        <h2>🚧 Em Desenvolvimento</h2>
-                        <p>Módulo de avaliação psicológica será implementado em breve!</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    renderAdminHome() {
-        return `
-            <div class="home-container">
-                <div class="header">
-                    <h1>👑 Painel Administrativo</h1>
-                    <div class="user-info">
-                        <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ Administrador</span>
-                        <button class="logout-btn" id="logoutBtn">Sair</button>
-                    </div>
-                </div>
-                <div class="content">
-                    <div class="nav-buttons">
-                        <button class="nav-btn" data-module="users">👥 Gerenciar Usuários</button>
-                        <button class="nav-btn" data-module="reports">📊 Relatórios</button>
-                        <button class="nav-btn" data-module="config">⚙️ Configurações</button>
-                        <button class="nav-btn" data-module="backup">💾 Backup</button>
-                    </div>
-                    <div style="text-align: center; padding: 40px;">
-                        <h2>🚧 Em Desenvolvimento</h2>
-                        <p>Painel administrativo será implementado em breve!</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    renderClienteHome() {
-        return `
-            <div class="home-container">
-                <div class="header">
-                    <h1>📋 Minhas Avaliações</h1>
-                    <div class="user-info">
-                        <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ Cliente</span>
-                        <button class="logout-btn" id="logoutBtn">Sair</button>
-                    </div>
-                </div>
-                <div class="content">
-                    <div class="nav-buttons">
-                        <button class="nav-btn" data-module="history">📜 Histórico</button>
-                        <button class="nav-btn" data-module="results">📈 Resultados</button>
-                        <button class="nav-btn" data-module="schedule">📅 Agendamentos</button>
-                        <button class="nav-btn" data-module="messages">💬 Mensagens</button>
-                    </div>
-                    <div id="clientEvaluations" class="client-evaluations">
-                        <h3>📊 Histórico de Avaliações</h3>
-                        <div id="evaluationsList"></div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    renderGenericHome() {
-        return `
-            <div class="home-container">
-                <div class="header">
-                    <h1>🏠 Sistema de Avaliação</h1>
-                    <div class="user-info">
-                        <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <button class="logout-btn" id="logoutBtn">Sair</button>
-                    </div>
-                </div>
-                <div class="content">
-                    <div class="nav-buttons">
-                        <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
-                        <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
-                        <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
-                        <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
-                    </div>
-                    <div style="text-align: center; padding: 40px;">
-                        <h2>🚧 Em Desenvolvimento</h2>
-                        <p>Sistema em desenvolvimento para seu perfil!</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
     async loadClientEvaluations() {
         try {
             const querySnapshot = await getDocs(collection(db, "avaliacao_nutricional"));
@@ -803,10 +822,5 @@ export class HomeManager {
         } catch (error) {
             console.error("Erro ao carregar avaliações do cliente:", error);
         }
-    }
-
-    logout() {
-        localStorage.removeItem('currentUser');
-        window.location.reload();
     }
 }
