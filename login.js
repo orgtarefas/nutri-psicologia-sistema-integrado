@@ -42,14 +42,17 @@ export class LoginManager {
         }
 
         try {
-            // Busca direta pelo documento com ID = login
             const userRef = doc(db, "logins", loginInput);
             const userDoc = await getDoc(userRef);
             
             if (userDoc.exists() && userDoc.data().senha === password) {
                 const userData = userDoc.data();
                 userData.login = loginInput;
-                userData.cargo = userData.cargo || userData.perfil;
+                
+                // Garantir que perfil existe (para compatibilidade)
+                if (!userData.perfil) {
+                    userData.perfil = userData.cargo === 'cliente' ? 'paciente' : userData.cargo;
+                }
                 
                 errorMsg.style.display = 'none';
                 localStorage.setItem('currentUser', JSON.stringify(userData));
@@ -72,7 +75,6 @@ export class LoginManager {
     }
 }
 
-// Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
     new LoginManager();
 });
