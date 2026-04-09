@@ -25,7 +25,8 @@ export class FuncoesCompartilhadas {
                         sexo: data.sexo,
                         status_ativo: data.status_ativo,
                         cargo: data.cargo,
-                        perfil: data.perfil
+                        perfil: data.perfil,
+                        dataHoraCadastro: data.dataHoraCadastro
                     });
                 }
             });
@@ -77,6 +78,25 @@ export class FuncoesCompartilhadas {
         try {
             const clientRef = doc(db, "logins", login);
             
+            // Formatar data e hora no padrão solicitado
+            const agora = new Date();
+            const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
+                           'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+            
+            const dia = agora.getDate();
+            const mes = meses[agora.getMonth()];
+            const ano = agora.getFullYear();
+            const horas = agora.getHours().toString().padStart(2, '0');
+            const minutos = agora.getMinutes().toString().padStart(2, '0');
+            const segundos = agora.getSeconds().toString().padStart(2, '0');
+            
+            // Obter offset do timezone
+            const offset = -agora.getTimezoneOffset() / 60;
+            const offsetSinal = offset >= 0 ? '+' : '';
+            const offsetStr = `UTC${offsetSinal}${offset}`;
+            
+            const dataHoraCadastro = `${dia} de ${mes} de ${ano} às ${horas}:${minutos}:${segundos} ${offsetStr}`;
+            
             const clientDataToSave = {
                 nome: nome.toUpperCase(),
                 senha: senha,
@@ -85,7 +105,8 @@ export class FuncoesCompartilhadas {
                 cargo: "cliente",
                 perfil: "cliente",
                 status_ativo: true,
-                dataCadastro: new Date().toISOString()
+                dataHoraCadastro: dataHoraCadastro,
+                dataCadastro: agora.toISOString()
             };
             
             await setDoc(clientRef, clientDataToSave);
