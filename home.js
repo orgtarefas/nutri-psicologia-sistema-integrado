@@ -18,9 +18,9 @@ export class FuncoesCompartilhadas {
             if (clientesDoc.exists()) {
                 const data = clientesDoc.data();
                 
-                for (const [login, clientData] of Object.entries(data)) {
+                for (const [key, clientData] of Object.entries(data)) {
                     clientsList.push({
-                        login: login,
+                        login: clientData.login || key,  // <-- USA O CAMPO login SE EXISTIR
                         nome: clientData.nome,
                         senha: clientData.senha,
                         dataNascimento: clientData.dataNascimento,
@@ -75,13 +75,14 @@ export class FuncoesCompartilhadas {
         if (existingClient) {
             throw new Error('Este login já existe! Escolha outro.');
         }
-        
+
         try {
             const clientesRef = doc(db, "logins", "clientes");
             const clientesDoc = await getDoc(clientesRef);
             
+            // Usar o login COM PONTO como chave do mapa
             const newClientData = {
-                [login]: {
+                [login]: {  // login = "bia.santos" - funciona como chave
                     nome: nome.toUpperCase(),
                     senha: senha,
                     dataNascimento: dataNascimento,
@@ -101,10 +102,9 @@ export class FuncoesCompartilhadas {
                 await setDoc(clientesRef, newClientData);
             }
             
-            return { success: true, message: `Cliente "${nome}" cadastrado com sucesso!\nLogin: ${login}\nSenha: ${senha}` };
+            return { success: true, message: `Cliente cadastrado! Login: ${login}` };
             
         } catch (error) {
-            console.error("Erro ao cadastrar cliente:", error);
             throw new Error('Erro ao cadastrar cliente: ' + error.message);
         }
     }
