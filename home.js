@@ -69,7 +69,7 @@ export class HomeManager {
                                 </div>
                                 <div class="form-field">
                                     <label>🔑 Login (será usado para acesso):</label>
-                                    <input type="text" id="regLogin" placeholder="Ex: bia.santos" required>
+                                    <input type="text" id="regLogin" placeholder="Ex: jose.silva" required>
                                 </div>
                                 <div class="form-field">
                                     <label>🔒 Senha:</label>
