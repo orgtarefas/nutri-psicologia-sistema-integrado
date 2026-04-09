@@ -1,40 +1,37 @@
-import { db, collection, addDoc, getDocs, query, where, orderBy, limit } from './0_firebase_api_config.js';
+import { db, collection, addDoc, getDocs, query, where, orderBy, limit, doc, updateDoc, setDoc } from './0_firebase_api_config.js';
 
 export class HomeManager {
     constructor(userInfo) {
         this.userInfo = userInfo;
         this.currentEvaluations = [];
+        this.clientsList = [];
         this.weightChart = null;
         this.imcChart = null;
         this.muscleChart = null;
-        console.log('HomeManager iniciado para:', userInfo);
+        this.selectedClient = null;
     }
 
     render() {
         const app = document.getElementById('app');
         
-        // Verificar se é nutricionista (cargo ou tipo)
         if (this.userInfo.cargo === 'nutricionista' || this.userInfo.perfil === 'nutricionista') {
             app.innerHTML = this.renderNutricionistaHome();
             this.attachNutricionistaEvents();
+            this.loadClientsList();
             this.loadEvaluationData();
         } 
-        // Verificar se é psicólogo
         else if (this.userInfo.cargo === 'psicologo' || this.userInfo.perfil === 'psicologo') {
             app.innerHTML = this.renderPsicologoHome();
             this.attachGenericEvents();
         } 
-        // Verificar se é admin
         else if (this.userInfo.tipo === 'admin' || this.userInfo.perfil === 'admin') {
             app.innerHTML = this.renderAdminHome();
             this.attachAdminEvents();
         }
-        // Verificar se é cliente
         else if (this.userInfo.tipo === 'clientes' || this.userInfo.perfil === 'cliente') {
             app.innerHTML = this.renderClienteHome();
             this.loadClientEvaluations();
         } 
-        // Perfil genérico
         else {
             app.innerHTML = this.renderGenericHome();
             this.attachGenericEvents();
@@ -58,6 +55,34 @@ export class HomeManager {
                         <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
                         <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
                         <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
+                        <button class="nav-btn" id="registerClientBtn" style="background: #48bb78; color: white;">➕ Cadastrar Cliente</button>
+                    </div>
+                    
+                    <!-- Modal de Cadastro de Cliente -->
+                    <div id="registerModal" class="modal" style="display: none;">
+                        <div class="modal-content">
+                            <span class="close">&times;</span>
+                            <h3>📝 Cadastrar Novo Cliente</h3>
+                            <form id="registerClientForm">
+                                <div class="form-field">
+                                    <label>👤 Nome Completo:</label>
+                                    <input type="text" id="regNome" required>
+                                </div>
+                                <div class="form-field">
+                                    <label>🔑 Login:</label>
+                                    <input type="text" id="regLogin" required>
+                                </div>
+                                <div class="form-field">
+                                    <label>🔒 Senha:</label>
+                                    <input type="password" id="regSenha" required>
+                                </div>
+                                <div class="form-field">
+                                    <label>📅 Data de Nascimento:</label>
+                                    <input type="date" id="regDataNascimento" required>
+                                </div>
+                                <button type="submit" class="submit-btn">Cadastrar Cliente</button>
+                            </form>
+                        </div>
                     </div>
                     
                     <div class="evaluation-form">
@@ -65,8 +90,14 @@ export class HomeManager {
                         <form id="nutritionalForm">
                             <div class="form-grid">
                                 <div class="form-field">
-                                    <label>👤 Nome do Paciente:</label>
-                                    <input type="text" id="patientName" required>
+                                    <label>👤 Selecione o Cliente:</label>
+                                    <select id="clientSelect" required>
+                                        <option value="">-- Selecione um cliente --</option>
+                                    </select>
+                                </div>
+                                <div class="form-field">
+                                    <label>📅 Data da Avaliação:</label>
+                                    <input type="date" id="evaluationDate" required>
                                 </div>
                                 <div class="form-field">
                                     <label>📏 Peso (kg):</label>
@@ -81,12 +112,28 @@ export class HomeManager {
                                     <input type="text" id="imc" readonly>
                                 </div>
                                 <div class="form-field">
+                                    <label>📋 Classificação IMC:</label>
+                                    <input type="text" id="imcClassification" readonly>
+                                </div>
+                                <div class="form-field">
+                                    <label>💪 Massa Muscular Ideal (kg):</label>
+                                    <input type="text" id="idealMuscleMass" readonly>
+                                </div>
+                                <div class="form-field">
                                     <label>💪 Massa Muscular (kg):</label>
                                     <input type="number" id="muscleMass" step="0.1">
                                 </div>
                                 <div class="form-field">
+                                    <label>🧈 Gordura Corporal Ideal (%):</label>
+                                    <input type="text" id="idealBodyFat" readonly>
+                                </div>
+                                <div class="form-field">
                                     <label>🧈 Gordura Corporal (%):</label>
                                     <input type="number" id="bodyFat" step="0.1">
+                                </div>
+                                <div class="form-field">
+                                    <label>💧 Água Corporal Ideal (%):</label>
+                                    <input type="text" id="idealBodyWater" readonly>
                                 </div>
                                 <div class="form-field">
                                     <label>💧 Água Corporal (%):</label>
@@ -100,13 +147,19 @@ export class HomeManager {
                                     <label>🩸 Colesterol Total (mg/dL):</label>
                                     <input type="number" id="cholesterol">
                                 </div>
-                                <div class="form-field">
-                                    <label>📅 Data da Avaliação:</label>
-                                    <input type="date" id="evaluationDate" required>
-                                </div>
                             </div>
                             <button type="submit" class="submit-btn">Salvar Avaliação</button>
                         </form>
+                    </div>
+                    
+                    <div id="clientInfo" class="client-info" style="display: none;">
+                        <h3>📋 Informações do Cliente</h3>
+                        <div class="info-card">
+                            <p><strong>Nome:</strong> <span id="infoNome"></span></p>
+                            <p><strong>Login:</strong> <span id="infoLogin"></span></p>
+                            <p><strong>Data de Nascimento:</strong> <span id="infoDataNasc"></span></p>
+                            <p><strong>Idade:</strong> <span id="infoIdade"></span> anos</p>
+                        </div>
                     </div>
                     
                     <div class="charts-section">
@@ -126,6 +179,454 @@ export class HomeManager {
                 </div>
             </div>
         `;
+    }
+
+    async loadClientsList() {
+        try {
+            // Buscar clientes do documento "clientes" na coleção "logins"
+            const clientesRef = doc(db, "logins", "clientes");
+            const clientesDoc = await getDoc(clientesRef);
+            
+            if (clientesDoc.exists()) {
+                const data = clientesDoc.data();
+                this.clientsList = [];
+                
+                for (const [login, clientData] of Object.entries(data)) {
+                    this.clientsList.push({
+                        login: login,
+                        nome: clientData.nome,
+                        senha: clientData.senha,
+                        dataNascimento: clientData.dataNascimento,
+                        status_ativo: clientData.status_ativo
+                    });
+                }
+                
+                this.populateClientSelect();
+            }
+        } catch (error) {
+            console.error("Erro ao carregar clientes:", error);
+        }
+    }
+
+    populateClientSelect() {
+        const clientSelect = document.getElementById('clientSelect');
+        if (clientSelect) {
+            clientSelect.innerHTML = '<option value="">-- Selecione um cliente --</option>';
+            
+            this.clientsList.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.login;
+                option.textContent = `${client.nome} (${client.login})`;
+                clientSelect.appendChild(option);
+            });
+            
+            // Adicionar evento de seleção
+            clientSelect.addEventListener('change', (e) => {
+                const selectedLogin = e.target.value;
+                if (selectedLogin) {
+                    this.selectedClient = this.clientsList.find(c => c.login === selectedLogin);
+                    this.displayClientInfo();
+                } else {
+                    this.selectedClient = null;
+                    document.getElementById('clientInfo').style.display = 'none';
+                }
+            });
+        }
+    }
+
+    displayClientInfo() {
+        if (this.selectedClient) {
+            document.getElementById('clientInfo').style.display = 'block';
+            document.getElementById('infoNome').textContent = this.selectedClient.nome;
+            document.getElementById('infoLogin').textContent = this.selectedClient.login;
+            document.getElementById('infoDataNasc').textContent = this.selectedClient.dataNascimento;
+            
+            // Calcular idade
+            const birthDate = new Date(this.selectedClient.dataNascimento);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            document.getElementById('infoIdade').textContent = age;
+        }
+    }
+
+    async registerClient() {
+        const nome = document.getElementById('regNome').value;
+        const login = document.getElementById('regLogin').value;
+        const senha = document.getElementById('regSenha').value;
+        const dataNascimento = document.getElementById('regDataNascimento').value;
+        
+        // Validar se login já existe
+        const existingClient = this.clientsList.find(c => c.login === login);
+        if (existingClient) {
+            alert('❌ Este login já existe!');
+            return;
+        }
+        
+        try {
+            // Adicionar cliente ao documento "clientes"
+            const clientesRef = doc(db, "logins", "clientes");
+            const clientesDoc = await getDoc(clientesRef);
+            
+            if (clientesDoc.exists()) {
+                // Atualizar documento existente
+                const currentData = clientesDoc.data();
+                currentData[login] = {
+                    nome: nome,
+                    senha: senha,
+                    dataNascimento: dataNascimento,
+                    status_ativo: true,
+                    cargo: "cliente",
+                    perfil: "cliente"
+                };
+                await updateDoc(clientesRef, currentData);
+            } else {
+                // Criar novo documento
+                const newClient = {
+                    [login]: {
+                        nome: nome,
+                        senha: senha,
+                        dataNascimento: dataNascimento,
+                        status_ativo: true,
+                        cargo: "cliente",
+                        perfil: "cliente"
+                    }
+                };
+                await setDoc(clientesRef, newClient);
+            }
+            
+            alert('✅ Cliente cadastrado com sucesso!');
+            document.getElementById('registerModal').style.display = 'none';
+            document.getElementById('registerClientForm').reset();
+            await this.loadClientsList();
+        } catch (error) {
+            console.error("Erro ao cadastrar cliente:", error);
+            alert('❌ Erro ao cadastrar cliente: ' + error.message);
+        }
+    }
+
+    calculateNutritionalParameters() {
+        const weight = parseFloat(document.getElementById('weight').value);
+        const height = parseFloat(document.getElementById('height').value);
+        const age = parseInt(document.getElementById('infoIdade').textContent) || 30;
+        
+        // Calcular IMC
+        if (weight && height && height > 0) {
+            const imc = weight / (height * height);
+            document.getElementById('imc').value = imc.toFixed(2);
+            
+            // Classificação IMC segundo OMS
+            let classification = '';
+            if (imc < 18.5) classification = 'Abaixo do peso';
+            else if (imc < 25) classification = 'Peso normal';
+            else if (imc < 30) classification = 'Sobrepeso';
+            else if (imc < 35) classification = 'Obesidade grau I';
+            else if (imc < 40) classification = 'Obesidade grau II';
+            else classification = 'Obesidade grau III';
+            
+            document.getElementById('imcClassification').value = classification;
+            
+            // Calcular Massa Muscular Ideal (baseado na altura)
+            const idealMuscleMass = (height * height) * 10.5;
+            document.getElementById('idealMuscleMass').value = idealMuscleMass.toFixed(1);
+            
+            // Calcular Gordura Corporal Ideal (baseado na idade e IMC)
+            let idealBodyFat = 0;
+            if (age < 30) idealBodyFat = 21;
+            else if (age < 50) idealBodyFat = 23;
+            else idealBodyFat = 25;
+            
+            if (imc > 25) idealBodyFat += 2;
+            document.getElementById('idealBodyFat').value = idealBodyFat + '%';
+            
+            // Calcular Água Corporal Ideal
+            let idealBodyWater = 0;
+            if (age < 30) idealBodyWater = 60;
+            else if (age < 50) idealBodyWater = 55;
+            else idealBodyWater = 50;
+            
+            if (imc > 25) idealBodyWater -= 5;
+            document.getElementById('idealBodyWater').value = idealBodyWater + '%';
+        }
+    }
+
+    attachNutricionistaEvents() {
+        // Logout
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => this.logout());
+        }
+
+        // Modal de cadastro
+        const registerBtn = document.getElementById('registerClientBtn');
+        const modal = document.getElementById('registerModal');
+        const closeBtn = document.querySelector('.close');
+        
+        if (registerBtn) {
+            registerBtn.addEventListener('click', () => {
+                modal.style.display = 'block';
+            });
+        }
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+        }
+        
+        window.onclick = (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+        
+        // Form de cadastro
+        const registerForm = document.getElementById('registerClientForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.registerClient();
+            });
+        }
+        
+        // Navegação
+        const navBtns = document.querySelectorAll('.nav-btn:not(#registerClientBtn)');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                alert('🚧 Esta funcionalidade está em desenvolvimento!');
+            });
+        });
+
+        // Form de avaliação
+        const form = document.getElementById('nutritionalForm');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!this.selectedClient) {
+                    alert('❌ Selecione um cliente primeiro!');
+                    return;
+                }
+                await this.saveNutritionalEvaluation();
+            });
+        }
+
+        // Cálculos automáticos
+        const weightInput = document.getElementById('weight');
+        const heightInput = document.getElementById('height');
+        
+        const calculateFields = () => {
+            if (this.selectedClient) {
+                this.calculateNutritionalParameters();
+            }
+        };
+        
+        if (weightInput && heightInput) {
+            weightInput.addEventListener('input', calculateFields);
+            heightInput.addEventListener('input', calculateFields);
+        }
+        
+        // Data atual no campo de data
+        const dateInput = document.getElementById('evaluationDate');
+        if (dateInput) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+        }
+    }
+
+    async saveNutritionalEvaluation() {
+        try {
+            const evaluationData = {
+                paciente_login: this.selectedClient.login,
+                paciente_nome: this.selectedClient.nome,
+                profissional: this.userInfo.nome,
+                profissional_login: this.userInfo.login,
+                cargo: this.userInfo.cargo,
+                data_avaliacao: document.getElementById('evaluationDate').value,
+                dados_antropometricos: {
+                    peso: parseFloat(document.getElementById('weight').value),
+                    altura: parseFloat(document.getElementById('height').value),
+                    imc: parseFloat(document.getElementById('imc').value),
+                    classificacao_imc: document.getElementById('imcClassification').value
+                },
+                bioimpedancia: {
+                    massa_muscular: parseFloat(document.getElementById('muscleMass').value) || null,
+                    massa_muscular_ideal: parseFloat(document.getElementById('idealMuscleMass').value) || null,
+                    gordura_corporal: parseFloat(document.getElementById('bodyFat').value) || null,
+                    gordura_corporal_ideal: document.getElementById('idealBodyFat').value,
+                    agua_corporal: parseFloat(document.getElementById('bodyWater').value) || null,
+                    agua_corporal_ideal: document.getElementById('idealBodyWater').value
+                },
+                exames_laboratoriais: {
+                    glicemia: parseFloat(document.getElementById('glucose').value) || null,
+                    colesterol_total: parseFloat(document.getElementById('cholesterol').value) || null
+                },
+                timestamp: new Date().toISOString()
+            };
+
+            await addDoc(collection(db, "avaliacao_nutricional"), evaluationData);
+            alert('✅ Avaliação salva com sucesso!');
+            document.getElementById('nutritionalForm').reset();
+            
+            // Resetar campos
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('evaluationDate').value = today;
+            
+            this.loadEvaluationData();
+        } catch (error) {
+            console.error("Erro ao salvar avaliação:", error);
+            alert('❌ Erro ao salvar avaliação: ' + error.message);
+        }
+    }
+
+    async loadEvaluationData() {
+        try {
+            let q;
+            if (this.selectedClient) {
+                // Buscar avaliações do cliente selecionado
+                q = query(
+                    collection(db, "avaliacao_nutricional"), 
+                    where("paciente_login", "==", this.selectedClient.login),
+                    orderBy("timestamp", "desc"), 
+                    limit(10)
+                );
+            } else {
+                // Buscar últimas avaliações
+                q = query(collection(db, "avaliacao_nutricional"), orderBy("timestamp", "desc"), limit(10));
+            }
+            
+            const querySnapshot = await getDocs(q);
+            this.currentEvaluations = [];
+            
+            querySnapshot.forEach((doc) => {
+                this.currentEvaluations.push({ id: doc.id, ...doc.data() });
+            });
+            
+            this.renderCharts();
+        } catch (error) {
+            console.error("Erro ao carregar avaliações:", error);
+        }
+    }
+
+    renderCharts() {
+        if (this.currentEvaluations.length === 0) {
+            return;
+        }
+        
+        if (typeof Chart === 'undefined') {
+            setTimeout(() => this.renderCharts(), 500);
+            return;
+        }
+        
+        this.createCharts();
+    }
+
+    createCharts() {
+        const evaluations = [...this.currentEvaluations].reverse();
+        const labels = evaluations.map(e => e.data_avaliacao);
+        const weights = evaluations.map(e => e.dados_antropometricos.peso);
+        const imcs = evaluations.map(e => e.dados_antropometricos.imc);
+        const muscles = evaluations.map(e => e.bioimpedancia.massa_muscular || 0);
+        
+        if (this.weightChart) this.weightChart.destroy();
+        if (this.imcChart) this.imcChart.destroy();
+        if (this.muscleChart) this.muscleChart.destroy();
+        
+        const weightCtx = document.getElementById('weightChart')?.getContext('2d');
+        if (weightCtx) {
+            this.weightChart = new Chart(weightCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Peso (kg)',
+                        data: weights,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+        }
+        
+        const imcCtx = document.getElementById('imcChart')?.getContext('2d');
+        if (imcCtx) {
+            this.imcChart = new Chart(imcCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'IMC',
+                        data: imcs,
+                        borderColor: '#764ba2',
+                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+        }
+        
+        const muscleCtx = document.getElementById('muscleChart')?.getContext('2d');
+        if (muscleCtx && muscles.some(m => m > 0)) {
+            this.muscleChart = new Chart(muscleCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Massa Muscular (kg)',
+                        data: muscles,
+                        borderColor: '#48bb78',
+                        backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+        }
+    }
+
+    attachGenericEvents() {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => this.logout());
+        }
+
+        const navBtns = document.querySelectorAll('.nav-btn');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                alert('🚧 Esta funcionalidade está em desenvolvimento!');
+            });
+        });
+    }
+
+    attachAdminEvents() {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => this.logout());
+        }
+
+        const navBtns = document.querySelectorAll('.nav-btn');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                alert('🚧 Funcionalidade administrativa em desenvolvimento!');
+            });
+        });
     }
 
     renderPsicologoHome() {
@@ -149,7 +650,6 @@ export class HomeManager {
                     <div style="text-align: center; padding: 40px;">
                         <h2>🚧 Em Desenvolvimento</h2>
                         <p>Módulo de avaliação psicológica será implementado em breve!</p>
-                        <p style="margin-top: 20px; color: #666;">Área reservada para avaliação psicológica</p>
                     </div>
                 </div>
             </div>
@@ -177,7 +677,6 @@ export class HomeManager {
                     <div style="text-align: center; padding: 40px;">
                         <h2>🚧 Em Desenvolvimento</h2>
                         <p>Painel administrativo será implementado em breve!</p>
-                        <p style="margin-top: 20px; color: #666;">Área restrita para administradores</p>
                     </div>
                 </div>
             </div>
@@ -237,141 +736,9 @@ export class HomeManager {
         `;
     }
 
-    attachNutricionistaEvents() {
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => this.logout());
-        }
-
-        const navBtns = document.querySelectorAll('.nav-btn');
-        navBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                alert('🚧 Esta funcionalidade está em desenvolvimento!');
-            });
-        });
-
-        const form = document.getElementById('nutritionalForm');
-        if (form) {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await this.saveNutritionalEvaluation();
-            });
-        }
-
-        const weightInput = document.getElementById('weight');
-        const heightInput = document.getElementById('height');
-        const imcInput = document.getElementById('imc');
-        
-        const calculateIMC = () => {
-            const weight = parseFloat(weightInput.value);
-            const height = parseFloat(heightInput.value);
-            if (weight && height && height > 0) {
-                const imc = weight / (height * height);
-                imcInput.value = imc.toFixed(2);
-            }
-        };
-        
-        if (weightInput && heightInput) {
-            weightInput.addEventListener('input', calculateIMC);
-            heightInput.addEventListener('input', calculateIMC);
-        }
-    }
-
-    attachAdminEvents() {
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => this.logout());
-        }
-
-        const navBtns = document.querySelectorAll('.nav-btn');
-        navBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                alert('🚧 Funcionalidade administrativa em desenvolvimento!');
-            });
-        });
-    }
-
-    attachGenericEvents() {
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => this.logout());
-        }
-
-        const navBtns = document.querySelectorAll('.nav-btn');
-        navBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                alert('🚧 Esta funcionalidade está em desenvolvimento!');
-            });
-        });
-    }
-
-    async saveNutritionalEvaluation() {
-        try {
-            const patientName = document.getElementById('patientName').value;
-            const weight = parseFloat(document.getElementById('weight').value);
-            const height = parseFloat(document.getElementById('height').value);
-            const imc = parseFloat(document.getElementById('imc').value);
-            const muscleMass = parseFloat(document.getElementById('muscleMass').value);
-            const bodyFat = parseFloat(document.getElementById('bodyFat').value);
-            const bodyWater = parseFloat(document.getElementById('bodyWater').value);
-            const glucose = parseFloat(document.getElementById('glucose').value);
-            const cholesterol = parseFloat(document.getElementById('cholesterol').value);
-            const evaluationDate = document.getElementById('evaluationDate').value;
-
-            const evaluationData = {
-                paciente: patientName,
-                profissional: this.userInfo.nome,
-                profissional_login: this.userInfo.login,
-                cargo: this.userInfo.cargo,
-                data_avaliacao: evaluationDate,
-                dados_antropometricos: {
-                    peso: weight,
-                    altura: height,
-                    imc: imc
-                },
-                bioimpedancia: {
-                    massa_muscular: muscleMass || null,
-                    gordura_corporal: bodyFat || null,
-                    agua_corporal: bodyWater || null
-                },
-                exames_laboratoriais: {
-                    glicemia: glucose || null,
-                    colesterol_total: cholesterol || null
-                },
-                timestamp: new Date().toISOString()
-            };
-
-            await addDoc(collection(db, "avaliacao_nutricional"), evaluationData);
-            alert('✅ Avaliação salva com sucesso!');
-            document.getElementById('nutritionalForm').reset();
-            this.loadEvaluationData();
-        } catch (error) {
-            console.error("Erro ao salvar avaliação:", error);
-            alert('❌ Erro ao salvar avaliação: ' + error.message);
-        }
-    }
-
-    async loadEvaluationData() {
-        try {
-            const q = query(collection(db, "avaliacao_nutricional"), orderBy("timestamp", "desc"), limit(10));
-            const querySnapshot = await getDocs(q);
-            this.currentEvaluations = [];
-            
-            querySnapshot.forEach((doc) => {
-                this.currentEvaluations.push({ id: doc.id, ...doc.data() });
-            });
-            
-            console.log('Avaliações carregadas:', this.currentEvaluations.length);
-            this.renderCharts();
-        } catch (error) {
-            console.error("Erro ao carregar avaliações:", error);
-        }
-    }
-
     async loadClientEvaluations() {
         try {
-            // Buscar avaliações do cliente logado
-            const q = query(collection(db, "avaliacao_nutricional"), where("paciente", "==", this.userInfo.nome), orderBy("timestamp", "desc"));
+            const q = query(collection(db, "avaliacao_nutricional"), where("paciente_login", "==", this.userInfo.login), orderBy("timestamp", "desc"));
             const querySnapshot = await getDocs(q);
             const evaluationsList = document.getElementById('evaluationsList');
             
@@ -393,11 +760,10 @@ export class HomeManager {
                         <div class="evaluation-data">
                             <div><strong>Peso:</strong> ${data.dados_antropometricos.peso} kg</div>
                             <div><strong>Altura:</strong> ${data.dados_antropometricos.altura} m</div>
-                            <div><strong>IMC:</strong> ${data.dados_antropometricos.imc}</div>
-                            ${data.bioimpedancia.massa_muscular ? `<div><strong>Massa Muscular:</strong> ${data.bioimpedancia.massa_muscular} kg</div>` : ''}
-                            ${data.bioimpedancia.gordura_corporal ? `<div><strong>Gordura:</strong> ${data.bioimpedancia.gordura_corporal}%</div>` : ''}
+                            <div><strong>IMC:</strong> ${data.dados_antropometricos.imc} - ${data.dados_antropometricos.classificacao_imc}</div>
+                            ${data.bioimpedancia.massa_muscular ? `<div><strong>Massa Muscular:</strong> ${data.bioimpedancia.massa_muscular} kg (Ideal: ${data.bioimpedancia.massa_muscular_ideal} kg)</div>` : ''}
+                            ${data.bioimpedancia.gordura_corporal ? `<div><strong>Gordura:</strong> ${data.bioimpedancia.gordura_corporal}% (Ideal: ${data.bioimpedancia.gordura_corporal_ideal})</div>` : ''}
                             ${data.exames_laboratoriais.glicemia ? `<div><strong>Glicemia:</strong> ${data.exames_laboratoriais.glicemia} mg/dL</div>` : ''}
-                            ${data.exames_laboratoriais.colesterol_total ? `<div><strong>Colesterol:</strong> ${data.exames_laboratoriais.colesterol_total} mg/dL</div>` : ''}
                         </div>
                     `;
                     evaluationsList.appendChild(card);
@@ -405,104 +771,6 @@ export class HomeManager {
             }
         } catch (error) {
             console.error("Erro ao carregar avaliações do cliente:", error);
-        }
-    }
-
-    renderCharts() {
-        if (this.currentEvaluations.length === 0) {
-            console.log('Sem dados para gráficos');
-            return;
-        }
-        
-        if (typeof Chart === 'undefined') {
-            console.log('Aguardando Chart.js...');
-            setTimeout(() => this.renderCharts(), 500);
-            return;
-        }
-        
-        this.createCharts();
-    }
-
-    createCharts() {
-        const evaluations = [...this.currentEvaluations].reverse();
-        const labels = evaluations.map(e => e.data_avaliacao);
-        const weights = evaluations.map(e => e.dados_antropometricos.peso);
-        const imcs = evaluations.map(e => e.dados_antropometricos.imc);
-        const muscles = evaluations.map(e => e.bioimpedancia.massa_muscular || 0);
-        
-        if (this.weightChart) this.weightChart.destroy();
-        if (this.imcChart) this.imcChart.destroy();
-        if (this.muscleChart) this.muscleChart.destroy();
-        
-        const weightCtx = document.getElementById('weightChart')?.getContext('2d');
-        if (weightCtx) {
-            this.weightChart = new Chart(weightCtx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Peso (kg)',
-                        data: weights,
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
-                    }
-                }
-            });
-        }
-        
-        const imcCtx = document.getElementById('imcChart')?.getContext('2d');
-        if (imcCtx) {
-            this.imcChart = new Chart(imcCtx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'IMC',
-                        data: imcs,
-                        borderColor: '#764ba2',
-                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true
-                }
-            });
-        }
-        
-        const muscleCtx = document.getElementById('muscleChart')?.getContext('2d');
-        if (muscleCtx && muscles.some(m => m > 0)) {
-            this.muscleChart = new Chart(muscleCtx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Massa Muscular (kg)',
-                        data: muscles,
-                        borderColor: '#48bb78',
-                        backgroundColor: 'rgba(72, 187, 120, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true
-                }
-            });
         }
     }
 
