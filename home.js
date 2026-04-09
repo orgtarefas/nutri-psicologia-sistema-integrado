@@ -1,7 +1,13 @@
+// Importa apenas do arquivo central do Firebase
+import { db, collection, addDoc, getDocs, query, where, orderBy, limit } from './0_firebase_api_config.js';
+
 export class HomeManager {
     constructor(userInfo) {
         this.userInfo = userInfo;
         this.currentEvaluations = [];
+        this.weightChart = null;
+        this.imcChart = null;
+        this.muscleChart = null;
     }
 
     render() {
@@ -190,13 +196,11 @@ export class HomeManager {
     }
 
     attachNutricionistaEvents() {
-        // Logout button
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.logout());
         }
 
-        // Navigation buttons
         const navBtns = document.querySelectorAll('.nav-btn');
         navBtns.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -204,7 +208,6 @@ export class HomeManager {
             });
         });
 
-        // Form submission
         const form = document.getElementById('nutritionalForm');
         if (form) {
             form.addEventListener('submit', async (e) => {
@@ -213,7 +216,6 @@ export class HomeManager {
             });
         }
 
-        // Calculate IMC on weight/height change
         const weightInput = document.getElementById('weight');
         const heightInput = document.getElementById('height');
         const imcInput = document.getElementById('imc');
@@ -282,8 +284,7 @@ export class HomeManager {
                 timestamp: new Date().toISOString()
             };
 
-            const collectionRef = window.collection(window.db, "avaliacao_nutricional");
-            await window.addDoc(collectionRef, evaluationData);
+            await addDoc(collection(db, "avaliacao_nutricional"), evaluationData);
             alert('✅ Avaliação salva com sucesso!');
             document.getElementById('nutritionalForm').reset();
             this.loadEvaluationData();
@@ -295,9 +296,8 @@ export class HomeManager {
 
     async loadEvaluationData() {
         try {
-            const collectionRef = window.collection(window.db, "avaliacao_nutricional");
-            const q = window.query(collectionRef, window.orderBy("timestamp", "desc"), window.limit(10));
-            const querySnapshot = await window.getDocs(q);
+            const q = query(collection(db, "avaliacao_nutricional"), orderBy("timestamp", "desc"), limit(10));
+            const querySnapshot = await getDocs(q);
             this.currentEvaluations = [];
             
             querySnapshot.forEach((doc) => {
@@ -312,9 +312,8 @@ export class HomeManager {
 
     async loadClientEvaluations() {
         try {
-            const collectionRef = window.collection(window.db, "avaliacao_nutricional");
-            const q = window.query(collectionRef, window.where("paciente", "==", this.userInfo.nome), window.orderBy("timestamp", "desc"));
-            const querySnapshot = await window.getDocs(q);
+            const q = query(collection(db, "avaliacao_nutricional"), where("paciente", "==", this.userInfo.nome), orderBy("timestamp", "desc"));
+            const querySnapshot = await getDocs(q);
             const evaluationsList = document.getElementById('evaluationsList');
             
             if (evaluationsList) {
@@ -351,11 +350,9 @@ export class HomeManager {
 
     renderCharts() {
         if (this.currentEvaluations.length === 0) {
-            console.log("Sem dados para exibir gráficos");
             return;
         }
         
-        // Check if Chart is available
         if (typeof Chart === 'undefined') {
             console.error("Chart.js não carregado");
             return;
@@ -371,12 +368,10 @@ export class HomeManager {
         const imcs = evaluations.map(e => e.dados_antropometricos.imc);
         const muscles = evaluations.map(e => e.bioimpedancia.massa_muscular || 0);
         
-        // Destroy existing charts if any
         if (this.weightChart) this.weightChart.destroy();
         if (this.imcChart) this.imcChart.destroy();
         if (this.muscleChart) this.muscleChart.destroy();
         
-        // Weight Chart
         const weightCtx = document.getElementById('weightChart')?.getContext('2d');
         if (weightCtx) {
             this.weightChart = new Chart(weightCtx, {
@@ -394,17 +389,11 @@ export class HomeManager {
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
-                    }
+                    maintainAspectRatio: true
                 }
             });
         }
         
-        // IMC Chart
         const imcCtx = document.getElementById('imcChart')?.getContext('2d');
         if (imcCtx) {
             this.imcChart = new Chart(imcCtx, {
@@ -427,7 +416,6 @@ export class HomeManager {
             });
         }
         
-        // Muscle Mass Chart
         const muscleCtx = document.getElementById('muscleChart')?.getContext('2d');
         if (muscleCtx && muscles.some(m => m > 0)) {
             this.muscleChart = new Chart(muscleCtx, {
