@@ -1,4 +1,3 @@
-// Importa apenas do arquivo central do Firebase
 import { db, collection, addDoc, getDocs, query, where, orderBy, limit } from './0_firebase_api_config.js';
 
 export class HomeManager {
@@ -8,20 +7,29 @@ export class HomeManager {
         this.weightChart = null;
         this.imcChart = null;
         this.muscleChart = null;
-        console.log('HomeManager iniciado para:', userInfo);
     }
 
     render() {
         const app = document.getElementById('app');
-        if (!app) {
-            console.error('Elemento app não encontrado!');
-            return;
+        
+        if (this.userInfo.cargo === 'nutricionista') {
+            app.innerHTML = this.renderNutricionistaHome();
+            this.attachNutricionistaEvents();
+            this.loadEvaluationData();
+        } else if (this.userInfo.cargo === 'psicologo') {
+            app.innerHTML = this.renderPsicologoHome();
+            this.attachGenericEvents();
+        } else if (this.userInfo.perfil === 'cliente') {
+            app.innerHTML = this.renderClienteHome();
+            this.loadClientEvaluations();
+        } else {
+            app.innerHTML = this.renderGenericHome();
+            this.attachGenericEvents();
         }
-        
-        console.log('Renderizando home para cargo:', this.userInfo.cargo);
-        
-        // Por enquanto, vamos mostrar uma versão simples para teste
-        app.innerHTML = `
+    }
+
+    renderNutricionistaHome() {
+        return `
             <div class="home-container">
                 <div class="header">
                     <h1>🍎 Sistema de Avaliação Nutricional</h1>
@@ -105,12 +113,88 @@ export class HomeManager {
                 </div>
             </div>
         `;
-        
-        this.attachEvents();
-        this.loadEvaluationData();
     }
 
-    attachEvents() {
+    renderPsicologoHome() {
+        return `
+            <div class="home-container">
+                <div class="header">
+                    <h1>🧠 Sistema de Avaliação Psicológica</h1>
+                    <div class="user-info">
+                        <span>👋 Olá, ${this.userInfo.nome}</span>
+                        <span>🏷️ ${this.userInfo.cargo}</span>
+                        <button class="logout-btn" id="logoutBtn">Sair</button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="nav-buttons">
+                        <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
+                        <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
+                        <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
+                        <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
+                    </div>
+                    <div style="text-align: center; padding: 40px;">
+                        <h2>🚧 Em Desenvolvimento</h2>
+                        <p>Módulo de avaliação psicológica será implementado em breve!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderClienteHome() {
+        return `
+            <div class="home-container">
+                <div class="header">
+                    <h1>📋 Minhas Avaliações</h1>
+                    <div class="user-info">
+                        <span>👋 Olá, ${this.userInfo.nome}</span>
+                        <button class="logout-btn" id="logoutBtn">Sair</button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="nav-buttons">
+                        <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
+                        <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
+                        <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
+                        <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
+                    </div>
+                    <div id="clientEvaluations" class="client-evaluations">
+                        <h3>📊 Histórico de Avaliações</h3>
+                        <div id="evaluationsList"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderGenericHome() {
+        return `
+            <div class="home-container">
+                <div class="header">
+                    <h1>🏠 Sistema de Avaliação</h1>
+                    <div class="user-info">
+                        <span>👋 Olá, ${this.userInfo.nome}</span>
+                        <button class="logout-btn" id="logoutBtn">Sair</button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="nav-buttons">
+                        <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
+                        <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
+                        <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
+                        <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
+                    </div>
+                    <div style="text-align: center; padding: 40px;">
+                        <h2>🚧 Em Desenvolvimento</h2>
+                        <p>Personalização para seu perfil em breve!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    attachNutricionistaEvents() {
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.logout());
@@ -148,6 +232,20 @@ export class HomeManager {
             weightInput.addEventListener('input', calculateIMC);
             heightInput.addEventListener('input', calculateIMC);
         }
+    }
+
+    attachGenericEvents() {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => this.logout());
+        }
+
+        const navBtns = document.querySelectorAll('.nav-btn');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                alert('🚧 Esta funcionalidade está em desenvolvimento!');
+            });
+        });
     }
 
     async saveNutritionalEvaluation() {
@@ -205,21 +303,56 @@ export class HomeManager {
                 this.currentEvaluations.push({ id: doc.id, ...doc.data() });
             });
             
-            console.log('Avaliações carregadas:', this.currentEvaluations.length);
             this.renderCharts();
         } catch (error) {
             console.error("Erro ao carregar avaliações:", error);
         }
     }
 
+    async loadClientEvaluations() {
+        try {
+            const q = query(collection(db, "avaliacao_nutricional"), where("paciente", "==", this.userInfo.nome), orderBy("timestamp", "desc"));
+            const querySnapshot = await getDocs(q);
+            const evaluationsList = document.getElementById('evaluationsList');
+            
+            if (evaluationsList) {
+                evaluationsList.innerHTML = '';
+                
+                if (querySnapshot.empty) {
+                    evaluationsList.innerHTML = '<p>Nenhuma avaliação encontrada.</p>';
+                    return;
+                }
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const card = document.createElement('div');
+                    card.className = 'evaluation-card';
+                    card.innerHTML = `
+                        <div class="evaluation-date">📅 ${data.data_avaliacao}</div>
+                        <div><strong>Profissional:</strong> ${data.profissional} (${data.cargo})</div>
+                        <div class="evaluation-data">
+                            <div><strong>Peso:</strong> ${data.dados_antropometricos.peso} kg</div>
+                            <div><strong>Altura:</strong> ${data.dados_antropometricos.altura} m</div>
+                            <div><strong>IMC:</strong> ${data.dados_antropometricos.imc}</div>
+                            ${data.bioimpedancia.massa_muscular ? `<div><strong>Massa Muscular:</strong> ${data.bioimpedancia.massa_muscular} kg</div>` : ''}
+                            ${data.bioimpedancia.gordura_corporal ? `<div><strong>Gordura:</strong> ${data.bioimpedancia.gordura_corporal}%</div>` : ''}
+                            ${data.exames_laboratoriais.glicemia ? `<div><strong>Glicemia:</strong> ${data.exames_laboratoriais.glicemia} mg/dL</div>` : ''}
+                        </div>
+                    `;
+                    evaluationsList.appendChild(card);
+                });
+            }
+        } catch (error) {
+            console.error("Erro ao carregar avaliações do cliente:", error);
+        }
+    }
+
     renderCharts() {
         if (this.currentEvaluations.length === 0) {
-            console.log('Sem dados para gráficos');
             return;
         }
         
         if (typeof Chart === 'undefined') {
-            console.log('Aguardando Chart.js...');
             setTimeout(() => this.renderCharts(), 500);
             return;
         }
