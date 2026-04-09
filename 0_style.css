@@ -113,6 +113,20 @@ body {
     flex-wrap: wrap;
 }
 
+.role-selector {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid white;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.role-selector option {
+    background: #667eea;
+    color: white;
+}
+
 .logout-btn {
     background: rgba(255,255,255,0.2);
     border: 1px solid white;
@@ -368,4 +382,39 @@ select {
     border-radius: 6px;
     font-size: 14px;
     background-color: white;
+}
+
+/* Badge de perfil */
+.perfil-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 10px;
+}
+
+.perfil-operador {
+    background: #48bb78;
+    color: white;
+}
+
+.perfil-operador-membro {
+    background: #ed8936;
+    color: white;
+}
+
+.perfil-supervisor {
+    background: #4299e1;
+    color: white;
+}
+
+.perfil-gerente {
+    background: #9f7aea;
+    color: white;
+}
+
+.perfil-admin {
+    background: #e53e3e;
+    color: white;
 }
