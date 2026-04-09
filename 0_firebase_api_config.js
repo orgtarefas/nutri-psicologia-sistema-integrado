@@ -1,7 +1,6 @@
 // Firebase Configuration File
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
