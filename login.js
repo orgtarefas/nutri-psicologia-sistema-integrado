@@ -1,4 +1,4 @@
-import { db, collection, getDocs, query, where } from './0_firebase_api_config.js';
+import { db, collection, doc, getDoc } from './0_firebase_api_config.js';
 
 class LoginManager {
     constructor() {
@@ -43,34 +43,57 @@ class LoginManager {
 
     async validateLogin(login, password) {
         try {
-            const loginsRef = collection(db, "logins");
-            const q = query(loginsRef, where("__name__", "==", login));
-            const querySnapshot = await getDocs(q);
+            // Buscar em todas as pastas possíveis
+            const pastas = ['funcionarios', 'clientes', 'admin'];
+            let userFound = null;
+            let userData = null;
+            let userType = null;
             
-            if (querySnapshot.empty) {
+            for (const pasta of pastas) {
+                try {
+                    const userRef = doc(db, "logins", pasta, login);
+                    const userDoc = await getDoc(userRef);
+                    
+                    if (userDoc.exists()) {
+                        userFound = userDoc;
+                        userData = userDoc.data();
+                        userType = pasta;
+                        console.log(`Usuário encontrado na pasta: ${pasta}`, userData);
+                        break;
+                    }
+                } catch (error) {
+                    console.log(`Erro ao buscar em ${pasta}:`, error);
+                }
+            }
+            
+            if (!userFound) {
                 this.showError("Usuário não encontrado!");
                 return;
             }
 
-            const userDoc = querySnapshot.docs[0];
-            const userData = userDoc.data();
-
+            // Validar senha e status
             if (userData.senha === password && userData.status_ativo === true) {
                 const userInfo = {
                     login: login,
                     nome: userData.nome,
                     perfil: userData.perfil,
                     cargo: userData.cargo,
+                    tipo: userType, // funcionarios, clientes ou admin
                     status_ativo: userData.status_ativo
                 };
                 localStorage.setItem('currentUser', JSON.stringify(userInfo));
+                console.log('Login bem sucedido!', userInfo);
                 this.loadHomeScreen(userInfo);
             } else {
-                this.showError("Senha incorreta ou usuário inativo!");
+                if (userData.senha !== password) {
+                    this.showError("Senha incorreta!");
+                } else {
+                    this.showError("Usuário inativo! Contate o administrador.");
+                }
             }
         } catch (error) {
             console.error("Erro ao fazer login:", error);
-            this.showError("Erro ao conectar com o servidor!");
+            this.showError("Erro ao conectar com o servidor: " + error.message);
         }
     }
 
