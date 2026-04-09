@@ -16,15 +16,16 @@ export class FuncoesCompartilhadas {
             
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                if (data.cargo === 'cliente') {
+                if (data.perfil === 'paciente') {  // Mudado de cargo para perfil
                     clientsList.push({
                         login: doc.id,
                         nome: data.nome,
                         senha: data.senha,
                         dataNascimento: data.dataNascimento,
+                        dataNascimentoExibir: this.formatDateToDisplay(data.dataNascimento),
                         sexo: data.sexo,
                         status_ativo: data.status_ativo,
-                        cargo: data.cargo,
+                        cargo: data.cargo || 'paciente',  // Para exibição
                         perfil: data.perfil,
                         dataHoraCadastro: data.dataHoraCadastro
                     });
@@ -53,7 +54,14 @@ export class FuncoesCompartilhadas {
             throw new Error('A senha deve ter no mínimo 4 caracteres!');
         }
         
-        const dataNasc = new Date(dataNascimento);
+        // Converter data de nascimento do formato DD/MM/YYYY para YYYY-MM-DD
+        let dataNascimentoFormatada = dataNascimento;
+        if (dataNascimento.includes('/')) {
+            const partes = dataNascimento.split('/');
+            dataNascimentoFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
+        }
+        
+        const dataNasc = new Date(dataNascimentoFormatada);
         const hoje = new Date();
         if (dataNasc > hoje) {
             throw new Error('Data de nascimento não pode ser futura!');
@@ -100,10 +108,10 @@ export class FuncoesCompartilhadas {
             const clientDataToSave = {
                 nome: nome.toUpperCase(),
                 senha: senha,
-                dataNascimento: dataNascimento,
+                dataNascimento: dataNascimentoFormatada,
                 sexo: sexo,
-                cargo: "cliente",
-                perfil: "cliente",
+                cargo: "paciente",  // Para exibição
+                perfil: "paciente",  // Para navegação e regras
                 status_ativo: true,
                 dataHoraCadastro: dataHoraCadastro,
                 dataCadastro: agora.toISOString()
@@ -111,12 +119,32 @@ export class FuncoesCompartilhadas {
             
             await setDoc(clientRef, clientDataToSave);
             
-            return { success: true, message: `Cliente "${nome}" cadastrado com sucesso!\nLogin: ${login}\nSenha: ${senha}` };
+            return { success: true, message: `Paciente "${nome}" cadastrado com sucesso!\nLogin: ${login}\nSenha: ${senha}` };
             
         } catch (error) {
             console.error("Erro ao cadastrar cliente:", error);
             throw new Error('Erro ao cadastrar cliente: ' + error.message);
         }
+    }
+    
+    // ==================== FUNÇÕES DE FORMATAÇÃO ====================
+    
+    static formatDateToDisplay(dateString) {
+        if (!dateString) return '';
+        const partes = dateString.split('-');
+        if (partes.length === 3) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        return dateString;
+    }
+    
+    static formatDateToSave(dateString) {
+        if (!dateString) return '';
+        if (dateString.includes('/')) {
+            const partes = dateString.split('/');
+            return `${partes[2]}-${partes[1]}-${partes[0]}`;
+        }
+        return dateString;
     }
     
     // ==================== FUNÇÕES DE AVALIAÇÃO (LEITURA) ====================
@@ -156,10 +184,10 @@ export class FuncoesCompartilhadas {
         return age;
     }
     
-    static formatDate(date) {
+    static formatDateTime(date) {
         if (!date) return '';
         const d = new Date(date);
-        return d.toLocaleDateString('pt-BR');
+        return d.toLocaleString('pt-BR');
     }
     
     static logout() {
@@ -202,16 +230,17 @@ export class HomeManager {
     }
 
     render() {
+        // Usa 'perfil' para navegação
         if (this.userInfo.perfil === 'admin') {
-            this.showHomeByRole(this.userInfo.cargo || 'nutricionista');
+            this.showHomeByRole(this.userInfo.perfil || 'admin');
         } else {
-            this.showHomeByRole(this.userInfo.cargo || this.userInfo.perfil);
+            this.showHomeByRole(this.userInfo.perfil);
         }
         
         window.addEventListener('adminRoleChange', (e) => {
             if (this.userInfo.perfil === 'admin') {
-                this.userInfo.cargo = e.detail.role;
                 this.userInfo.perfil = e.detail.role;
+                this.userInfo.cargo = e.detail.role === 'paciente' ? 'paciente' : e.detail.role;
                 this.showHomeByRole(e.detail.role);
             }
         });
@@ -219,7 +248,7 @@ export class HomeManager {
     
     showHomeByRole(role) {
         switch(role) {
-            case 'cliente':
+            case 'paciente':
                 this.currentHome = new HomeCliente(this.userInfo);
                 break;
             case 'nutricionista':
@@ -227,6 +256,10 @@ export class HomeManager {
                 break;
             case 'psicologo':
                 this.currentHome = new HomePsicologo(this.userInfo);
+                break;
+            case 'admin':
+                // Admin pode escolher, por padrão mostra nutricionista
+                this.currentHome = new HomeNutricionista(this.userInfo);
                 break;
             default:
                 this.currentHome = new HomeCliente(this.userInfo);
