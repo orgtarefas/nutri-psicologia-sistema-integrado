@@ -49,7 +49,7 @@ export class LoginManager {
                 const userData = userDoc.data();
                 userData.login = loginInput;
                 
-                // Garantir que perfil existe (para compatibilidade com dados antigos)
+                // Garantir que perfil existe
                 if (!userData.perfil) {
                     userData.perfil = FuncoesCompartilhadas.getPerfilPadrao(userData.cargo);
                 }
