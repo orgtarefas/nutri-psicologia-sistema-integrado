@@ -4,17 +4,44 @@ import { HomeManager, FuncoesCompartilhadas } from './home.js';
 export class LoginManager {
     constructor() {
         this.setupEventListeners();
+        this.renderLoginScreen();
         this.checkAutoLogin();
     }
 
-    setupEventListeners() {
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.handleLogin();
-            });
+    renderLoginScreen() {
+        const app = document.getElementById('app');
+        if (app) {
+            app.innerHTML = `
+                <div class="login-container">
+                    <h2>🏥 Sistema de Avaliação</h2>
+                    <form id="loginForm">
+                        <div class="input-group">
+                            <label>📱 Login:</label>
+                            <input type="text" id="login" placeholder="Digite seu login" required>
+                        </div>
+                        <div class="input-group">
+                            <label>🔒 Senha:</label>
+                            <input type="password" id="password" placeholder="Digite sua senha" required>
+                        </div>
+                        <button type="submit" class="login-btn">Entrar</button>
+                        <div id="errorMsg" class="error-message" style="display: none;"></div>
+                    </form>
+                </div>
+            `;
         }
+    }
+
+    setupEventListeners() {
+        // Os eventos serão configurados após renderizar a tela
+        setTimeout(() => {
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleLogin();
+                });
+            }
+        }, 100);
     }
 
     checkAutoLogin() {
@@ -31,13 +58,15 @@ export class LoginManager {
     }
 
     async handleLogin() {
-        const loginInput = document.getElementById('login').value.trim();
-        const password = document.getElementById('password').value;
+        const loginInput = document.getElementById('login')?.value.trim();
+        const password = document.getElementById('password')?.value;
         const errorMsg = document.getElementById('errorMsg');
 
         if (!loginInput || !password) {
-            errorMsg.textContent = 'Preencha todos os campos!';
-            errorMsg.style.display = 'block';
+            if (errorMsg) {
+                errorMsg.textContent = 'Preencha todos os campos!';
+                errorMsg.style.display = 'block';
+            }
             return;
         }
 
@@ -49,23 +78,26 @@ export class LoginManager {
                 const userData = userDoc.data();
                 userData.login = loginInput;
                 
-                // Garantir que perfil existe
                 if (!userData.perfil) {
                     userData.perfil = FuncoesCompartilhadas.getPerfilPadrao(userData.cargo);
                 }
                 
-                errorMsg.style.display = 'none';
+                if (errorMsg) errorMsg.style.display = 'none';
                 localStorage.setItem('currentUser', JSON.stringify(userData));
                 this.showHome(userData);
             } else {
-                errorMsg.textContent = 'Login ou senha incorretos!';
-                errorMsg.style.display = 'block';
+                if (errorMsg) {
+                    errorMsg.textContent = 'Login ou senha incorretos!';
+                    errorMsg.style.display = 'block';
+                }
             }
             
         } catch (error) {
             console.error("Erro ao fazer login:", error);
-            errorMsg.textContent = 'Erro ao conectar com o servidor!';
-            errorMsg.style.display = 'block';
+            if (errorMsg) {
+                errorMsg.textContent = 'Erro ao conectar com o servidor!';
+                errorMsg.style.display = 'block';
+            }
         }
     }
 
