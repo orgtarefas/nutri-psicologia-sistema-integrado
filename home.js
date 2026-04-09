@@ -1,4 +1,4 @@
-import { db, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc } from './0_firebase_api_config.js';
+import { db, collection, getDocs, doc, setDoc, getDoc } from './0_firebase_api_config.js';
 import { HomeCliente } from './home_cliente.js';
 import { HomeNutricionista } from './home_nutricionista.js';
 import { HomePsicologo } from './home_psicologo.js';
@@ -11,26 +11,24 @@ export class FuncoesCompartilhadas {
     
     static async loadClientsList() {
         try {
-            const clientesRef = doc(db, "logins", "clientes");
-            const clientesDoc = await getDoc(clientesRef);
+            const querySnapshot = await getDocs(collection(db, "logins"));
             const clientsList = [];
             
-            if (clientesDoc.exists()) {
-                const data = clientesDoc.data();
-                
-                for (const [key, clientData] of Object.entries(data)) {
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.cargo === 'cliente') {
                     clientsList.push({
-                        login: clientData.login || key,  // <-- USA O CAMPO login SE EXISTIR
-                        nome: clientData.nome,
-                        senha: clientData.senha,
-                        dataNascimento: clientData.dataNascimento,
-                        sexo: clientData.sexo,
-                        status_ativo: clientData.status_ativo,
-                        cargo: clientData.cargo,
-                        perfil: clientData.perfil
+                        login: doc.id,
+                        nome: data.nome,
+                        senha: data.senha,
+                        dataNascimento: data.dataNascimento,
+                        sexo: data.sexo,
+                        status_ativo: data.status_ativo,
+                        cargo: data.cargo,
+                        perfil: data.perfil
                     });
                 }
-            }
+            });
             
             return clientsList;
         } catch (error) {
@@ -75,42 +73,32 @@ export class FuncoesCompartilhadas {
         if (existingClient) {
             throw new Error('Este login já existe! Escolha outro.');
         }
-
+        
         try {
-            const clientesRef = doc(db, "logins", "clientes");
-            const clientesDoc = await getDoc(clientesRef);
+            const clientRef = doc(db, "logins", login);
             
-            // Usar o login COM PONTO como chave do mapa
-            const newClientData = {
-                [login]: {  // login = "bia.santos" - funciona como chave
-                    nome: nome.toUpperCase(),
-                    senha: senha,
-                    dataNascimento: dataNascimento,
-                    sexo: sexo,
-                    cargo: "cliente",
-                    perfil: "cliente",
-                    status_ativo: true,
-                    dataCadastro: new Date().toISOString()
-                }
+            const clientDataToSave = {
+                nome: nome.toUpperCase(),
+                senha: senha,
+                dataNascimento: dataNascimento,
+                sexo: sexo,
+                cargo: "cliente",
+                perfil: "cliente",
+                status_ativo: true,
+                dataCadastro: new Date().toISOString()
             };
             
-            if (clientesDoc.exists()) {
-                const currentData = clientesDoc.data();
-                await updateDoc(clientesRef, {
-                  [login]: newClientData[login]
-                });
-            } else {
-                await setDoc(clientesRef, newClientData);
-            }
+            await setDoc(clientRef, clientDataToSave);
             
-            return { success: true, message: `Cliente cadastrado! Login: ${login}` };
+            return { success: true, message: `Cliente "${nome}" cadastrado com sucesso!\nLogin: ${login}\nSenha: ${senha}` };
             
         } catch (error) {
+            console.error("Erro ao cadastrar cliente:", error);
             throw new Error('Erro ao cadastrar cliente: ' + error.message);
         }
     }
     
-    // ==================== FUNÇÕES DE AVALIAÇÃO ====================
+    // ==================== FUNÇÕES DE AVALIAÇÃO (LEITURA) ====================
     
     static async loadEvaluationsByPatient(patientLogin) {
         try {
@@ -131,98 +119,6 @@ export class FuncoesCompartilhadas {
             console.error("Erro ao carregar avaliações:", error);
             return [];
         }
-    }
-    
-    static async saveNutritionalEvaluation(evaluationData) {
-        try {
-            const docRef = await addDoc(collection(db, "avaliacao_nutricional"), {
-                ...evaluationData,
-                timestamp: new Date().toISOString()
-            });
-            return { success: true, message: '✅ Avaliação salva com sucesso!', id: docRef.id };
-        } catch (error) {
-            console.error("Erro ao salvar avaliação:", error);
-            throw new Error('Erro ao salvar avaliação: ' + error.message);
-        }
-    }
-    
-    // ==================== FUNÇÕES DE CÁLCULO NUTRICIONAL ====================
-    
-    static calculateNutritionalParameters(weight, height, idade, sexo) {
-        if (!weight || !height || height <= 0) return null;
-        
-        const imc = weight / (height * height);
-        
-        let classification = '';
-        if (imc < 18.5) classification = 'Abaixo do peso';
-        else if (imc < 25) classification = 'Peso normal';
-        else if (imc < 30) classification = 'Sobrepeso';
-        else if (imc < 35) classification = 'Obesidade grau I';
-        else if (imc < 40) classification = 'Obesidade grau II';
-        else classification = 'Obesidade grau III';
-        
-        let percentualMassaMuscularIdeal = 0;
-        
-        if (sexo === 'masculino') {
-            if (idade <= 35) percentualMassaMuscularIdeal = 42;
-            else if (idade <= 55) percentualMassaMuscularIdeal = 38;
-            else if (idade <= 75) percentualMassaMuscularIdeal = 33.5;
-            else percentualMassaMuscularIdeal = 30;
-        } else {
-            if (idade <= 35) percentualMassaMuscularIdeal = 27.5;
-            else if (idade <= 55) percentualMassaMuscularIdeal = 26;
-            else if (idade <= 75) percentualMassaMuscularIdeal = 24;
-            else percentualMassaMuscularIdeal = 22;
-        }
-        
-        if (imc > 25 && imc < 30) percentualMassaMuscularIdeal -= 1;
-        else if (imc >= 30) percentualMassaMuscularIdeal -= 2;
-        else if (imc < 18.5) percentualMassaMuscularIdeal -= 2;
-        
-        percentualMassaMuscularIdeal = Math.min(50, Math.max(20, percentualMassaMuscularIdeal));
-        const massaMuscularIdealKg = (weight * percentualMassaMuscularIdeal) / 100;
-        
-        let percentualGorduraIdeal = 0;
-        
-        if (sexo === 'masculino') {
-            if (idade < 30) percentualGorduraIdeal = 14;
-            else if (idade < 50) percentualGorduraIdeal = 16;
-            else percentualGorduraIdeal = 18;
-        } else {
-            if (idade < 30) percentualGorduraIdeal = 21;
-            else if (idade < 50) percentualGorduraIdeal = 23;
-            else percentualGorduraIdeal = 25;
-        }
-        
-        if (imc < 18.5) percentualGorduraIdeal -= 2;
-        else if (imc > 25) percentualGorduraIdeal += 2;
-        if (imc > 30) percentualGorduraIdeal += 2;
-        
-        percentualGorduraIdeal = Math.min(35, Math.max(10, percentualGorduraIdeal));
-        
-        let idealBodyWater = 0;
-        
-        if (sexo === 'masculino') {
-            if (idade < 30) idealBodyWater = 62;
-            else if (idade < 50) idealBodyWater = 60;
-            else idealBodyWater = 58;
-        } else {
-            if (idade < 30) idealBodyWater = 58;
-            else if (idade < 50) idealBodyWater = 56;
-            else idealBodyWater = 54;
-        }
-        
-        if (imc > 25) idealBodyWater -= 3;
-        if (imc > 30) idealBodyWater -= 2;
-        idealBodyWater = Math.min(70, Math.max(45, idealBodyWater));
-        
-        return {
-            imc: imc.toFixed(2),
-            classification: classification,
-            idealMuscleMass: massaMuscularIdealKg.toFixed(1),
-            idealBodyFat: percentualGorduraIdeal + '%',
-            idealBodyWater: idealBodyWater + '%'
-        };
     }
     
     // ==================== FUNÇÕES DE UTILITÁRIOS ====================
