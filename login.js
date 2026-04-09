@@ -1,4 +1,5 @@
-import { db, collection, getDocs, query, where } from './firebase-imports.js';
+// Importa apenas do arquivo central do Firebase
+import { db, collection, getDocs, query, where } from './0_firebase_api_config.js';
 
 class LoginManager {
     constructor() {
@@ -56,7 +57,6 @@ class LoginManager {
             const userData = userDoc.data();
 
             if (userData.senha === password && userData.status_ativo === true) {
-                // Login successful
                 const userInfo = {
                     login: login,
                     nome: userData.nome,
@@ -84,7 +84,6 @@ class LoginManager {
     }
 
     loadHomeScreen(userInfo) {
-        // Import and initialize home module
         import('./home.js').then(module => {
             const homeManager = new module.HomeManager(userInfo);
             homeManager.render();
