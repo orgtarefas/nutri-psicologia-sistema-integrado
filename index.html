@@ -4,14 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Avaliação Nutricional</title>
-    <link rel="stylesheet" href="0_style.css">
+    <link rel="stylesheet" href="./0_style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 </head>
 <body>
     <div id="app"></div>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         
         // Firebase configuration
         const firebaseConfig = {
@@ -28,8 +29,15 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        // Make db available globally
+        // Make db and functions available globally
         window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+        window.query = query;
+        window.where = where;
+        window.orderBy = orderBy;
+        window.limit = limit;
         
         // Check if user is already logged in
         const currentUser = localStorage.getItem('currentUser');
