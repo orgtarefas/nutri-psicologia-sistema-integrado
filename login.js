@@ -1,5 +1,5 @@
 import { db, doc, getDoc } from './0_firebase_api_config.js';
-import { HomeManager } from './home.js';
+import { HomeManager, FuncoesCompartilhadas } from './home.js';
 
 export class LoginManager {
     constructor() {
@@ -49,9 +49,9 @@ export class LoginManager {
                 const userData = userDoc.data();
                 userData.login = loginInput;
                 
-                // Garantir que perfil existe (para compatibilidade)
+                // Garantir que perfil existe (para compatibilidade com dados antigos)
                 if (!userData.perfil) {
-                    userData.perfil = userData.cargo === 'cliente' ? 'paciente' : userData.cargo;
+                    userData.perfil = FuncoesCompartilhadas.getPerfilPadrao(userData.cargo);
                 }
                 
                 errorMsg.style.display = 'none';
@@ -75,6 +75,7 @@ export class LoginManager {
     }
 }
 
+// Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
     new LoginManager();
 });
