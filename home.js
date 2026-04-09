@@ -69,6 +69,14 @@ export class HomeManager {
                                     <input type="text" id="regNome" placeholder="Digite o nome completo" required>
                                 </div>
                                 <div class="form-field">
+                                    <label>⚥ Sexo:</label>
+                                    <select id="regSexo" required>
+                                        <option value="">Selecione</option>
+                                        <option value="feminino">Feminino</option>
+                                        <option value="masculino">Masculino</option>
+                                    </select>
+                                </div>
+                                <div class="form-field">
                                     <label>🔑 Login (será usado para acesso):</label>
                                     <input type="text" id="regLogin" placeholder="Ex: bia.santos" required>
                                 </div>
@@ -426,15 +434,50 @@ export class HomeManager {
         const login = document.getElementById('regLogin').value;
         const senha = document.getElementById('regSenha').value;
         const dataNascimento = document.getElementById('regDataNascimento').value;
+        const sexo = document.getElementById('regSexo').value;
         
-        if (!nome || !login || !senha || !dataNascimento) {
+        // Validar todos os campos
+        if (!nome || !login || !senha || !dataNascimento || !sexo) {
             alert('❌ Preencha todos os campos!');
             return;
         }
         
+        // Validar formato do login (sem espaços)
+        if (login.includes(' ')) {
+            alert('❌ O login não pode conter espaços!');
+            return;
+        }
+        
+        // Validar tamanho da senha
+        if (senha.length < 4) {
+            alert('❌ A senha deve ter no mínimo 4 caracteres!');
+            return;
+        }
+        
+        // Validar data de nascimento (não pode ser futura)
+        const dataNasc = new Date(dataNascimento);
+        const hoje = new Date();
+        if (dataNasc > hoje) {
+            alert('❌ Data de nascimento não pode ser futura!');
+            return;
+        }
+        
+        // Calcular idade para validação
+        let idade = hoje.getFullYear() - dataNasc.getFullYear();
+        const mesDiff = hoje.getMonth() - dataNasc.getMonth();
+        if (mesDiff < 0 || (mesDiff === 0 && hoje.getDate() < dataNasc.getDate())) {
+            idade--;
+        }
+        
+        if (idade < 18) {
+            alert('❌ Cliente deve ter 18 anos ou mais!');
+            return;
+        }
+        
+        // Verificar se login já existe
         const existingClient = this.clientsList.find(c => c.login === login);
         if (existingClient) {
-            alert('❌ Este login já existe!');
+            alert('❌ Este login já existe! Escolha outro.');
             return;
         }
         
@@ -447,9 +490,11 @@ export class HomeManager {
                     nome: nome,
                     senha: senha,
                     dataNascimento: dataNascimento,
+                    sexo: sexo, // Campo adicionado
                     status_ativo: true,
                     cargo: "cliente",
-                    perfil: "cliente"
+                    perfil: "cliente",
+                    dataCadastro: new Date().toISOString()
                 }
             };
             
@@ -461,14 +506,19 @@ export class HomeManager {
                 await setDoc(clientesRef, newClientData);
             }
             
-            alert('✅ Cliente cadastrado com sucesso!');
+            alert(`✅ Cliente "${nome}" cadastrado com sucesso!\nLogin: ${login}\nSenha: ${senha}`);
             
+            // Limpar formulário
             document.getElementById('regNome').value = '';
             document.getElementById('regLogin').value = '';
             document.getElementById('regSenha').value = '';
             document.getElementById('regDataNascimento').value = '';
+            document.getElementById('regSexo').value = '';
             
+            // Fechar modal
             document.getElementById('registerModal').style.display = 'none';
+            
+            // Recarregar lista de clientes
             await this.loadClientsList();
             
         } catch (error) {
