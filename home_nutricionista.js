@@ -1,5 +1,4 @@
-import { db, collection, addDoc, getDoc } from './0_firebase_api_config.js';
-import { FuncoesCompartilhadas } from './home_funcoescompartilhadas.js';
+import { FuncoesCompartilhadas } from './home.js';
 
 export class HomeNutricionista {
     constructor(userInfo) {
@@ -47,7 +46,6 @@ export class HomeNutricionista {
                         <button class="nav-btn" id="registerClientBtn" style="background: #48bb78; color: white;">➕ Cadastrar Cliente</button>
                     </div>
                     
-                    <!-- Modal de Cadastro de Cliente -->
                     <div id="registerModal" class="modal" style="display: none;">
                         <div class="modal-content">
                             <span class="close">&times;</span>
@@ -55,7 +53,7 @@ export class HomeNutricionista {
                             <form id="registerClientForm">
                                 <div class="form-field">
                                     <label>👤 Nome Completo:</label>
-                                    <input type="text" id="regNome" placeholder="Digite o nome completo" required>
+                                    <input type="text" id="regNome" required>
                                 </div>
                                 <div class="form-field">
                                     <label>⚥ Sexo:</label>
@@ -66,82 +64,82 @@ export class HomeNutricionista {
                                     </select>
                                 </div>
                                 <div class="form-field">
-                                    <label>🔑 Login (será usado para acesso):</label>
+                                    <label>🔑 Login:</label>
                                     <input type="text" id="regLogin" placeholder="Ex: bia.santos" required>
                                 </div>
                                 <div class="form-field">
                                     <label>🔒 Senha:</label>
-                                    <input type="password" id="regSenha" placeholder="Digite a senha" required>
+                                    <input type="password" id="regSenha" required>
                                 </div>
                                 <div class="form-field">
                                     <label>📅 Data de Nascimento:</label>
                                     <input type="date" id="regDataNascimento" required>
                                 </div>
-                                <button type="submit" class="submit-btn">Cadastrar Cliente</button>
+                                <button type="submit" class="submit-btn">Cadastrar</button>
                             </form>
                         </div>
                     </div>
                     
                     <div class="evaluation-form">
-                        <h3 class="form-title">📊 Nova Avaliação Nutricional</h3>
+                        <h3>📊 Nova Avaliação Nutricional</h3>
                         <form id="nutritionalForm">
                             <div class="form-grid">
                                 <div class="form-field">
-                                    <label>👤 Selecione o Cliente:</label>
+                                    <label>👤 Cliente:</label>
                                     <select id="clientSelect" required>
-                                        <option value="">-- Selecione um cliente --</option>
+                                        <option value="">-- Selecione --</option>
                                     </select>
                                 </div>
                                 <div class="form-field">
-                                    <label>📅 Data da Avaliação:</label>
+                                    <label>📅 Data:</label>
                                     <input type="date" id="evaluationDate" required>
                                 </div>
                                 <div class="form-field">
                                     <label>📏 Peso (kg):</label>
-                                    <input type="number" id="weight" step="0.1" placeholder="Ex: 70.5" required>
+                                    <input type="number" id="weight" step="0.1" required>
                                 </div>
                                 <div class="form-field">
                                     <label>📐 Altura (m):</label>
-                                    <input type="number" id="height" step="0.01" placeholder="Ex: 1.65" required>
+                                    <input type="number" id="height" step="0.01" required>
                                 </div>
                                 <div class="form-field">
                                     <label>📊 IMC:</label>
                                     <input type="text" id="imc" readonly>
                                 </div>
                                 <div class="form-field">
-                                    <label>📋 Classificação IMC:</label>
+                                    <label>📋 Classificação:</label>
                                     <input type="text" id="imcClassification" readonly>
                                 </div>
                                 <div class="form-field">
-                                    <label>💪 Massa Muscular Ideal (kg):</label>
+                                    <label>💪 Massa Muscular Ideal:</label>
                                     <input type="text" id="idealMuscleMass" readonly>
                                 </div>
                                 <div class="form-field">
                                     <label>💪 Massa Muscular (kg):</label>
-                                    <input type="number" id="muscleMass" step="0.1" placeholder="Ex: 45.0">
+                                    <input type="number" id="muscleMass" step="0.1">
                                 </div>
                                 <div class="form-field">
-                                    <label>🧈 Gordura Corporal Ideal (%):</label>
+                                    <label>🧈 Gordura Ideal:</label>
                                     <input type="text" id="idealBodyFat" readonly>
                                 </div>
                                 <div class="form-field">
-                                    <label>🧈 Gordura Corporal (%):</label>
-                                    <input type="number" id="bodyFat" step="0.1" placeholder="Ex: 25.5">
+                                    <label>🧈 Gordura (%):</label>
+                                    <input type="number" id="bodyFat" step="0.1">
                                 </div>
                                 <div class="form-field">
-                                    <label>💧 Água Corporal Ideal (%):</label>
+                                    <label>💧 Água Ideal:</label>
                                     <input type="text" id="idealBodyWater" readonly>
                                 </div>
                                 <div class="form-field">
-                                    <label>🩸 Glicemia (mg/dL):</label>
-                                    <input type="number" id="glucose" placeholder="Ex: 90">
+                                    <label>🩸 Glicemia:</label>
+                                    <input type="number" id="glucose">
                                 </div>
                                 <div class="form-field">
-                                    <label>🩸 Colesterol Total (mg/dL):</label>
-                                    <input type="number" id="cholesterol" placeholder="Ex: 180">
+                                    <label>🩸 Colesterol:</label>
+                                    <input type="number" id="cholesterol">
                                 </div>
                             </div>
-                            <button type="submit" class="submit-btn">Salvar Avaliação</button>
+                            <button type="submit" class="submit-btn">Salvar</button>
                         </form>
                     </div>
                     
@@ -150,7 +148,7 @@ export class HomeNutricionista {
                         <div class="info-card">
                             <p><strong>Nome:</strong> <span id="infoNome"></span></p>
                             <p><strong>Login:</strong> <span id="infoLogin"></span></p>
-                            <p><strong>Data de Nascimento:</strong> <span id="infoDataNasc"></span></p>
+                            <p><strong>Data Nasc.:</strong> <span id="infoDataNasc"></span></p>
                             <p><strong>Idade:</strong> <span id="infoIdade"></span> anos</p>
                             <p><strong>Sexo:</strong> <span id="infoSexo"></span></p>
                         </div>
@@ -158,15 +156,15 @@ export class HomeNutricionista {
                     
                     <div class="charts-section">
                         <div class="chart-container">
-                            <h4 class="chart-title">📈 Evolução do Peso</h4>
+                            <h4>📈 Evolução do Peso</h4>
                             <canvas id="weightChart"></canvas>
                         </div>
                         <div class="chart-container">
-                            <h4 class="chart-title">📊 Evolução do IMC</h4>
+                            <h4>📊 Evolução do IMC</h4>
                             <canvas id="imcChart"></canvas>
                         </div>
                         <div class="chart-container">
-                            <h4 class="chart-title">💪 Evolução da Massa Muscular</h4>
+                            <h4>💪 Evolução da Massa Muscular</h4>
                             <canvas id="muscleChart"></canvas>
                         </div>
                     </div>
@@ -176,34 +174,31 @@ export class HomeNutricionista {
     }
 
     attachEvents() {
-        // Logout
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.funcoes.logout());
         }
 
-        // Admin role selector
         const adminSelector = document.getElementById('adminRoleSelector');
         if (adminSelector) {
             adminSelector.addEventListener('change', (e) => {
-                this.funcoes.switchAdminRole(e.target.value, this.userInfo);
+                const event = new CustomEvent('adminRoleChange', { 
+                    detail: { role: e.target.value } 
+                });
+                window.dispatchEvent(event);
             });
         }
 
-        // Modal de cadastro
         const registerBtn = document.getElementById('registerClientBtn');
-        const modal = document.getElementById('registerModal');
-        
         if (registerBtn) {
             registerBtn.addEventListener('click', () => {
-                this.limparFormularioCadastro();
+                this.clearRegisterForm();
                 this.funcoes.showModal('registerModal');
             });
         }
-        
+
         this.funcoes.setupModalEvents('registerModal');
-        
-        // Form de cadastro
+
         const registerForm = document.getElementById('registerClientForm');
         if (registerForm) {
             registerForm.addEventListener('submit', async (e) => {
@@ -212,10 +207,10 @@ export class HomeNutricionista {
             });
         }
 
-        // Navegação
-        this.funcoes.setupNavButtons();
-        
-        // Form de avaliação
+        document.querySelectorAll('.nav-btn:not(#registerClientBtn)').forEach(btn => {
+            btn.addEventListener('click', () => alert('🚧 Em desenvolvimento!'));
+        });
+
         const form = document.getElementById('nutritionalForm');
         if (form) {
             form.addEventListener('submit', async (e) => {
@@ -228,7 +223,6 @@ export class HomeNutricionista {
             });
         }
 
-        // Cálculos automáticos
         const weightInput = document.getElementById('weight');
         const heightInput = document.getElementById('height');
         
@@ -243,14 +237,13 @@ export class HomeNutricionista {
             heightInput.addEventListener('input', calculateFields);
         }
         
-        // Data atual
         const dateInput = document.getElementById('evaluationDate');
         if (dateInput) {
             dateInput.value = new Date().toISOString().split('T')[0];
         }
     }
 
-    limparFormularioCadastro() {
+    clearRegisterForm() {
         document.getElementById('regNome').value = '';
         document.getElementById('regLogin').value = '';
         document.getElementById('regSenha').value = '';
@@ -371,7 +364,6 @@ export class HomeNutricionista {
             const result = await this.funcoes.saveNutritionalEvaluation(evaluationData);
             alert(result.message);
             
-            // Limpar formulário
             document.getElementById('weight').value = '';
             document.getElementById('height').value = '';
             document.getElementById('muscleMass').value = '';
