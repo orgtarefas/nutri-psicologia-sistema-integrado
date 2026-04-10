@@ -48,7 +48,6 @@ export class FuncoesCompartilhadas {
                     pacientesList.push({
                         login: doc.id,
                         nome: data.nome,
-                        senha: data.senha,
                         email: data.email,
                         dataNascimento: data.dataNascimento,
                         sexo: data.sexo,
@@ -64,28 +63,6 @@ export class FuncoesCompartilhadas {
         } catch (error) {
             console.error("Erro ao carregar pacientes:", error);
             return [];
-        }
-    }
-    
-    // Verifica se um e-mail já existe no Auth (por meio do login)
-    static async verificarEmailExisteNoAuth(email) {
-        // Como não temos uma função direta para verificar e-mail sem criar,
-        // vamos tentar uma abordagem: verificar se já existe um documento com esse email no Firestore
-        try {
-            const querySnapshot = await getDocs(collection(db, "logins"));
-            let emailExiste = false;
-            
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                if (data.email === email) {
-                    emailExiste = true;
-                }
-            });
-            
-            return emailExiste;
-        } catch (error) {
-            console.error("Erro ao verificar e-mail:", error);
-            return false;
         }
     }
     
@@ -137,8 +114,8 @@ export class FuncoesCompartilhadas {
             throw new Error('❌ Este login já está cadastrado! Escolha outro.');
         }
         
-        // Verificar se o e-mail gerado já existe (caso alguém tenha usado o mesmo login antes)
-        const emailExiste = await this.verificarEmailExisteNoAuth(emailGerado);
+        // Verificar se o e-mail gerado já existe
+        const emailExiste = existingPacientes.find(c => c.email === emailGerado);
         if (emailExiste) {
             throw new Error('❌ Este login já está cadastrado no sistema! Escolha outro.');
         }
@@ -146,9 +123,8 @@ export class FuncoesCompartilhadas {
         try {
             // 1° Criar usuário no Firebase Auth com e-mail automático
             const userCredential = await createUserWithEmailAndPassword(auth, emailGerado, senha);
-            const firebaseUser = userCredential.user;
             
-            // 2° Salvar dados no Firestore
+            // 2° Salvar dados no Firestore (SEM O CAMPO SENHA)
             const pacienteRef = doc(db, "logins", login);
             
             // Formatar data e hora
@@ -172,20 +148,17 @@ export class FuncoesCompartilhadas {
             const pacienteDataToSave = {
                 nome: nome.toUpperCase(),
                 email: emailGerado,
-                senha: senha, // Mantido para compatibilidade, mas o Auth é a fonte de verdade
                 dataNascimento: dataNascimentoFormatada,
                 sexo: sexo,
                 cargo: "paciente",
                 perfil: "operador",
                 status_ativo: true,
                 dataHoraCadastro: dataHoraCadastro,
-                dataCadastro: agora.toISOString(),
-                uid: firebaseUser.uid
+                dataCadastro: agora.toISOString()
             };
             
             await setDoc(pacienteRef, pacienteDataToSave);
             
-            // Mensagem de sucesso sem mostrar o e-mail
             return { success: true, message: `✅ Paciente "${nome}" cadastrado com sucesso!\n📋 Login: ${login}\n🔒 Senha: ${senha}` };
             
         } catch (error) {
@@ -356,7 +329,12 @@ export class FuncoesCompartilhadas {
         return nomes[perfil] || perfil;
     }
     
-    static logout() {
+    static async logout() {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Erro ao fazer logout do Auth:", error);
+        }
         localStorage.removeItem('currentUser');
         window.location.reload();
     }
