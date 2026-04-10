@@ -35,14 +35,16 @@
     --radius-2xl: 2rem;
 }
 
+/* BODY CORRIGIDO - MESMA COR DO LOGIN */
 body {
     font-family: 'Segoe UI', 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 50%, #0d1b4a 100%);
+    background: #264893;
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px;
+    margin: 0;
 }
 
 /* ==================== SCROLLBAR PERSONALIZADA ==================== */
@@ -71,45 +73,6 @@ body {
 ::selection {
     background: var(--primary);
     color: white;
-}
-
-/* ==================== LOGIN SCREEN ==================== */
-
-.login-container {
-    background: white;
-    border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-xl);
-    padding: 48px 40px;
-    width: 100%;
-    max-width: 440px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    animation: fadeInUp 0.5s ease;
-}
-
-.login-container:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.login-logo {
-    text-align: center;
-    margin-bottom: 40px;
-}
-
-.logo-img {
-    max-width: 180px;
-    height: auto;
 }
 
 /* ==================== HOME CONTAINER ==================== */
@@ -626,11 +589,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
         justify-content: center;
     }
     
-    .login-container {
-        margin: 0;
-        padding: 32px 24px;
-    }
-    
     .modal-content {
         margin: 10% auto;
         padding: 24px;
@@ -642,14 +600,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 @media (max-width: 480px) {
-    .login-container {
-        padding: 24px 20px;
-    }
-    
-    .logo-img {
-        max-width: 140px;
-    }
-    
     .content {
         padding: 16px;
     }
@@ -815,47 +765,6 @@ button,
     user-select: none;
 }
 
-/* Estado de loading para PWA */
-.pwa-install-banner {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    right: 20px;
-    background: white;
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-xl);
-    padding: 16px;
-    z-index: 1000;
-    animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Otimizações para PWA standalone mode */
-@media (display-mode: standalone) {
-    body {
-        padding: 0;
-    }
-    
-    .home-container {
-        border-radius: 0;
-        min-height: 100vh;
-    }
-    
-    .header {
-        padding-top: max(20px, env(safe-area-inset-top));
-    }
-}
-
 /* ==================== TELA DE LOGIN PROFISSIONAL ==================== */
 
 .login-wrapper {
@@ -865,6 +774,7 @@ button,
     justify-content: center;
     background: #264893;
     padding: 20px;
+    width: 100%;
 }
 
 .login-card {
@@ -872,25 +782,14 @@ button,
     border-radius: 32px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     width: 100%;
-    max-width: 460px;
-    padding: 48px 40px;
+    max-width: 480px;
+    padding: 56px 48px;
     animation: fadeInUp 0.5s ease;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 .login-header {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 48px;
 }
 
 .logo-container {
@@ -898,7 +797,8 @@ button,
 }
 
 .login-logo-img {
-    max-width: 180px;
+    max-width: 280px;
+    width: 100%;
     height: auto;
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
 }
@@ -925,9 +825,9 @@ button,
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
+    width: 56px;
     color: #94a3b8;
-    font-size: 20px;
+    font-size: 22px;
     transition: color 0.3s ease;
 }
 
@@ -942,7 +842,7 @@ button,
 
 .input-field input {
     width: 100%;
-    padding: 20px 12px 8px 0;
+    padding: 22px 12px 8px 0;
     border: none;
     background: transparent;
     font-size: 16px;
@@ -963,7 +863,7 @@ button,
 
 .input-field.focused label,
 .input-field input:not(:placeholder-shown) + label {
-    top: 8px;
+    top: 10px;
     transform: translateY(0);
     font-size: 11px;
     color: #f97316;
@@ -972,6 +872,7 @@ button,
 .password-toggle {
     cursor: pointer;
     transition: color 0.2s;
+    width: 56px;
 }
 
 .password-toggle:hover {
@@ -1005,7 +906,7 @@ button,
     background-color: #f8fafc;
     border: 2px solid #e2e8f0;
     border-radius: 6px;
-    margin-right: 10px;
+    margin-right: 12px;
     transition: all 0.2s ease;
 }
 
@@ -1041,12 +942,13 @@ button,
 .checkbox-text {
     font-size: 14px;
     color: #475569;
+    font-weight: 500;
 }
 
 /* Botão de login */
 .login-button {
     width: 100%;
-    padding: 16px;
+    padding: 18px;
     background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
     color: white;
     border: none;
@@ -1058,7 +960,7 @@ button,
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .login-button:hover {
@@ -1073,50 +975,65 @@ button,
 .login-button:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+    transform: none;
 }
 
 /* Mensagem de erro */
 .error-message-custom {
     background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
     color: #dc2626;
-    padding: 12px 16px;
-    border-radius: 12px;
-    margin-bottom: 20px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    margin-bottom: 24px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     font-size: 14px;
     font-weight: 500;
     animation: shake 0.3s ease;
 }
 
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
 /* Responsivo */
 @media (max-width: 480px) {
+    .login-card {
+        padding: 40px 28px;
+        max-width: 420px;
+    }
+    
+    .login-logo-img {
+        max-width: 220px;
+    }
+    
+    .login-header {
+        margin-bottom: 36px;
+    }
+    
+    .input-icon {
+        width: 48px;
+        font-size: 18px;
+    }
+    
+    .password-toggle {
+        width: 48px;
+    }
+    
+    .input-field input {
+        padding: 20px 12px 6px 0;
+        font-size: 15px;
+    }
+    
+    .login-button {
+        padding: 16px;
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 380px) {
     .login-card {
         padding: 32px 24px;
     }
     
     .login-logo-img {
-        max-width: 140px;
-    }
-    
-    .input-icon {
-        width: 44px;
-    }
-    
-    .input-field input {
-        padding: 18px 12px 6px 0;
-        font-size: 15px;
-    }
-    
-    .login-button {
-        padding: 14px;
-        font-size: 15px;
+        max-width: 180px;
     }
 }
