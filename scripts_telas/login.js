@@ -14,7 +14,7 @@ export class LoginManager {
             app.innerHTML = `
                 <div class="login-container">
                     <div class="login-logo">
-                        <img src="../imagens/logo.png" alt="TratamentoWeb Logo" class="logo-img">
+                        <img src="/imagens/logo.png" alt="TratamentoWeb Logo" class="logo-img">
                     </div>
                     <form id="loginForm">
                         <div class="input-group">
