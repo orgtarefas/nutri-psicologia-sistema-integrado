@@ -76,7 +76,7 @@ export class LoginManager {
             
             if (!userDoc.exists()) {
                 if (errorMsg) {
-                    errorMsg.textContent = 'Login não encontrado!';
+                    errorMsg.textContent = '❌ Login não encontrado!';
                     errorMsg.style.display = 'block';
                 }
                 return;
@@ -84,14 +84,17 @@ export class LoginManager {
             
             const userData = userDoc.data();
             
-            // 2° Verificar se o usuário tem email cadastrado
+            // 2° Verificar se o usuário tem email cadastrado (gerado automaticamente)
             if (!userData.email) {
-                console.error("Usuário não possui email cadastrado para autenticação");
-                if (errorMsg) {
-                    errorMsg.textContent = 'Erro de configuração: contate o administrador!';
-                    errorMsg.style.display = 'block';
+                // Se não tiver email, gerar um baseado no login
+                userData.email = FuncoesCompartilhadas.gerarEmailPorLogin(loginInput);
+                
+                // Atualizar o documento com o email gerado
+                const updateData = { email: userData.email };
+                if (userData.uid) {
+                    updateData.uid = userData.uid;
                 }
-                return;
+                await setDoc(userRef, updateData, { merge: true });
             }
             
             // 3° Autenticar no Firebase Auth com email e senha
@@ -115,11 +118,11 @@ export class LoginManager {
                 if (authError.code === 'auth/invalid-credential' || 
                     authError.code === 'auth/wrong-password' ||
                     authError.code === 'auth/user-not-found') {
-                    errorMsg.textContent = 'Senha incorreta!';
+                    errorMsg.textContent = '❌ Senha incorreta!';
                 } else if (authError.code === 'auth/invalid-email') {
-                    errorMsg.textContent = 'Email inválido no cadastro!';
+                    errorMsg.textContent = '❌ Erro de configuração: contate o administrador!';
                 } else {
-                    errorMsg.textContent = 'Erro de autenticação: ' + authError.message;
+                    errorMsg.textContent = '❌ Erro de autenticação: ' + authError.message;
                 }
                 errorMsg.style.display = 'block';
             }
@@ -127,7 +130,7 @@ export class LoginManager {
         } catch (error) {
             console.error("Erro ao fazer login:", error);
             if (errorMsg) {
-                errorMsg.textContent = 'Erro ao conectar com o servidor!';
+                errorMsg.textContent = '❌ Erro ao conectar com o servidor!';
                 errorMsg.style.display = 'block';
             }
         }
