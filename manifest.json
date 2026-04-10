@@ -1,6 +1,6 @@
 {
   "name": "TratamentoWeb",
-  "short_name": "Tratamento\nWeb",
+  "short_name": "Tratamento Web",
   "description": "Sistema Integrado de Acompanhamento em Saúde",
   "start_url": ".",
   "display": "standalone",
