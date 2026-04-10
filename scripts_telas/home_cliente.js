@@ -18,6 +18,9 @@ export class HomeCliente {
         const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
         const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
         
+        // SÓ mostra botão de conteúdo exclusivo se for membro E NÃO for admin view
+        const isMembro = this.userInfo.perfil === 'operador_membro' && !this.userInfo.isAdminView;
+        
         // Texto do cargo para admin view
         const cargoDisplayText = this.userInfo.isAdminView ? 
             `[Admin] Visualizando como ${this.getCargoDisplayName(this.userInfo.cargo)}` : 
@@ -43,7 +46,7 @@ export class HomeCliente {
                         <button class="nav-btn" data-module="results">📈 Resultados</button>
                         <button class="nav-btn" data-module="schedule">📅 Agendamentos</button>
                         <button class="nav-btn" data-module="messages">💬 Mensagens</button>
-                        ${this.userInfo.perfil === 'operador_membro' ? `
+                        ${isMembro ? `
                             <button class="nav-btn" id="membroExclusiveBtn" style="background: #ed8936; color: white;">⭐ Conteúdo Exclusivo Membro</button>
                         ` : ''}
                     </div>
@@ -66,8 +69,8 @@ export class HomeCliente {
                         <div id="evaluationsList"></div>
                     </div>
                     
-                    <!-- GRÁFICOS (apenas para membros) -->
-                    ${this.userInfo.perfil === 'operador_membro' ? `
+                    <!-- GRÁFICOS (apenas para membros reais, não para admin) -->
+                    ${isMembro ? `
                         <div class="charts-section">
                             <h3 style="color: #1a237e; margin-bottom: 20px;">📈 Meus Gráficos de Evolução</h3>
                             <div class="chart-container">
