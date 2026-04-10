@@ -19,8 +19,6 @@ export class LoginManager {
                             <div class="logo-container">
                                 <img src="./imagens/logo.png" alt="TratamentoWeb" class="login-logo-img">
                             </div>
-                            <h1 class="login-title">TratamentoWeb</h1>
-                            <p class="login-subtitle">Sistema Integrado de Acompanhamento em Saúde</p>
                         </div>
 
                         <form id="loginForm" class="login-form">
@@ -60,10 +58,6 @@ export class LoginManager {
                                 Entrar
                             </button>
                         </form>
-
-                        <div class="login-footer">
-                            <p>© 2024 TratamentoWeb - Todos os direitos reservados</p>
-                        </div>
                     </div>
                 </div>
             `;
@@ -83,6 +77,16 @@ export class LoginManager {
             if (loginInput) loginInput.value = savedLogin;
             if (passwordInput) passwordInput.value = savedPassword;
             if (rememberCheckbox) rememberCheckbox.checked = true;
+            
+            // Ativar animação dos labels
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('.input-field input');
+                inputs.forEach(input => {
+                    if (input.value) {
+                        input.parentElement.classList.add('focused');
+                    }
+                });
+            }, 100);
         }
     }
 
