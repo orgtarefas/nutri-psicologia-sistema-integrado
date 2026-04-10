@@ -84,17 +84,23 @@ export class LoginManager {
             
             const userData = userDoc.data();
             
-            // 2° Verificar se o usuário tem email cadastrado (gerado automaticamente)
-            if (!userData.email) {
-                // Se não tiver email, gerar um baseado no login
-                userData.email = FuncoesCompartilhadas.gerarEmailPorLogin(loginInput);
-                
-                // Atualizar o documento com o email gerado
-                const updateData = { email: userData.email };
-                if (userData.uid) {
-                    updateData.uid = userData.uid;
+            // Verificar se o usuário está ativo
+            if (userData.status_ativo === false) {
+                if (errorMsg) {
+                    errorMsg.textContent = '❌ Conta desativada! Contate o administrador.';
+                    errorMsg.style.display = 'block';
                 }
-                await setDoc(userRef, updateData, { merge: true });
+                return;
+            }
+            
+            // 2° Verificar se o usuário tem email cadastrado
+            if (!userData.email) {
+                console.error("Usuário não possui email cadastrado");
+                if (errorMsg) {
+                    errorMsg.textContent = '❌ Erro de configuração: contate o administrador!';
+                    errorMsg.style.display = 'block';
+                }
+                return;
             }
             
             // 3° Autenticar no Firebase Auth com email e senha
@@ -116,11 +122,12 @@ export class LoginManager {
                 console.error("Erro de autenticação:", authError);
                 
                 if (authError.code === 'auth/invalid-credential' || 
-                    authError.code === 'auth/wrong-password' ||
-                    authError.code === 'auth/user-not-found') {
+                    authError.code === 'auth/wrong-password') {
                     errorMsg.textContent = '❌ Senha incorreta!';
+                } else if (authError.code === 'auth/user-not-found') {
+                    errorMsg.textContent = '❌ Usuário não encontrado no sistema de autenticação!';
                 } else if (authError.code === 'auth/invalid-email') {
-                    errorMsg.textContent = '❌ Erro de configuração: contate o administrador!';
+                    errorMsg.textContent = '❌ Email inválido no cadastro!';
                 } else {
                     errorMsg.textContent = '❌ Erro de autenticação: ' + authError.message;
                 }
@@ -142,7 +149,6 @@ export class LoginManager {
     }
 }
 
-// Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
     new LoginManager();
 });
