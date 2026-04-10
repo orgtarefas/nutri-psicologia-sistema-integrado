@@ -39,7 +39,6 @@ const auth = getAuth(app);
 
 console.log('Firebase inicializado! Project ID:', firebaseConfig.projectId);
 
-// Export tudo que será usado nos outros arquivos
 export { 
     db, 
     auth,
