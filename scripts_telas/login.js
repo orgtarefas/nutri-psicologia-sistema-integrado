@@ -20,7 +20,7 @@ export class LoginManager {
                                 <img src="./imagens/logo.png" alt="TratamentoWeb" class="login-logo-img">
                             </div>
                         </div>
-
+    
                         <form id="loginForm" class="login-form">
                             <div class="input-group-custom">
                                 <div class="input-icon">
@@ -31,7 +31,7 @@ export class LoginManager {
                                     <label>Login</label>
                                 </div>
                             </div>
-
+    
                             <div class="input-group-custom">
                                 <div class="input-icon">
                                     <i class="bi bi-lock"></i>
@@ -44,7 +44,7 @@ export class LoginManager {
                                     <i class="bi bi-eye-slash"></i>
                                 </div>
                             </div>
-
+    
                             <div class="login-options">
                                 <label class="checkbox-custom">
                                     <input type="checkbox" id="rememberLogin">
@@ -52,7 +52,7 @@ export class LoginManager {
                                     <span class="checkbox-text">Lembrar meus dados</span>
                                 </label>
                             </div>
-
+    
                             <button type="submit" class="login-button">
                                 <i class="bi bi-box-arrow-in-right"></i>
                                 Entrar
@@ -63,7 +63,7 @@ export class LoginManager {
             `;
         }
     }
-
+        
     loadSavedCredentials() {
         const savedLogin = localStorage.getItem('savedLogin');
         const savedPassword = localStorage.getItem('savedPassword');
