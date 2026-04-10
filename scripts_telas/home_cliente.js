@@ -22,7 +22,7 @@ export class HomeCliente {
             <div class="home-container">
                 <div class="header">
                     <div class="header-logo">
-                        <img src="../imagens/logo.png" alt="TratamentoWeb" class="header-logo-img">
+                        <img src="/imagens/logo.png" alt="TratamentoWeb" class="header-logo-img">
                         <h1>Minhas Avaliações</h1>
                     </div>
                     <div class="user-info">
