@@ -7,9 +7,7 @@ export class HomePsicologo {
         this.pacientesList = [];
         this.currentEvaluations = [];
         this.selectedPaciente = null;
-        this.weightChart = null;
-        this.imcChart = null;
-        this.muscleChart = null;
+        this.psicologiaChart = null;
     }
 
     render() {
@@ -24,6 +22,11 @@ export class HomePsicologo {
         const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
         const isSupervisor = this.userInfo.perfil === 'supervisor_psicologo';
         
+        // Texto do cargo para admin view
+        const cargoDisplayText = this.userInfo.isAdminView ? 
+            `[Admin] Visualizando como ${this.getCargoDisplayName(this.userInfo.cargo)}` : 
+            'Psicólogo';
+        
         return `
             <div class="home-container">
                 <div class="header">
@@ -33,17 +36,8 @@ export class HomePsicologo {
                     </div>
                     <div class="user-info">
                         <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ Psicólogo</span>
+                        <span>🏷️ ${cargoDisplayText}</span>
                         <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        ${this.userInfo.perfil === 'admin' || this.userInfo.cargo === 'desenvolvedor' ? `
-                            <select id="adminRoleSelector" class="role-selector">
-                                <option value="paciente|operador">👤 Paciente (Operador)</option>
-                                <option value="paciente|operador_membro">👤 Paciente (Membro)</option>
-                                <option value="nutricionista|supervisor_nutricionista">🍎 Nutricionista (Supervisor)</option>
-                                <option value="nutricionista|gerente_nutricionista">🍎 Nutricionista (Gerente)</option>
-                                <option value="psicologo|supervisor_psicologo">🧠 Psicólogo</option>
-                            </select>
-                        ` : ''}
                         <button class="logout-btn" id="logoutBtn">Sair</button>
                     </div>
                 </div>
@@ -97,7 +91,7 @@ export class HomePsicologo {
                         </div>
                     </div>
                     
-                    <!-- SEÇÃO PRINCIPAL - EM DESENVOLVIMENTO -->
+                    <!-- SEÇÃO PRINCIPAL -->
                     <div style="text-align: center; padding: 40px;">
                         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; padding: 40px; color: white; margin-bottom: 30px;">
                             <div style="font-size: 64px; margin-bottom: 20px;">🧠</div>
@@ -226,23 +220,20 @@ export class HomePsicologo {
         `;
     }
 
+    getCargoDisplayName(cargo) {
+        const nomes = {
+            'paciente': 'Paciente',
+            'nutricionista': 'Nutricionista',
+            'psicologo': 'Psicólogo'
+        };
+        return nomes[cargo] || cargo;
+    }
+
     attachEvents() {
         // Botão de logout
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.funcoes.logout());
-        }
-
-        // Seletor de perfil para admin
-        const adminSelector = document.getElementById('adminRoleSelector');
-        if (adminSelector) {
-            adminSelector.addEventListener('change', (e) => {
-                const [cargo, perfil] = e.target.value.split('|');
-                const event = new CustomEvent('adminRoleChange', { 
-                    detail: { cargo: cargo, perfil: perfil } 
-                });
-                window.dispatchEvent(event);
-            });
         }
 
         // Botão de cadastrar paciente
@@ -295,12 +286,10 @@ export class HomePsicologo {
                     this.displayPacienteInfo();
                     await this.loadPsychologicalEvaluations();
                     
-                    // Mostrar formulário e lista
                     document.getElementById('avaliacaoForm').style.display = 'block';
                     document.getElementById('avaliacoesList').style.display = 'block';
                     document.getElementById('graficosSection').style.display = 'block';
                     
-                    // Data padrão
                     document.getElementById('evaluationDate').value = new Date().toISOString().split('T')[0];
                 } else {
                     this.selectedPaciente = null;
@@ -446,15 +435,13 @@ export class HomePsicologo {
                     pratica_exercicios: document.getElementById('praticaExercicios').value
                 },
                 observacoes: document.getElementById('observacoes').value,
-                status: 'pendente' // Para supervisores aprovarem
+                status: 'pendente'
             };
 
-            // Salvar no Firestore (usando a mesma coleção mas com tipo diferente)
             await this.funcoes.saveNutritionalEvaluation(evaluationData);
             
             alert('✅ Avaliação Psicológica salva com sucesso!');
             
-            // Limpar formulário
             document.getElementById('ansiedade').value = 5;
             document.getElementById('ansiedadeValue').textContent = 5;
             document.getElementById('depressao').value = 5;
@@ -478,9 +465,7 @@ export class HomePsicologo {
         if (!this.selectedPaciente) return;
         
         try {
-            // Carregar avaliações do paciente
             const allEvaluations = await this.funcoes.loadEvaluationsByPatient(this.selectedPaciente.login);
-            // Filtrar apenas avaliações psicológicas
             this.currentEvaluations = allEvaluations.filter(e => e.tipo === 'psicologica');
             
             this.displayEvaluationsList();
@@ -578,7 +563,6 @@ export class HomePsicologo {
     }
 
     createCharts() {
-        // Ordenar por data
         const sorted = [...this.currentEvaluations].sort((a, b) => 
             new Date(a.data_avaliacao) - new Date(b.data_avaliacao)
         );
@@ -589,7 +573,6 @@ export class HomePsicologo {
         const estresse = sorted.map(e => e.escalas?.estresse || 0);
         const sono = sorted.map(e => e.escalas?.qualidade_sono || 0);
         
-        // Destruir gráfico existente
         if (this.psicologiaChart) this.psicologiaChart.destroy();
         
         const ctx = document.getElementById('psicologiaChart')?.getContext('2d');
