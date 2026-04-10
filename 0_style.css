@@ -112,64 +112,6 @@ body {
     height: auto;
 }
 
-.input-group {
-    margin-bottom: 24px;
-}
-
-.input-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--secondary);
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.input-group input {
-    width: 100%;
-    padding: 14px 16px;
-    border: 2px solid var(--gray-200);
-    border-radius: var(--radius-md);
-    font-size: 15px;
-    transition: all 0.3s ease;
-    background: var(--gray-100);
-}
-
-.input-group input:focus {
-    outline: none;
-    border-color: var(--primary);
-    background: white;
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
-}
-
-.login-btn {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 8px;
-}
-
-.login-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.4);
-}
-
-.error-message {
-    color: var(--danger);
-    text-align: center;
-    margin-top: 16px;
-    font-size: 14px;
-    background: #fee2e2;
-    padding: 12px;
-    border-radius: 10px;
-}
-
 /* ==================== HOME CONTAINER ==================== */
 
 .home-container {
@@ -824,4 +766,92 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .shake {
     animation: shake 0.3s ease;
+}
+
+/* ==================== PWA & TOUCH OPTIMIZATIONS ==================== */
+
+/* Melhorar toque em dispositivos móveis */
+button, 
+.nav-btn, 
+.logout-btn,
+.role-selector,
+.submit-btn,
+.close {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevenir zoom em inputs em iOS */
+@media (max-width: 768px) {
+    input, 
+    select, 
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Safe area para iPhones com notch */
+@supports (padding: max(0px)) {
+    .header {
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
+        padding-top: max(20px, env(safe-area-inset-top));
+    }
+    
+    .content {
+        padding-bottom: max(32px, env(safe-area-inset-bottom));
+    }
+}
+
+/* Melhorar performance de scroll */
+.home-container {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Evitar seleção acidental em elementos interativos */
+.nav-btn, 
+.logout-btn,
+.submit-btn {
+    user-select: none;
+}
+
+/* Estado de loading para PWA */
+.pwa-install-banner {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    padding: 16px;
+    z-index: 1000;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Otimizações para PWA standalone mode */
+@media (display-mode: standalone) {
+    body {
+        padding: 0;
+    }
+    
+    .home-container {
+        border-radius: 0;
+        min-height: 100vh;
+    }
+    
+    .header {
+        padding-top: max(20px, env(safe-area-inset-top));
+    }
 }
