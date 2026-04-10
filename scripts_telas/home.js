@@ -1,4 +1,4 @@
-import { db, collection, getDocs, doc, setDoc, getDoc, addDoc, auth, createUserWithEmailAndPassword } from '../0_firebase_api_config.js';
+import { db, collection, getDocs, doc, setDoc, getDoc, addDoc, auth, createUserWithEmailAndPassword, signOut } from '../0_firebase_api_config.js';
 import { HomeCliente } from './home_cliente.js';
 import { HomeNutricionista } from './home_nutricionista.js';
 import { HomePsicologo } from './home_psicologo.js';
@@ -371,42 +371,123 @@ export class HomeManager {
     constructor(userInfo) {
         this.userInfo = userInfo;
         this.currentHome = null;
+        this.isAdmin = (userInfo.cargo === 'desenvolvedor' || userInfo.perfil === 'admin');
+        
+        if (this.isAdmin) {
+            // Guarda o cargo original
+            this.originalCargo = this.userInfo.cargo;
+            this.originalPerfil = this.userInfo.perfil;
+            // Define cargo padrão para visualização (nutricionista)
+            this.currentViewCargo = 'nutricionista';
+            this.currentViewPerfil = 'supervisor_nutricionista';
+        }
     }
 
     render() {
-        if (this.userInfo.cargo === 'desenvolvedor' || this.userInfo.perfil === 'admin') {
-            this.userInfo.cargo = 'nutricionista';
-            this.userInfo.perfil = 'gerente_nutricionista';
-            this.currentHome = new HomeNutricionista(this.userInfo);
-            this.currentHome.render();
+        if (this.isAdmin) {
+            // Mostra a tela baseada na visualização atual
+            this.showHomeByCargo(this.currentViewCargo);
+            // Aguarda o DOM carregar e adiciona o seletor especial
+            setTimeout(() => this.setupAdminViewSelector(), 100);
         } else {
             this.showHomeByCargo(this.userInfo.cargo);
         }
-        
-        window.addEventListener('adminRoleChange', (e) => {
-            if (this.userInfo.cargo === 'desenvolvedor' || this.userInfo.perfil === 'admin') {
-                this.userInfo.cargo = e.detail.cargo;
-                this.userInfo.perfil = e.detail.perfil;
-                this.showHomeByCargo(e.detail.cargo);
-            }
-        });
     }
     
-    showHomeByCargo(cargo) {
+    // método para configurar o seletor de visualização do admin
+    setupAdminViewSelector() {
+        const userInfoDiv = document.querySelector('.user-info');
+        if (!userInfoDiv) return;
+        
+        // Remove seletor existente se houver
+        const existingSelector = document.getElementById('adminViewSelector');
+        if (existingSelector) existingSelector.remove();
+                
+        // Cria o seletor de visualização
+        const selectorHtml = `
+            <select id="adminViewSelector" class="role-selector" style="background: #f97316; border-color: #f97316;">
+                <option value="nutricionista|supervisor_nutricionista" ${this.currentViewCargo === 'nutricionista' ? 'selected' : ''}>🍎 Visualizar como Nutricionista</option>
+                <option value="psicologo|supervisor_psicologo" ${this.currentViewCargo === 'psicologo' ? 'selected' : ''}>🧠 Visualizar como Psicólogo</option>
+                <option value="paciente|operador" ${this.currentViewCargo === 'paciente' ? 'selected' : ''}>👤 Visualizar como Paciente</option>
+                <option value="paciente_membro|operador_membro" ${this.currentViewCargo === 'paciente_membro' ? 'selected' : ''}>⭐ Visualizar como Paciente Membro</option>
+            </select>
+        `;
+        
+        // Insere antes do botão de logout
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.insertAdjacentHTML('beforebegin', selectorHtml);
+        } else {
+            userInfoDiv.insertAdjacentHTML('beforeend', selectorHtml);
+        }
+        
+        // Adiciona evento de mudança
+        const selector = document.getElementById('adminViewSelector');
+        if (selector) {
+            selector.addEventListener('change', (e) => {
+                const [cargo, perfil] = e.target.value.split('|');
+                this.currentViewCargo = cargo;
+                this.currentViewPerfil = perfil;
+                
+                // Recria a tela com o novo cargo
+                this.showHomeByCargo(cargo, perfil);
+                
+                // Recria o seletor na nova tela
+                setTimeout(() => this.setupAdminViewSelector(), 100);
+            });
+        }
+    }
+    
+    // Modificar showHomeByCargo para aceitar perfil opcional
+    showHomeByCargo(cargo, customPerfil = null) {
+        // Cria um objeto userInfo modificado para a visualização
+        let viewUserInfo = { ...this.userInfo };
+        
+        if (this.isAdmin) {
+            // Não altera o cargo original no banco, apenas para visualização
+            let perfilFinal = customPerfil;
+            if (!perfilFinal) {
+                perfilFinal = this.getPerfilForCargo(cargo);
+            }
+            
+            viewUserInfo = {
+                ...this.userInfo,
+                cargo: cargo === 'paciente_membro' ? 'paciente' : cargo,
+                perfil: perfilFinal,
+                isAdminView: true,  // Marca que é uma visualização de admin
+                viewCargo: cargo
+            };
+        }
+        
         switch(cargo) {
             case 'paciente':
-                this.currentHome = new HomeCliente(this.userInfo);
+            case 'paciente_membro':
+                const perfilMembro = cargo === 'paciente_membro' ? 'operador_membro' : 'operador';
+                viewUserInfo.cargo = 'paciente';
+                viewUserInfo.perfil = perfilMembro;
+                this.currentHome = new HomeCliente(viewUserInfo);
                 break;
             case 'nutricionista':
-                this.currentHome = new HomeNutricionista(this.userInfo);
+                this.currentHome = new HomeNutricionista(viewUserInfo);
                 break;
             case 'psicologo':
-                this.currentHome = new HomePsicologo(this.userInfo);
+                this.currentHome = new HomePsicologo(viewUserInfo);
                 break;
             default:
-                this.currentHome = new HomeCliente(this.userInfo);
+                this.currentHome = new HomeNutricionista(viewUserInfo);
         }
         
         this.currentHome.render();
+    }
+    
+    // Helper para pegar perfil padrão por cargo
+    getPerfilForCargo(cargo) {
+        const perfis = {
+            'nutricionista': 'supervisor_nutricionista',
+            'psicologo': 'supervisor_psicologo',
+            'paciente': 'operador',
+            'paciente_membro': 'operador_membro'
+        };
+        return perfis[cargo] || 'operador';
     }
 }
