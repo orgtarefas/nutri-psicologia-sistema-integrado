@@ -23,8 +23,10 @@ export class HomeNutricionista {
     renderHTML() {
         const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
         const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
-        const isGerente = this.userInfo.perfil === 'gerente_nutricionista';
-        const isSupervisor = this.userInfo.perfil === 'supervisor_nutricionista';
+        
+        // SÓ mostra botões de supervisor/gerente se NÃO for admin view
+        const isGerente = this.userInfo.perfil === 'gerente_nutricionista' && !this.userInfo.isAdminView;
+        const isSupervisor = this.userInfo.perfil === 'supervisor_nutricionista' && !this.userInfo.isAdminView;
         
         // Texto do cargo para admin view
         const cargoDisplayText = this.userInfo.isAdminView ? 
