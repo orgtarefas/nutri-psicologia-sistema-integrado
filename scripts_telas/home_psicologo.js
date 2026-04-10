@@ -20,7 +20,9 @@ export class HomePsicologo {
     renderHTML() {
         const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
         const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
-        const isSupervisor = this.userInfo.perfil === 'supervisor_psicologo';
+        
+        // SÓ mostra botões de supervisor se NÃO for admin view
+        const isSupervisor = this.userInfo.perfil === 'supervisor_psicologo' && !this.userInfo.isAdminView;
         
         // Texto do cargo para admin view
         const cargoDisplayText = this.userInfo.isAdminView ? 
