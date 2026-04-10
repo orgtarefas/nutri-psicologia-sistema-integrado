@@ -18,6 +18,11 @@ export class HomeCliente {
         const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
         const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
         
+        // Texto do cargo para admin view
+        const cargoDisplayText = this.userInfo.isAdminView ? 
+            `[Admin] Visualizando como ${this.getCargoDisplayName(this.userInfo.cargo)}` : 
+            (this.userInfo.cargo === 'paciente' ? 'Paciente' : this.userInfo.cargo);
+        
         return `
             <div class="home-container">
                 <div class="header">
@@ -27,17 +32,8 @@ export class HomeCliente {
                     </div>
                     <div class="user-info">
                         <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ ${this.userInfo.cargo === 'paciente' ? 'Paciente' : this.userInfo.cargo}</span>
+                        <span>🏷️ ${cargoDisplayText}</span>
                         <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        ${this.userInfo.perfil === 'admin' || this.userInfo.cargo === 'desenvolvedor' ? `
-                            <select id="adminRoleSelector" class="role-selector">
-                                <option value="paciente|operador">👤 Paciente (Operador)</option>
-                                <option value="paciente|operador_membro">👤 Paciente (Membro)</option>
-                                <option value="nutricionista|supervisor_nutricionista">🍎 Nutricionista (Supervisor)</option>
-                                <option value="nutricionista|gerente_nutricionista">🍎 Nutricionista (Gerente)</option>
-                                <option value="psicologo|supervisor_psicologo">🧠 Psicólogo</option>
-                            </select>
-                        ` : ''}
                         <button class="logout-btn" id="logoutBtn">Sair</button>
                     </div>
                 </div>
@@ -93,23 +89,20 @@ export class HomeCliente {
         `;
     }
 
+    getCargoDisplayName(cargo) {
+        const nomes = {
+            'paciente': 'Paciente',
+            'nutricionista': 'Nutricionista',
+            'psicologo': 'Psicólogo'
+        };
+        return nomes[cargo] || cargo;
+    }
+
     attachEvents() {
         // Botão de logout
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.funcoes.logout());
-        }
-
-        // Seletor de perfil para admin
-        const adminSelector = document.getElementById('adminRoleSelector');
-        if (adminSelector) {
-            adminSelector.addEventListener('change', (e) => {
-                const [cargo, perfil] = e.target.value.split('|');
-                const event = new CustomEvent('adminRoleChange', { 
-                    detail: { cargo: cargo, perfil: perfil } 
-                });
-                window.dispatchEvent(event);
-            });
         }
 
         // Botão de conteúdo exclusivo para membros
@@ -167,10 +160,8 @@ export class HomeCliente {
             </div>
         `;
         
-        // Adicionar modal ao body
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
-        // Configurar fechamento do modal
         const modal = document.getElementById('exclusiveModal');
         const closeBtn = modal.querySelector('.close');
         const closeButton = document.getElementById('closeExclusiveModal');
@@ -212,7 +203,6 @@ export class HomeCliente {
                     const card = document.createElement('div');
                     card.className = 'evaluation-card';
                     
-                    // Formatar data para exibição
                     const dataAvaliacao = data.data_avaliacao ? this.formatDate(data.data_avaliacao) : 'Data não informada';
                     
                     card.innerHTML = `
@@ -235,7 +225,6 @@ export class HomeCliente {
                 });
             }
             
-            // Carregar gráficos apenas para membros
             if (this.userInfo.perfil === 'operador_membro' && evaluations.length > 0) {
                 this.renderCharts();
             } else if (this.userInfo.perfil === 'operador_membro' && evaluations.length === 0) {
@@ -255,9 +244,7 @@ export class HomeCliente {
 
     formatDate(dateString) {
         if (!dateString) return '';
-        // Se já estiver no formato DD/MM/YYYY
         if (dateString.includes('/')) return dateString;
-        // Converter de YYYY-MM-DD para DD/MM/YYYY
         const partes = dateString.split('-');
         if (partes.length === 3) {
             return `${partes[2]}/${partes[1]}/${partes[0]}`;
@@ -300,7 +287,6 @@ export class HomeCliente {
     }
 
     createCharts() {
-        // Ordenar avaliações por data
         const sortedEvaluations = [...this.currentEvaluations].sort((a, b) => 
             new Date(a.data_avaliacao) - new Date(b.data_avaliacao)
         );
@@ -310,12 +296,10 @@ export class HomeCliente {
         const imcs = sortedEvaluations.map(e => e.dados_antropometricos?.imc || 0);
         const muscles = sortedEvaluations.map(e => e.bioimpedancia?.massa_muscular || 0);
         
-        // Destruir gráficos existentes se houver
         if (this.weightChart) this.weightChart.destroy();
         if (this.imcChart) this.imcChart.destroy();
         if (this.muscleChart) this.muscleChart.destroy();
         
-        // Gráfico de Peso
         const weightCtx = document.getElementById('weightChart')?.getContext('2d');
         if (weightCtx) {
             this.weightChart = new Chart(weightCtx, {
@@ -356,7 +340,6 @@ export class HomeCliente {
             });
         }
         
-        // Gráfico de IMC
         const imcCtx = document.getElementById('imcChart')?.getContext('2d');
         if (imcCtx) {
             this.imcChart = new Chart(imcCtx, {
@@ -406,7 +389,6 @@ export class HomeCliente {
             });
         }
         
-        // Gráfico de Massa Muscular (apenas se houver dados)
         const muscleCtx = document.getElementById('muscleChart')?.getContext('2d');
         if (muscleCtx) {
             const hasMuscleData = muscles.some(m => m > 0);
