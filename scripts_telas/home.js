@@ -7,6 +7,11 @@ import { HomePsicologo } from './home_psicologo.js';
 
 export class FuncoesCompartilhadas {
     
+    // Gera e-mail automático baseado no login
+    static gerarEmailPorLogin(login) {
+        return `${login.toLowerCase()}@tratamentoweb.com`;
+    }
+    
     // Mapeamento de perfis padrão por cargo
     static getPerfilPadrao(cargo) {
         const mapaPerfis = {
@@ -62,10 +67,32 @@ export class FuncoesCompartilhadas {
         }
     }
     
+    // Verifica se um e-mail já existe no Auth (por meio do login)
+    static async verificarEmailExisteNoAuth(email) {
+        // Como não temos uma função direta para verificar e-mail sem criar,
+        // vamos tentar uma abordagem: verificar se já existe um documento com esse email no Firestore
+        try {
+            const querySnapshot = await getDocs(collection(db, "logins"));
+            let emailExiste = false;
+            
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.email === email) {
+                    emailExiste = true;
+                }
+            });
+            
+            return emailExiste;
+        } catch (error) {
+            console.error("Erro ao verificar e-mail:", error);
+            return false;
+        }
+    }
+    
     static async registerPaciente(pacienteData) {
-        const { nome, login, senha, email, dataNascimento, sexo } = pacienteData;
+        const { nome, login, senha, dataNascimento, sexo } = pacienteData;
         
-        if (!nome || !login || !senha || !email || !dataNascimento || !sexo) {
+        if (!nome || !login || !senha || !dataNascimento || !sexo) {
             throw new Error('Preencha todos os campos!');
         }
         
@@ -77,11 +104,8 @@ export class FuncoesCompartilhadas {
             throw new Error('A senha deve ter no mínimo 6 caracteres!');
         }
         
-        // Validar email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            throw new Error('Email inválido!');
-        }
+        // Gerar e-mail automaticamente
+        const emailGerado = this.gerarEmailPorLogin(login);
         
         // Converter data de nascimento
         let dataNascimentoFormatada = dataNascimento;
@@ -106,20 +130,22 @@ export class FuncoesCompartilhadas {
             throw new Error('Paciente deve ter 18 anos ou mais!');
         }
         
+        // Verificar se o login já existe no Firestore
         const existingPacientes = await this.loadPacientesList();
         const existingPaciente = existingPacientes.find(c => c.login === login);
         if (existingPaciente) {
-            throw new Error('Este login já existe! Escolha outro.');
+            throw new Error('❌ Este login já está cadastrado! Escolha outro.');
         }
         
-        const existingEmail = existingPacientes.find(c => c.email === email);
-        if (existingEmail) {
-            throw new Error('Este email já está cadastrado!');
+        // Verificar se o e-mail gerado já existe (caso alguém tenha usado o mesmo login antes)
+        const emailExiste = await this.verificarEmailExisteNoAuth(emailGerado);
+        if (emailExiste) {
+            throw new Error('❌ Este login já está cadastrado no sistema! Escolha outro.');
         }
         
         try {
-            // 1° Criar usuário no Firebase Auth
-            const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+            // 1° Criar usuário no Firebase Auth com e-mail automático
+            const userCredential = await createUserWithEmailAndPassword(auth, emailGerado, senha);
             const firebaseUser = userCredential.user;
             
             // 2° Salvar dados no Firestore
@@ -145,7 +171,7 @@ export class FuncoesCompartilhadas {
             
             const pacienteDataToSave = {
                 nome: nome.toUpperCase(),
-                email: email,
+                email: emailGerado,
                 senha: senha, // Mantido para compatibilidade, mas o Auth é a fonte de verdade
                 dataNascimento: dataNascimentoFormatada,
                 sexo: sexo,
@@ -159,20 +185,21 @@ export class FuncoesCompartilhadas {
             
             await setDoc(pacienteRef, pacienteDataToSave);
             
-            return { success: true, message: `Paciente "${nome}" cadastrado com sucesso!\nLogin: ${login}\nEmail: ${email}\nSenha: ${senha}` };
+            // Mensagem de sucesso sem mostrar o e-mail
+            return { success: true, message: `✅ Paciente "${nome}" cadastrado com sucesso!\n📋 Login: ${login}\n🔒 Senha: ${senha}` };
             
         } catch (error) {
             console.error("Erro ao cadastrar paciente:", error);
             
             if (error.code === 'auth/email-already-in-use') {
-                throw new Error('Este email já está em uso no sistema de autenticação!');
+                throw new Error('❌ Este login já está cadastrado no sistema! Escolha outro.');
             } else if (error.code === 'auth/invalid-email') {
-                throw new Error('Email inválido!');
+                throw new Error('❌ Erro interno: e-mail gerado inválido. Contate o administrador.');
             } else if (error.code === 'auth/weak-password') {
-                throw new Error('Senha muito fraca! Use pelo menos 6 caracteres.');
+                throw new Error('❌ Senha muito fraca! Use pelo menos 6 caracteres.');
             }
             
-            throw new Error('Erro ao cadastrar paciente: ' + error.message);
+            throw new Error('❌ Erro ao cadastrar paciente: ' + error.message);
         }
     }
     
