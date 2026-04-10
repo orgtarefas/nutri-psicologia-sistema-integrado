@@ -26,6 +26,11 @@ export class HomeNutricionista {
         const isGerente = this.userInfo.perfil === 'gerente_nutricionista';
         const isSupervisor = this.userInfo.perfil === 'supervisor_nutricionista';
         
+        // Texto do cargo para admin view
+        const cargoDisplayText = this.userInfo.isAdminView ? 
+            `[Admin] Visualizando como ${this.getCargoDisplayName(this.userInfo.cargo)}` : 
+            'Nutricionista';
+        
         return `
             <div class="home-container">
                 <div class="header">
@@ -35,17 +40,8 @@ export class HomeNutricionista {
                     </div>
                     <div class="user-info">
                         <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ Nutricionista</span>
+                        <span>🏷️ ${cargoDisplayText}</span>
                         <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        ${this.userInfo.perfil === 'admin' || this.userInfo.cargo === 'desenvolvedor' ? `
-                            <select id="adminRoleSelector" class="role-selector">
-                                <option value="paciente|operador">👤 Paciente (Operador)</option>
-                                <option value="paciente|operador_membro">👤 Paciente (Membro)</option>
-                                <option value="nutricionista|supervisor_nutricionista">🍎 Nutricionista (Supervisor)</option>
-                                <option value="nutricionista|gerente_nutricionista">🍎 Nutricionista (Gerente)</option>
-                                <option value="psicologo|supervisor_psicologo">🧠 Psicólogo</option>
-                            </select>
-                        ` : ''}
                         <button class="logout-btn" id="logoutBtn">Sair</button>
                     </div>
                 </div>
@@ -198,23 +194,20 @@ export class HomeNutricionista {
         `;
     }
 
+    getCargoDisplayName(cargo) {
+        const nomes = {
+            'paciente': 'Paciente',
+            'nutricionista': 'Nutricionista',
+            'psicologo': 'Psicólogo'
+        };
+        return nomes[cargo] || cargo;
+    }
+
     attachEvents() {
         // Botão de logout
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.funcoes.logout());
-        }
-
-        // Seletor de perfil para admin
-        const adminSelector = document.getElementById('adminRoleSelector');
-        if (adminSelector) {
-            adminSelector.addEventListener('change', (e) => {
-                const [cargo, perfil] = e.target.value.split('|');
-                const event = new CustomEvent('adminRoleChange', { 
-                    detail: { cargo: cargo, perfil: perfil } 
-                });
-                window.dispatchEvent(event);
-            });
         }
 
         // Botão de cadastrar paciente
@@ -479,7 +472,6 @@ export class HomeNutricionista {
             if (this.imcChart) this.imcChart.destroy();
             if (this.muscleChart) this.muscleChart.destroy();
             
-            // Mostrar mensagem nos gráficos
             const weightCtx = document.getElementById('weightChart')?.getContext('2d');
             const imcCtx = document.getElementById('imcChart')?.getContext('2d');
             const muscleCtx = document.getElementById('muscleChart')?.getContext('2d');
@@ -522,12 +514,10 @@ export class HomeNutricionista {
         const imcs = this.currentEvaluations.map(e => e.dados_antropometricos.imc);
         const muscles = this.currentEvaluations.map(e => e.bioimpedancia.massa_muscular || 0);
         
-        // Destruir gráficos existentes
         if (this.weightChart) this.weightChart.destroy();
         if (this.imcChart) this.imcChart.destroy();
         if (this.muscleChart) this.muscleChart.destroy();
         
-        // Gráfico de Peso
         const weightCtx = document.getElementById('weightChart')?.getContext('2d');
         if (weightCtx) {
             this.weightChart = new Chart(weightCtx, {
@@ -568,7 +558,6 @@ export class HomeNutricionista {
             });
         }
         
-        // Gráfico de IMC
         const imcCtx = document.getElementById('imcChart')?.getContext('2d');
         if (imcCtx) {
             this.imcChart = new Chart(imcCtx, {
@@ -609,7 +598,6 @@ export class HomeNutricionista {
             });
         }
         
-        // Gráfico de Massa Muscular (apenas se houver dados)
         const muscleCtx = document.getElementById('muscleChart')?.getContext('2d');
         if (muscleCtx && muscles.some(m => m > 0)) {
             this.muscleChart = new Chart(muscleCtx, {
