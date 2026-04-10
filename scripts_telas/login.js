@@ -6,30 +6,83 @@ export class LoginManager {
         this.renderLoginScreen();
         this.setupEventListeners();
         this.checkAutoLogin();
+        this.loadSavedCredentials();
     }
 
     renderLoginScreen() {
         const app = document.getElementById('app');
         if (app) {
             app.innerHTML = `
-                <div class="login-container">
-                    <div class="login-logo">
-                        <img src="./imagens/logo.png" alt="TratamentoWeb Logo" class="logo-img">
+                <div class="login-wrapper">
+                    <div class="login-card">
+                        <div class="login-header">
+                            <div class="logo-container">
+                                <img src="./imagens/logo.png" alt="TratamentoWeb" class="login-logo-img">
+                            </div>
+                            <h1 class="login-title">TratamentoWeb</h1>
+                            <p class="login-subtitle">Sistema Integrado de Acompanhamento em Saúde</p>
+                        </div>
+
+                        <form id="loginForm" class="login-form">
+                            <div class="input-group-custom">
+                                <div class="input-icon">
+                                    <i class="bi bi-person"></i>
+                                </div>
+                                <div class="input-field">
+                                    <input type="text" id="login" placeholder=" " autocomplete="username">
+                                    <label>Login</label>
+                                </div>
+                            </div>
+
+                            <div class="input-group-custom">
+                                <div class="input-icon">
+                                    <i class="bi bi-lock"></i>
+                                </div>
+                                <div class="input-field">
+                                    <input type="password" id="password" placeholder=" " autocomplete="current-password">
+                                    <label>Senha</label>
+                                </div>
+                                <div class="input-icon password-toggle" id="togglePassword">
+                                    <i class="bi bi-eye-slash"></i>
+                                </div>
+                            </div>
+
+                            <div class="login-options">
+                                <label class="checkbox-custom">
+                                    <input type="checkbox" id="rememberLogin">
+                                    <span class="checkmark"></span>
+                                    <span class="checkbox-text">Lembrar meus dados</span>
+                                </label>
+                            </div>
+
+                            <button type="submit" class="login-button">
+                                <i class="bi bi-box-arrow-in-right"></i>
+                                Entrar
+                            </button>
+                        </form>
+
+                        <div class="login-footer">
+                            <p>© 2024 TratamentoWeb - Todos os direitos reservados</p>
+                        </div>
                     </div>
-                    <form id="loginForm">
-                        <div class="input-group">
-                            <label>Login:</label>
-                            <input type="text" id="login" placeholder="Digite seu login" required>
-                        </div>
-                        <div class="input-group">
-                            <label>Senha:</label>
-                            <input type="password" id="password" placeholder="Digite sua senha" required>
-                        </div>
-                        <button type="submit" class="login-btn">Entrar</button>
-                        <div id="errorMsg" class="error-message" style="display: none;"></div>
-                    </form>
                 </div>
             `;
+        }
+    }
+
+    loadSavedCredentials() {
+        const savedLogin = localStorage.getItem('savedLogin');
+        const savedPassword = localStorage.getItem('savedPassword');
+        const rememberLogin = localStorage.getItem('rememberLogin') === 'true';
+        
+        if (rememberLogin && savedLogin && savedPassword) {
+            const loginInput = document.getElementById('login');
+            const passwordInput = document.getElementById('password');
+            const rememberCheckbox = document.getElementById('rememberLogin');
+            
+            if (loginInput) loginInput.value = savedLogin;
+            if (passwordInput) passwordInput.value = savedPassword;
+            if (rememberCheckbox) rememberCheckbox.checked = true;
         }
     }
 
@@ -41,6 +94,39 @@ export class LoginManager {
                 this.handleLogin();
             });
         }
+
+        // Toggle para exibir/esconder senha
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', () => {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                const icon = togglePassword.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('bi-eye');
+                    icon.classList.toggle('bi-eye-slash');
+                }
+            });
+        }
+
+        // Animação dos inputs
+        const inputs = document.querySelectorAll('.input-field input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('focused');
+            });
+            input.addEventListener('blur', () => {
+                if (!input.value) {
+                    input.parentElement.classList.remove('focused');
+                }
+            });
+            if (input.value) {
+                input.parentElement.classList.add('focused');
+            }
+        });
     }
 
     checkAutoLogin() {
@@ -59,62 +145,60 @@ export class LoginManager {
     async handleLogin() {
         const loginInput = document.getElementById('login')?.value.trim();
         const password = document.getElementById('password')?.value;
-        const errorMsg = document.getElementById('errorMsg');
+        const rememberCheckbox = document.getElementById('rememberLogin');
 
         if (!loginInput || !password) {
-            if (errorMsg) {
-                errorMsg.textContent = 'Preencha todos os campos!';
-                errorMsg.style.display = 'block';
-            }
+            this.showError('Preencha todos os campos!');
             return;
         }
 
+        // Mostrar loading no botão
+        const submitBtn = document.querySelector('.login-button');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Entrando...';
+        submitBtn.disabled = true;
+
         try {
-            // 1° Buscar o documento do usuário no banco de dados
             const userRef = doc(db, "logins", loginInput);
             const userDoc = await getDoc(userRef);
             
             if (!userDoc.exists()) {
-                if (errorMsg) {
-                    errorMsg.textContent = '❌ Login não encontrado!';
-                    errorMsg.style.display = 'block';
-                }
+                this.showError('❌ Login não encontrado!');
                 return;
             }
             
             const userData = userDoc.data();
             
-            // Verificar se o usuário está ativo
             if (userData.status_ativo === false) {
-                if (errorMsg) {
-                    errorMsg.textContent = '❌ Conta desativada! Contate o administrador.';
-                    errorMsg.style.display = 'block';
-                }
+                this.showError('❌ Conta desativada! Contate o administrador.');
                 return;
             }
             
-            // 2° Verificar se o usuário tem email cadastrado
             if (!userData.email) {
-                console.error("Usuário não possui email cadastrado");
-                if (errorMsg) {
-                    errorMsg.textContent = '❌ Erro de configuração: contate o administrador!';
-                    errorMsg.style.display = 'block';
-                }
+                this.showError('❌ Erro de configuração: contate o administrador!');
                 return;
             }
             
-            // 3° Autenticar no Firebase Auth com email e senha
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, userData.email, password);
                 
-                // Autenticação bem-sucedida
                 userData.login = loginInput;
                 
                 if (!userData.perfil) {
                     userData.perfil = FuncoesCompartilhadas.getPerfilPadrao(userData.cargo);
                 }
                 
-                if (errorMsg) errorMsg.style.display = 'none';
+                // Salvar credenciais se "Lembrar dados" estiver marcado
+                if (rememberCheckbox && rememberCheckbox.checked) {
+                    localStorage.setItem('savedLogin', loginInput);
+                    localStorage.setItem('savedPassword', password);
+                    localStorage.setItem('rememberLogin', 'true');
+                } else {
+                    localStorage.removeItem('savedLogin');
+                    localStorage.removeItem('savedPassword');
+                    localStorage.setItem('rememberLogin', 'false');
+                }
+                
                 localStorage.setItem('currentUser', JSON.stringify(userData));
                 this.showHome(userData);
                 
@@ -123,24 +207,45 @@ export class LoginManager {
                 
                 if (authError.code === 'auth/invalid-credential' || 
                     authError.code === 'auth/wrong-password') {
-                    errorMsg.textContent = '❌ Senha incorreta!';
+                    this.showError('❌ Senha incorreta!');
                 } else if (authError.code === 'auth/user-not-found') {
-                    errorMsg.textContent = '❌ Usuário não encontrado no sistema de autenticação!';
-                } else if (authError.code === 'auth/invalid-email') {
-                    errorMsg.textContent = '❌ Email inválido no cadastro!';
+                    this.showError('❌ Usuário não encontrado no sistema de autenticação!');
                 } else {
-                    errorMsg.textContent = '❌ Erro de autenticação: ' + authError.message;
+                    this.showError('❌ Erro de autenticação: ' + authError.message);
                 }
-                errorMsg.style.display = 'block';
             }
             
         } catch (error) {
             console.error("Erro ao fazer login:", error);
-            if (errorMsg) {
-                errorMsg.textContent = '❌ Erro ao conectar com o servidor!';
-                errorMsg.style.display = 'block';
-            }
+            this.showError('❌ Erro ao conectar com o servidor!');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
+    }
+
+    showError(message) {
+        // Remove erro existente
+        const existingError = document.querySelector('.error-message-custom');
+        if (existingError) existingError.remove();
+        
+        // Criar elemento de erro estilizado
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message-custom';
+        errorDiv.innerHTML = `
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>${message}</span>
+        `;
+        
+        const form = document.getElementById('loginForm');
+        if (form) {
+            form.insertBefore(errorDiv, form.querySelector('.login-button'));
+        }
+        
+        // Auto fechar após 5 segundos
+        setTimeout(() => {
+            if (errorDiv) errorDiv.remove();
+        }, 5000);
     }
 
     showHome(userData) {
