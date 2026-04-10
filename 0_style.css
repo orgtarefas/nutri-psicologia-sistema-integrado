@@ -1037,3 +1037,9 @@ button,
         max-width: 210px;
     }
 }
+
+/* Remove o ícone de olho nativo do navegador no campo de senha */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-webkit-credentials-auto-fill-button {
+    display: none !important;
+}
