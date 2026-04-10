@@ -2,7 +2,7 @@
   "name": "TratamentoWeb",
   "short_name": "TratamentoWeb",
   "description": "Sistema Integrado de Acompanhamento em Saúde",
-  "start_url": "/nutri-psicologia-sistema-integrado/",
+  "start_url": ".",
   "display": "standalone",
   "theme_color": "#1a237e",
   "background_color": "#1a237e",
