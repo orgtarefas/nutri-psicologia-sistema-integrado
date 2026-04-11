@@ -652,54 +652,240 @@ export class HomeManager {
         }
     }
 
-    async navigateToCadastroCliente() {
-        const { CadastroCliente } = await import('./cadastro_cliente.js');
-        const cadastroScreen = new CadastroCliente(this.userInfo);
-        cadastroScreen.render();
-    }
-
     render() {
         if (this.isAdmin) {
-            this.showHomeByCargo(this.currentViewCargo);
-            setTimeout(() => this.setupAdminViewSelector(), 100);
+            // Admin vê o dashboard completo com menu de navegação
+            this.showAdminDashboard();
         } else {
             this.showHomeByCargo(this.userInfo.cargo);
         }
     }
     
+    // ==================== DASHBOARD DO ADMIN ====================
+    
+    showAdminDashboard() {
+        const app = document.getElementById('app');
+        app.innerHTML = this.renderAdminDashboard();
+        this.attachAdminEvents();
+    }
+    
+    renderAdminDashboard() {
+        const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
+        const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
+        
+        return `
+            <div class="dashboard-container">
+                <div class="top-bar">
+                    <div class="logo-area">
+                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="logo">
+                        <h2>Admin - TratamentoWeb</h2>
+                    </div>
+                    <div class="top-bar-actions">
+                        <div class="user-greeting">
+                            <span>👋 ${this.userInfo.nome}</span>
+                            <span class="role-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
+                        </div>
+                        <button class="menu-toggle" id="menuToggle">
+                            <span class="menu-icon">☰</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- MENU LATERAL COMPLETO DO ADMIN -->
+                <div class="side-menu" id="sideMenu">
+                    <div class="menu-header">
+                        <h3>Menu Administrativo</h3>
+                        <button class="close-menu" id="closeMenu">×</button>
+                    </div>
+                    <nav class="menu-nav">
+                        <button class="menu-item active" data-module="admin_dashboard">
+                            <span class="menu-icon">📊</span>
+                            <span>Dashboard Admin</span>
+                        </button>
+                        <div class="menu-divider">Visualizações</div>
+                        <button class="menu-item" data-module="view_nutricionista">
+                            <span class="menu-icon">🍎</span>
+                            <span>Como Nutricionista</span>
+                        </button>
+                        <button class="menu-item" data-module="view_psicologo">
+                            <span class="menu-icon">🧠</span>
+                            <span>Como Psicólogo</span>
+                        </button>
+                        <button class="menu-item" data-module="view_paciente">
+                            <span class="menu-icon">👤</span>
+                            <span>Como Paciente</span>
+                        </button>
+                        <div class="menu-divider">Módulos</div>
+                        <button class="menu-item" data-module="plano_alimentar">
+                            <span class="menu-icon">🍽️</span>
+                            <span>Plano Alimentar</span>
+                        </button>
+                        <button class="menu-item" data-module="cadastro_cliente">
+                            <span class="menu-icon">👥</span>
+                            <span>Clientes</span>
+                        </button>
+                        <button class="menu-item" data-module="usuarios">
+                            <span class="menu-icon">👥</span>
+                            <span>Gerenciar Usuários</span>
+                        </button>
+                        <div class="menu-divider">Sistema</div>
+                        <button class="menu-item logout" id="logoutMenuItem">
+                            <span class="menu-icon">🚪</span>
+                            <span>Sair</span>
+                        </button>
+                    </nav>
+                </div>
+                <div class="menu-overlay" id="menuOverlay"></div>
+
+                <div class="main-content">
+                    <div class="admin-welcome">
+                        <h2>Bem-vindo, Administrador ${this.userInfo.nome}!</h2>
+                        <p>Utilize o menu lateral para navegar entre os diferentes módulos do sistema.</p>
+                    </div>
+                    
+                    <div class="admin-cards">
+                        <div class="admin-card" data-module="view_nutricionista">
+                            <div class="admin-card-icon">🍎</div>
+                            <h3>Nutricionista</h3>
+                            <p>Acessar o sistema como nutricionista</p>
+                            <span class="card-badge">Visualizar</span>
+                        </div>
+                        <div class="admin-card" data-module="view_psicologo">
+                            <div class="admin-card-icon">🧠</div>
+                            <h3>Psicólogo</h3>
+                            <p>Acessar o sistema como psicólogo</p>
+                            <span class="card-badge">Visualizar</span>
+                        </div>
+                        <div class="admin-card" data-module="view_paciente">
+                            <div class="admin-card-icon">👤</div>
+                            <h3>Paciente</h3>
+                            <p>Acessar o sistema como paciente</p>
+                            <span class="card-badge">Visualizar</span>
+                        </div>
+                        <div class="admin-card" data-module="plano_alimentar">
+                            <div class="admin-card-icon">🍽️</div>
+                            <h3>Plano Alimentar</h3>
+                            <p>Gerenciar planos alimentares</p>
+                            <span class="card-badge">Gerenciar</span>
+                        </div>
+                        <div class="admin-card" data-module="cadastro_cliente">
+                            <div class="admin-card-icon">👥</div>
+                            <h3>Clientes</h3>
+                            <p>Gerenciar cadastro de clientes</p>
+                            <span class="card-badge">Gerenciar</span>
+                        </div>
+                        <div class="admin-card" data-module="usuarios">
+                            <div class="admin-card-icon">⚙️</div>
+                            <h3>Usuários</h3>
+                            <p>Gerenciar usuários do sistema</p>
+                            <span class="card-badge">Admin</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    attachAdminEvents() {
+        // Menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const sideMenu = document.getElementById('sideMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const closeMenu = document.getElementById('closeMenu');
+
+        const openMenu = () => sideMenu.classList.add('open');
+        const closeMenuFunc = () => sideMenu.classList.remove('open');
+        if (menuToggle) menuToggle.addEventListener('click', openMenu);
+        if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
+        if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
+
+        // Logout
+        const logoutMenuItem = document.getElementById('logoutMenuItem');
+        if (logoutMenuItem) logoutMenuItem.addEventListener('click', () => this.funcoes.logout());
+
+        // Menu items e cards navigation
+        document.querySelectorAll('.menu-item[data-module], .admin-card[data-module]').forEach(item => {
+            item.addEventListener('click', async (e) => {
+                const module = item.getAttribute('data-module');
+                closeMenuFunc();
+                await this.navigateAdminTo(module);
+            });
+        });
+    }
+    
+    async navigateAdminTo(module) {
+        switch(module) {
+            case 'admin_dashboard':
+                this.showAdminDashboard();
+                break;
+            case 'view_nutricionista':
+                // Visualizar como nutricionista
+                const viewUserInfoNutri = {
+                    ...this.userInfo,
+                    cargo: 'nutricionista',
+                    perfil: 'supervisor_nutricionista',
+                    isAdminView: true,
+                    viewCargo: 'nutricionista'
+                };
+                const homeNutri = new HomeNutricionista(viewUserInfoNutri);
+                homeNutri.render();
+                break;
+            case 'view_psicologo':
+                // Visualizar como psicólogo
+                const viewUserInfoPsi = {
+                    ...this.userInfo,
+                    cargo: 'psicologo',
+                    perfil: 'supervisor_psicologo',
+                    isAdminView: true,
+                    viewCargo: 'psicologo'
+                };
+                const homePsi = new HomePsicologo(viewUserInfoPsi);
+                homePsi.render();
+                break;
+            case 'view_paciente':
+                // Visualizar como paciente
+                const viewUserInfoPaciente = {
+                    ...this.userInfo,
+                    cargo: 'paciente',
+                    perfil: 'operador',
+                    isAdminView: true,
+                    viewCargo: 'paciente'
+                };
+                const homePaciente = new HomeCliente(viewUserInfoPaciente);
+                homePaciente.render();
+                break;
+            case 'plano_alimentar':
+                const { PlanoAlimentarNutricionista } = await import('./plano_alimentar_nutricionista.js');
+                const pacientesList = await this.funcoes.loadPacientesList();
+                const planoAlimentar = new PlanoAlimentarNutricionista(this.userInfo, pacientesList);
+                planoAlimentar.render();
+                break;
+            case 'cadastro_cliente':
+                const { CadastroCliente } = await import('./cadastro_cliente.js');
+                const cadastroCliente = new CadastroCliente(this.userInfo);
+                cadastroCliente.render();
+                break;
+            case 'usuarios':
+                alert('👥 Módulo Gerenciar Usuários em desenvolvimento');
+                break;
+        }
+    }
+    
+    // Mantido para compatibilidade (pode ser removido se não for usado)
+    async navigateToCadastroCliente() {
+        const { CadastroCliente } = await import('./cadastro_cliente.js');
+        const cadastroScreen = new CadastroCliente(this.userInfo);
+        cadastroScreen.render();
+    }
+    
+    // Mantido para compatibilidade com visualização por cargo
     setupAdminViewSelector() {
+        // Este método não é mais usado, mas mantido para compatibilidade
         const userInfoDiv = document.querySelector('.user-info');
         if (!userInfoDiv) return;
         
         const existingSelector = document.getElementById('adminViewSelector');
         if (existingSelector) existingSelector.remove();
-                
-        const selectorHtml = `
-            <select id="adminViewSelector" class="role-selector" style="background: #f97316; border-color: #f97316;">
-                <option value="nutricionista|supervisor_nutricionista" ${this.currentViewCargo === 'nutricionista' ? 'selected' : ''}>🍎 Visualizar como Nutricionista</option>
-                <option value="psicologo|supervisor_psicologo" ${this.currentViewCargo === 'psicologo' ? 'selected' : ''}>🧠 Visualizar como Psicólogo</option>
-                <option value="paciente|operador" ${this.currentViewCargo === 'paciente' ? 'selected' : ''}>👤 Visualizar como Paciente</option>
-                <option value="paciente_membro|operador_membro" ${this.currentViewCargo === 'paciente_membro' ? 'selected' : ''}>⭐ Visualizar como Paciente Membro</option>
-            </select>
-        `;
-        
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.insertAdjacentHTML('beforebegin', selectorHtml);
-        } else {
-            userInfoDiv.insertAdjacentHTML('beforeend', selectorHtml);
-        }
-        
-        const selector = document.getElementById('adminViewSelector');
-        if (selector) {
-            selector.addEventListener('change', (e) => {
-                const [cargo, perfil] = e.target.value.split('|');
-                this.currentViewCargo = cargo;
-                this.currentViewPerfil = perfil;
-                this.showHomeByCargo(cargo, perfil);
-                setTimeout(() => this.setupAdminViewSelector(), 100);
-            });
-        }
     }
     
     showHomeByCargo(cargo, customPerfil = null) {
