@@ -232,6 +232,90 @@ export class FuncoesCompartilhadas {
             throw new Error('❌ Erro ao cadastrar paciente: ' + error.message);
         }
     }
+
+    // ==================== FUNÇÕES DE GESTÃO DE CÓDIGO ====================
+    
+    static async visualizarCodigoPaciente(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                throw new Error('Paciente não encontrado!');
+            }
+            
+            const userData = userDoc.data();
+            
+            // Verificar se já fez primeiro login
+            if (userData.hasOwnProperty('ultimo_login')) {
+                throw new Error('❌ Este paciente já fez o primeiro acesso! Use a funcionalidade de reset de senha.');
+            }
+            
+            // Verificar se tem código temporário
+            if (!userData.codigo_temporario) {
+                throw new Error('❌ Nenhum código temporário encontrado. Gere um novo código.');
+            }
+            
+            // Verificar se o código expirou
+            const dataExpiracao = new Date(userData.codigo_expiracao);
+            if (dataExpiracao < new Date()) {
+                throw new Error('⚠️ O código expirou! Gere um novo código para o paciente.');
+            }
+            
+            return {
+                success: true,
+                codigo: userData.codigo_temporario,
+                expiracao: userData.codigo_expiracao,
+                nome: userData.nome,
+                login: login
+            };
+            
+        } catch (error) {
+            console.error("Erro ao visualizar código:", error);
+            throw error;
+        }
+    }
+    
+    static async regenerarCodigoPaciente(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                throw new Error('Paciente não encontrado!');
+            }
+            
+            const userData = userDoc.data();
+            
+            // Verificar se já fez primeiro login
+            if (userData.hasOwnProperty('ultimo_login')) {
+                throw new Error('❌ Este paciente já fez o primeiro acesso! Use a funcionalidade de reset de senha.');
+            }
+            
+            // Gerar novo código
+            const novoCodigo = this.gerarCodigoTemporario();
+            const dataExpiracao = new Date();
+            dataExpiracao.setDate(dataExpiracao.getDate() + 7);
+            
+            // Atualizar no Firestore
+            await updateDoc(userRef, {
+                codigo_temporario: novoCodigo,
+                codigo_expiracao: dataExpiracao.toISOString()
+            });
+            
+            return {
+                success: true,
+                codigo: novoCodigo,
+                expiracao: dataExpiracao.toISOString(),
+                nome: userData.nome,
+                login: login
+            };
+            
+        } catch (error) {
+            console.error("Erro ao regenerar código:", error);
+            throw error;
+        }
+    }    
     
     // ==================== FUNÇÕES DE AVALIAÇÃO ====================
     
