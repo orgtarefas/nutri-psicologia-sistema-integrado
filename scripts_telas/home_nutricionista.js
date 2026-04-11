@@ -54,9 +54,7 @@ export class HomeNutricionista {
                         <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
                         <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
                         <button class="nav-btn" id="registerPacienteBtn" style="background: #48bb78; color: white;">➕ Cadastrar Paciente</button>
-                        ${isSupervisor ? `
-                            <button class="nav-btn" id="approveEvaluationsBtn" style="background: #4299e1; color: white;">✓ Aprovar Avaliações</button>
-                        ` : ''}
+                        <button class="nav-btn" id="listaPacientesBtn" style="background: #3b82f6; color: white;">📋 Lista de Pacientes</button>
                         ${isGerente ? `
                             <button class="nav-btn" id="manageTeamBtn" style="background: #9f7aea; color: white;">👥 Gerenciar Equipe</button>
                             <button class="nav-btn" id="reportsBtn" style="background: #ed8936; color: white;">📊 Relatórios Gerenciais</button>
@@ -92,6 +90,17 @@ export class HomeNutricionista {
                                 </div>
                                 <button type="submit" class="submit-btn">Cadastrar Paciente</button>
                             </form>
+                        </div>
+                    </div>
+                    
+                    <!-- MODAL DE LISTA DE PACIENTES -->
+                    <div id="listaPacientesModal" class="modal" style="display: none;">
+                        <div class="modal-content" style="max-width: 800px;">
+                            <span class="close">&times;</span>
+                            <h3>📋 Lista de Pacientes</h3>
+                            <div id="listaPacientesContainer">
+                                <!-- Tabela será inserida aqui dinamicamente -->
+                            </div>
                         </div>
                     </div>
                     
