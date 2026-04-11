@@ -45,6 +45,8 @@ export class HomeNutricionista {
                 </div>
                 <div class="content">
                     <div class="nav-buttons">
+                        <button class="nav-btn nav-home" id="homeBtn" style="background: #667eea; color: white;">🏠 Home</button>
+                        <button class="nav-btn nav-meal-plan" id="mealPlanBtn" style="background: #48bb78; color: white;">🍽️ Plano Alimentar</button>
                         <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
                         <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
                         <button class="nav-btn" data-module="journey">🌟 Acompanhar Jornadas</button>
@@ -197,7 +199,25 @@ export class HomeNutricionista {
     attachEvents() {
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) logoutBtn.addEventListener('click', () => this.funcoes.logout());
-
+    
+        // Botão Home - recarrega a página atual
+        const homeBtn = document.getElementById('homeBtn');
+        if (homeBtn) {
+            homeBtn.addEventListener('click', () => {
+                this.render();
+            });
+        }
+    
+        // Botão Plano Alimentar - navega para a nova tela
+        const mealPlanBtn = document.getElementById('mealPlanBtn');
+        if (mealPlanBtn) {
+            mealPlanBtn.addEventListener('click', async () => {
+                const { HomeNutricionistaPlanoAlimentar } = await import('./home_nutricionista_plano_alimentar.js');
+                const planoAlimentarScreen = new HomeNutricionistaPlanoAlimentar(this.userInfo, this.pacientesList);
+                planoAlimentarScreen.render();
+            });
+        }
+    
         const registerBtn = document.getElementById('registerPacienteBtn');
         if (registerBtn) {
             registerBtn.addEventListener('click', () => {
@@ -205,15 +225,15 @@ export class HomeNutricionista {
                 this.funcoes.showModal('registerModal');
             });
         }
-
+    
         const listaPacientesBtn = document.getElementById('listaPacientesBtn');
         if (listaPacientesBtn) {
             listaPacientesBtn.addEventListener('click', () => this.abrirListaPacientes());
         }
-
+    
         this.funcoes.setupModalEvents('registerModal');
         this.setupListaModalEvents();
-
+    
         const registerForm = document.getElementById('registerPacienteForm');
         if (registerForm) {
             registerForm.addEventListener('submit', async (e) => {
@@ -221,18 +241,18 @@ export class HomeNutricionista {
                 await this.registerPaciente();
             });
         }
-
+    
         const manageTeamBtn = document.getElementById('manageTeamBtn');
         if (manageTeamBtn) manageTeamBtn.addEventListener('click', () => this.manageTeam());
-
+    
         const reportsBtn = document.getElementById('reportsBtn');
         if (reportsBtn) reportsBtn.addEventListener('click', () => this.showReports());
-
+    
         document.querySelectorAll('.nav-btn[data-module]').forEach(btn => {
             const module = btn.getAttribute('data-module');
             if (module) btn.addEventListener('click', () => alert(`🚧 Módulo "${module}" em desenvolvimento!`));
         });
-
+    
         const form = document.getElementById('nutritionalForm');
         if (form) {
             form.addEventListener('submit', async (e) => {
@@ -244,7 +264,7 @@ export class HomeNutricionista {
                 await this.saveNutritionalEvaluation();
             });
         }
-
+    
         const weightInput = document.getElementById('weight');
         const heightInput = document.getElementById('height');
         const calculateFields = () => { if (this.selectedPaciente) this.calculateNutritionalParameters(); };
@@ -252,7 +272,7 @@ export class HomeNutricionista {
             weightInput.addEventListener('input', calculateFields);
             heightInput.addEventListener('input', calculateFields);
         }
-
+    
         const dateInput = document.getElementById('evaluationDate');
         if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
     }
