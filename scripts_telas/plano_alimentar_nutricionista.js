@@ -29,7 +29,7 @@ export class PlanoAlimentarNutricionista {
                 <div class="top-bar">
                     <div class="logo-area">
                         <img src="./imagens/logo.png" alt="TratamentoWeb" class="logo">
-                        <h2>Plano Alimentar - Nutricionista</h2>
+                        <h2>Plano Alimentar</h2>
                     </div>
                     <div class="top-bar-actions">
                         <div class="user-greeting">
@@ -50,7 +50,7 @@ export class PlanoAlimentarNutricionista {
                     <nav class="menu-nav">
                         <button class="menu-item" data-module="home">🏠 Home</button>
                         <button class="menu-item active" data-module="plano_alimentar">🍽️ Plano Alimentar</button>
-                        <button class="menu-item" data-module="gestao_pacientes">📋 Gestão de Pacientes</button>
+                        <button class="menu-item" data-module="cadastro_cliente">👥 Clientes</button>
                         <button class="menu-item logout" id="logoutMenuItem">🚪 Sair</button>
                     </nav>
                 </div>
@@ -84,27 +84,27 @@ export class PlanoAlimentarNutricionista {
 
                             <div class="meals-grid">
                                 <div class="meal-card">
-                                    <div class="meal-header">🌅 Café da Manhã (07:00-08:00)</div>
+                                    <div class="meal-header">🌅 Café da Manhã</div>
                                     <textarea id="breakfast" class="meal-textarea" placeholder="Alimentos e quantidades...">${this.currentMealPlan?.breakfast || ''}</textarea>
                                 </div>
                                 <div class="meal-card">
-                                    <div class="meal-header">🍎 Lanche Manhã (10:00-10:30)</div>
+                                    <div class="meal-header">🍎 Lanche Manhã</div>
                                     <textarea id="morningSnack" class="meal-textarea" placeholder="Alimentos e quantidades...">${this.currentMealPlan?.morningSnack || ''}</textarea>
                                 </div>
                                 <div class="meal-card">
-                                    <div class="meal-header">🍽️ Almoço (12:00-13:00)</div>
+                                    <div class="meal-header">🍽️ Almoço</div>
                                     <textarea id="lunch" class="meal-textarea" placeholder="Alimentos e quantidades...">${this.currentMealPlan?.lunch || ''}</textarea>
                                 </div>
                                 <div class="meal-card">
-                                    <div class="meal-header">🍌 Lanche Tarde (15:30-16:00)</div>
+                                    <div class="meal-header">🍌 Lanche Tarde</div>
                                     <textarea id="afternoonSnack" class="meal-textarea" placeholder="Alimentos e quantidades...">${this.currentMealPlan?.afternoonSnack || ''}</textarea>
                                 </div>
                                 <div class="meal-card">
-                                    <div class="meal-header">🌙 Jantar (19:00-20:00)</div>
+                                    <div class="meal-header">🌙 Jantar</div>
                                     <textarea id="dinner" class="meal-textarea" placeholder="Alimentos e quantidades...">${this.currentMealPlan?.dinner || ''}</textarea>
                                 </div>
                                 <div class="meal-card">
-                                    <div class="meal-header">⭐ Ceia (22:00-22:30)</div>
+                                    <div class="meal-header">⭐ Ceia</div>
                                     <textarea id="supper" class="meal-textarea" placeholder="Alimentos e quantidades...">${this.currentMealPlan?.supper || ''}</textarea>
                                 </div>
                             </div>
@@ -119,8 +119,8 @@ export class PlanoAlimentarNutricionista {
                                     <textarea id="restrictions" class="info-textarea" placeholder="Alergias, intolerâncias...">${this.currentMealPlan?.restrictions || ''}</textarea>
                                 </div>
                                 <div class="info-group">
-                                    <label>🎯 Objetivos do Plano</label>
-                                    <textarea id="goals" class="info-textarea" placeholder="Metas de peso, medidas, etc...">${this.currentMealPlan?.goals || ''}</textarea>
+                                    <label>🎯 Objetivos</label>
+                                    <textarea id="goals" class="info-textarea" placeholder="Metas...">${this.currentMealPlan?.goals || ''}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -137,7 +137,6 @@ export class PlanoAlimentarNutricionista {
     }
 
     attachEvents() {
-        // Menu
         const menuToggle = document.getElementById('menuToggle');
         const sideMenu = document.getElementById('sideMenu');
         const menuOverlay = document.getElementById('menuOverlay');
@@ -149,11 +148,9 @@ export class PlanoAlimentarNutricionista {
         if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
         if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
 
-        // Logout
         const logoutMenuItem = document.getElementById('logoutMenuItem');
         if (logoutMenuItem) logoutMenuItem.addEventListener('click', () => this.funcoes.logout());
 
-        // Navigation
         document.querySelectorAll('.menu-item[data-module]').forEach(item => {
             item.addEventListener('click', async (e) => {
                 const module = item.getAttribute('data-module');
@@ -162,7 +159,6 @@ export class PlanoAlimentarNutricionista {
             });
         });
 
-        // Patient select
         const pacienteSelect = document.getElementById('pacienteSelect');
         if (pacienteSelect) {
             pacienteSelect.addEventListener('change', async (e) => {
@@ -177,11 +173,8 @@ export class PlanoAlimentarNutricionista {
             });
         }
 
-        // Save plan
         const savePlanBtn = document.getElementById('savePlanBtn');
-        if (savePlanBtn) {
-            savePlanBtn.addEventListener('click', () => this.saveMealPlan());
-        }
+        if (savePlanBtn) savePlanBtn.addEventListener('click', () => this.saveMealPlan());
     }
 
     async navigateTo(module) {
@@ -191,10 +184,10 @@ export class PlanoAlimentarNutricionista {
                 const homeScreen = new HomeNutricionista(this.userInfo);
                 homeScreen.render();
                 break;
-            case 'gestao_pacientes':
-                const { GestaoPacientes } = await import('./gestao_pacientes.js');
-                const gestaoPacientes = new GestaoPacientes(this.userInfo);
-                gestaoPacientes.render();
+            case 'cadastro_cliente':
+                const { CadastroCliente } = await import('./cadastro_cliente.js');
+                const cadastroScreen = new CadastroCliente(this.userInfo);
+                cadastroScreen.render();
                 break;
             case 'plano_alimentar':
                 this.render();
@@ -214,7 +207,6 @@ export class PlanoAlimentarNutricionista {
                 this.currentMealPlan = null;
             }
         } catch (error) {
-            console.error('Erro ao carregar plano:', error);
             this.currentMealPlan = null;
         }
     }
@@ -243,16 +235,15 @@ export class PlanoAlimentarNutricionista {
             if (this.currentMealPlan?.id) {
                 const planDoc = doc(window.db, 'planos_alimentares', this.currentMealPlan.id);
                 await updateDoc(planDoc, mealPlanData);
-                alert('✅ Plano alimentar atualizado com sucesso!');
+                alert('✅ Plano atualizado!');
             } else {
                 await addDoc(plansRef, mealPlanData);
-                alert('✅ Plano alimentar criado com sucesso!');
+                alert('✅ Plano criado!');
             }
             
             await this.loadMealPlan();
         } catch (error) {
-            console.error('Erro ao salvar plano:', error);
-            alert('❌ Erro ao salvar plano alimentar: ' + error.message);
+            alert('❌ Erro: ' + error.message);
         }
     }
 }
