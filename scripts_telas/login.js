@@ -6,9 +6,9 @@ import {
     signInWithEmailAndPassword, 
     updateDoc,
     createUserWithEmailAndPassword,
-    serverTimestamp,
-    deleteField
+    serverTimestamp
 } from '../0_firebase_api_config.js';
+import { deleteField } from "firebase/firestore";
 import { HomeManager, FuncoesCompartilhadas } from './home.js';
 
 export class LoginManager {
@@ -211,11 +211,15 @@ export class LoginManager {
                     // Cria o usuário no Firebase Auth com email fake e senha fornecida
                     const userCredential = await createUserWithEmailAndPassword(auth, userData.email, password);
                     
-                    // Após criar, atualiza o documento com ultimo_login (timestamp do Firebase)
+                    // ==========================================
+                    // Após criar, atualiza o documento:
+                    // - Adiciona ultimo_login
+                    // - REMOVE os campos de código temporário
+                    // ==========================================
                     await updateDoc(userRef, {
-                        ultimo_login: serverTimestamp(), 
-                        codigo_temporario: deleteField(),  // 🔥 Remove o código após usar
-                        codigo_expiracao: deleteField()    // 🔥 Remove a expiração após usar
+                        ultimo_login: serverTimestamp(),     // 🔥 Adiciona timestamp do primeiro login
+                        codigo_temporario: deleteField(),    // 🔥 Remove o código temporário
+                        codigo_expiracao: deleteField()      // 🔥 Remove a data de expiração
                     });
                     
                     // Busca os dados atualizados
@@ -260,7 +264,7 @@ export class LoginManager {
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, userData.email, password);
                 
-                // Atualiza o ultimo_login com timestamp do Firebase
+                // Atualiza apenas o ultimo_login
                 await updateDoc(userRef, {
                     ultimo_login: serverTimestamp()
                 });
