@@ -1,5 +1,4 @@
-import { FuncoesCompartilhadas } from './home.js';
-import { doc, updateDoc, getDoc } from '../0_firebase_api_config.js';
+import { FuncoesCompartilhadas, doc, updateDoc, getDoc } from './home.js';
 
 export class HomeNutricionista {
     constructor(userInfo) {
@@ -277,71 +276,35 @@ export class HomeNutricionista {
         container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading"></div> Carregando...</div>';
         await this.loadPacientesList();
         
-        if (this.pacientesList.length === 0) {
-            container.innerHTML = '<p style="text-align: center; padding: 40px; color: #666;">Nenhum paciente cadastrado.</p>';
-            return;
-        }
-        
-        let html = `<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse;"><thead><tr style="background: #1a237e; color: white;">
-            <th style="padding: 12px;">Paciente</th><th style="padding: 12px;">Login</th><th style="padding: 12px;">Status</th><th style="padding: 12px;">Ações</th>
-         </tr></thead><tbody>`;
-        
-        for (const paciente of this.pacientesList) {
-            const hasPrimeiroAcesso = paciente.hasUltimoLogin;
-            const statusBadge = hasPrimeiroAcesso 
-                ? '<span style="background: #10b981; color: white; padding: 4px 8px; border-radius: 20px;">✅ Já acessou</span>'
-                : '<span style="background: #f59e0b; color: white; padding: 4px 8px; border-radius: 20px;">⏳ Aguardando 1º acesso</span>';
-            
-            html += `<tr><td style="padding: 12px;"><strong>${paciente.nome}</strong><br><small>Cadastro: ${paciente.dataHoraCadastro || 'Data não registrada'}</small></td>
-                <td style="padding: 12px;"><code>${paciente.login}</code></td>
-                <td style="padding: 12px; text-align: center;">${statusBadge}</td>
-                <td style="padding: 12px; text-align: center;">`;
-            
-            if (!hasPrimeiroAcesso) {
-                html += `
-                    <button class="btn-ver-codigo-modal" data-login="${paciente.login}" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; margin-right: 8px; cursor: pointer;">👁️ Ver Código</button>
-                    <button class="btn-regerar-codigo-modal" data-login="${paciente.login}" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;">🔄 Regenerar</button>
-                `;
-            } else {
-                html += `
-                    <button class="btn-reset-senha-modal" data-login="${paciente.login}" data-email="${paciente.email}" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; margin-right: 8px; cursor: pointer;">🔑 Reset Senha</button>
-                    <button class="btn-ver-token-modal" data-login="${paciente.login}" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;">👁️ Ver Token</button>
-                `;
-            }
-            
-            html += `</td></tr>`;
-        }
-        
-        html += `</tbody></table></div>`;
-        container.innerHTML = html;
+        const tabelaHtml = this.funcoes.gerarTabelaPacientes(this.pacientesList);
+        container.innerHTML = tabelaHtml;
         
         // Event listeners para códigos (primeiro acesso)
-        document.querySelectorAll('.btn-ver-codigo-modal').forEach(btn => {
+        document.querySelectorAll('.btn-ver-codigo').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 await this.visualizarCodigo(btn.getAttribute('data-login'));
             });
         });
         
-        document.querySelectorAll('.btn-regerar-codigo-modal').forEach(btn => {
+        document.querySelectorAll('.btn-regerar-codigo').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 await this.regenerarCodigo(btn.getAttribute('data-login'));
             });
         });
         
         // Event listeners para reset de senha
-        document.querySelectorAll('.btn-reset-senha-modal').forEach(btn => {
+        document.querySelectorAll('.btn-reset-senha').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const login = btn.getAttribute('data-login');
-                await this.resetarSenhaPaciente(login);
+                await this.resetarSenhaPaciente(btn.getAttribute('data-login'));
             });
         });
         
-        document.querySelectorAll('.btn-ver-token-modal').forEach(btn => {
+        document.querySelectorAll('.btn-ver-token').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 await this.visualizarTokenReset(btn.getAttribute('data-login'));
             });
         });
-    }    
+    }
 
     async visualizarCodigo(login) {
         try {
@@ -364,57 +327,25 @@ export class HomeNutricionista {
     }
    
     async resetarSenhaPaciente(login) {
-        const confirmar = confirm(`⚠️ ATENÇÃO!\n\nVocê está prestes a gerar um TOKEN DE RESET DE SENHA para:\n\nPaciente: ${login}\n\nO paciente poderá usar este token para criar uma nova senha.\n\nDeseja continuar?`);
-        
-        if (!confirmar) return;
+        if (!confirm(`⚠️ ATENÇÃO!\n\nGerar TOKEN DE RESET DE SENHA para:\n\nPaciente: ${login}\n\nO token será válido por 1 hora.\n\nDeseja continuar?`)) return;
         
         try {
-            // Gerar token de reset (6 dígitos)
-            const tokenReset = this.funcoes.gerarCodigoTemporario();
-            const dataExpiracao = new Date();
-            dataExpiracao.setHours(dataExpiracao.getHours() + 1); // Expira em 1 hora
-            
-            // Salvar token no Firestore
-            const userRef = doc(db, "logins", login);
-            await updateDoc(userRef, {
-                reset_token: tokenReset,
-                reset_token_expiracao: dataExpiracao.toISOString()
-            });
-            
-            // Mostrar token para o profissional
-            alert(`🔑 TOKEN DE RESET DE SENHA GERADO!\n\nPaciente: ${login}\nToken: ${tokenReset}\n\n⚠️ Válido por 1 hora\n\nInforme este token ao paciente para ele redefinir a senha.`);
-            
+            const result = await this.funcoes.resetarSenhaPaciente(login);
+            alert(`🔑 TOKEN DE RESET DE SENHA GERADO!\n\nPaciente: ${result.login}\nToken: ${result.token}\n\n⚠️ Válido por 1 hora\n\nInforme este token ao paciente.`);
+            await this.carregarListaPacientes();
         } catch (error) {
-            alert('❌ Erro ao gerar token: ' + error.message);
+            alert(error.message);
         }
     }
     
     async visualizarTokenReset(login) {
         try {
-            const userRef = doc(db, "logins", login);
-            const userDoc = await getDoc(userRef);
-            
-            if (!userDoc.exists()) {
-                throw new Error('Paciente não encontrado!');
-            }
-            
-            const userData = userDoc.data();
-            
-            if (!userData.reset_token) {
-                throw new Error('❌ Nenhum token de reset ativo. Gere um novo token.');
-            }
-            
-            const dataExpiracao = new Date(userData.reset_token_expiracao);
-            if (dataExpiracao < new Date()) {
-                throw new Error('⚠️ Token expirado! Gere um novo token.');
-            }
-            
-            alert(`🔑 TOKEN DE RESET DE SENHA\n\nPaciente: ${login}\nToken: ${userData.reset_token}\n\n⚠️ Expira em: ${dataExpiracao.toLocaleString('pt-BR')}\n\nInforme este token ao paciente.`);
-            
+            const result = await this.funcoes.visualizarTokenReset(login);
+            alert(`🔑 TOKEN DE RESET DE SENHA\n\nPaciente: ${result.nome}\nLogin: ${result.login}\nToken: ${result.token}\n\n⚠️ Expira em: ${new Date(result.expiracao).toLocaleString('pt-BR')}`);
         } catch (error) {
             alert(error.message);
         }
-    }    
+    }
 
     clearRegisterForm() {
         ['regNome', 'regLogin', 'regDataNascimento', 'regSexo'].forEach(id => {
