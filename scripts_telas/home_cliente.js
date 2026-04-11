@@ -109,6 +109,14 @@ export class HomeCliente {
             logoutBtn.addEventListener('click', () => this.funcoes.logout());
         }
 
+        // Botão Minha Jornada
+        const minhaJornadaBtn = document.getElementById('minhaJornadaBtn');
+        if (minhaJornadaBtn) {
+            minhaJornadaBtn.addEventListener('click', () => {
+                this.showMinhaJornada();
+            });
+        }
+
         // Botão de conteúdo exclusivo para membros
         const membroExclusiveBtn = document.getElementById('membroExclusiveBtn');
         if (membroExclusiveBtn) {
@@ -125,6 +133,100 @@ export class HomeCliente {
             }
         });
     }
+
+    showMinhaJornada() {
+        // Buscar todas as avaliações do paciente
+        const evaluations = this.currentEvaluations;
+        
+        if (evaluations.length === 0) {
+            alert('🌟 Minha Jornada\n\nVocê ainda não possui avaliações registradas.\n\nComece sua jornada agendando uma consulta!');
+            return;
+        }
+        
+        // Calcular estatísticas da jornada
+        const totalAvaliacoes = evaluations.length;
+        const primeiraAvaliacao = evaluations[0]?.data_avaliacao;
+        const ultimaAvaliacao = evaluations[evaluations.length - 1]?.data_avaliacao;
+        
+        // Calcular evolução do peso (se houver)
+        const primeiroPeso = evaluations[0]?.dados_antropometricos?.peso;
+        const ultimoPeso = evaluations[evaluations.length - 1]?.dados_antropometricos?.peso;
+        let evolucaoPeso = '';
+        if (primeiroPeso && ultimoPeso) {
+            const diferenca = ultimoPeso - primeiroPeso;
+            evolucaoPeso = diferenca < 0 ? `📉 Perdeu ${Math.abs(diferenca).toFixed(1)} kg` : 
+                           (diferenca > 0 ? `📈 Ganhou ${diferenca.toFixed(1)} kg` : '⚖️ Peso estável');
+        }
+        
+        // Calcular evolução do IMC
+        const primeiroImc = evaluations[0]?.dados_antropometricos?.imc;
+        const ultimoImc = evaluations[evaluations.length - 1]?.dados_antropometricos?.imc;
+        let evolucaoImc = '';
+        if (primeiroImc && ultimoImc) {
+            const diferenca = ultimoImc - primeiroImc;
+            evolucaoImc = diferenca < 0 ? `📉 IMC reduziu ${Math.abs(diferenca).toFixed(1)} pontos` : 
+                          (diferenca > 0 ? `📈 IMC aumentou ${diferenca.toFixed(1)} pontos` : '⚖️ IMC estável');
+        }
+        
+        const modalHtml = `
+            <div id="jornadaModal" class="modal" style="display: block;">
+                <div class="modal-content" style="max-width: 500px;">
+                    <span class="close">&times;</span>
+                    <h3 style="color: #8b5cf6;">🌟 Minha Jornada de Saúde</h3>
+                    <div style="margin-top: 20px;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 16px; color: white; margin-bottom: 20px;">
+                            <div style="font-size: 48px; text-align: center; margin-bottom: 10px;">📊</div>
+                            <p style="text-align: center; margin: 0;"><strong>${totalAvaliacoes}</strong> avaliações realizadas</p>
+                        </div>
+                        
+                        <div style="display: grid; gap: 15px;">
+                            <div style="background: #f1f5f9; padding: 15px; border-radius: 12px;">
+                                <strong>📅 Período</strong><br>
+                                <span style="color: #475569;">${this.formatDate(primeiraAvaliacao)} até ${this.formatDate(ultimaAvaliacao)}</span>
+                            </div>
+                            
+                            ${evolucaoPeso ? `
+                            <div style="background: #f1f5f9; padding: 15px; border-radius: 12px;">
+                                <strong>⚖️ Evolução do Peso</strong><br>
+                                <span style="color: #475569;">${evolucaoPeso}</span>
+                                <div style="margin-top: 5px; font-size: 12px; color: #666;">
+                                    ${primeiroPeso} kg → ${ultimoPeso} kg
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${evolucaoImc ? `
+                            <div style="background: #f1f5f9; padding: 15px; border-radius: 12px;">
+                                <strong>📊 Evolução do IMC</strong><br>
+                                <span style="color: #475569;">${evolucaoImc}</span>
+                                <div style="margin-top: 5px; font-size: 12px; color: #666;">
+                                    ${primeiroImc} → ${ultimoImc}
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            <div style="background: #f1f5f9; padding: 15px; border-radius: 12px;">
+                                <strong>🏆 Próximos Passos</strong><br>
+                                <span style="color: #475569;">Continue acompanhando sua saúde! Agende sua próxima avaliação.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="closeJornadaModal" class="submit-btn" style="margin-top: 20px;">Fechar</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        const modal = document.getElementById('jornadaModal');
+        const closeBtn = modal.querySelector('.close');
+        const closeButton = document.getElementById('closeJornadaModal');
+        
+        const closeModal = () => modal.remove();
+        closeBtn.onclick = closeModal;
+        closeButton.onclick = closeModal;
+        window.onclick = (event) => { if (event.target === modal) closeModal(); };
+    }    
 
     showModuleMessage(module) {
         const messages = {
