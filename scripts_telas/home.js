@@ -1,4 +1,17 @@
-import { db, collection, getDocs, doc, setDoc, getDoc, addDoc, auth, createUserWithEmailAndPassword, signOut, serverTimestamp } from '../0_firebase_api_config.js';
+import { 
+    db, 
+    collection, 
+    getDocs, 
+    doc, 
+    setDoc, 
+    getDoc, 
+    addDoc, 
+    auth, 
+    createUserWithEmailAndPassword, 
+    signOut, 
+    serverTimestamp,
+    updateDoc      // ← ADICIONE ESTA LINHA
+} from '../0_firebase_api_config.js';
 import { HomeCliente } from './home_cliente.js';
 import { HomeNutricionista } from './home_nutricionista.js';
 import { HomePsicologo } from './home_psicologo.js';
