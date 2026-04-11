@@ -12,6 +12,7 @@ import {
     serverTimestamp,
     updateDoc
 } from '../0_firebase_api_config.js';
+import { deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { HomeCliente } from './home_cliente.js';
 import { HomeNutricionista } from './home_nutricionista.js';
 import { HomePsicologo } from './home_psicologo.js';
@@ -41,21 +42,14 @@ export class FuncoesCompartilhadas {
     
     static formatarDataHoraCadastro() {
         const agora = new Date();
-        const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
-                       'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-        
-        const dia = agora.getDate();
-        const mes = meses[agora.getMonth()];
-        const ano = agora.getFullYear();
-        const horas = agora.getHours().toString().padStart(2, '0');
-        const minutos = agora.getMinutes().toString().padStart(2, '0');
-        const segundos = agora.getSeconds().toString().padStart(2, '0');
-        
-        const offset = -agora.getTimezoneOffset() / 60;
-        const offsetSinal = offset >= 0 ? '+' : '';
-        const offsetStr = `UTC${offsetSinal}${offset}`;
-        
-        return `${dia} de ${mes} de ${ano} às ${horas}:${minutos}:${segundos} ${offsetStr}`;
+        return agora.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
     }
     
     static validarIdade(dataNascimento) {
@@ -304,6 +298,150 @@ export class FuncoesCompartilhadas {
             console.error("Erro ao regenerar código:", error);
             throw error;
         }
+    }
+    
+    // ==================== FUNÇÕES DE RESET DE SENHA ====================
+    
+    static async resetarSenhaPaciente(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                throw new Error('Paciente não encontrado!');
+            }
+            
+            const userData = userDoc.data();
+            
+            if (!userData.hasOwnProperty('ultimo_login')) {
+                throw new Error('❌ Este paciente ainda não fez o primeiro acesso! Use a opção de gerar código.');
+            }
+            
+            const tokenReset = this.gerarCodigoTemporario();
+            const dataExpiracao = new Date();
+            dataExpiracao.setHours(dataExpiracao.getHours() + 1);
+            
+            await updateDoc(userRef, {
+                reset_token: tokenReset,
+                reset_token_expiracao: dataExpiracao.toISOString()
+            });
+            
+            return {
+                success: true,
+                token: tokenReset,
+                expiracao: dataExpiracao.toISOString(),
+                nome: userData.nome,
+                login: login
+            };
+            
+        } catch (error) {
+            console.error("Erro ao resetar senha:", error);
+            throw error;
+        }
+    }
+    
+    static async visualizarTokenReset(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                throw new Error('Paciente não encontrado!');
+            }
+            
+            const userData = userDoc.data();
+            
+            if (!userData.reset_token) {
+                throw new Error('❌ Nenhum token de reset ativo. Gere um novo token.');
+            }
+            
+            const dataExpiracao = new Date(userData.reset_token_expiracao);
+            if (dataExpiracao < new Date()) {
+                throw new Error('⚠️ Token expirado! Gere um novo token.');
+            }
+            
+            return {
+                success: true,
+                token: userData.reset_token,
+                expiracao: userData.reset_token_expiracao,
+                nome: userData.nome,
+                login: login
+            };
+            
+        } catch (error) {
+            console.error("Erro ao visualizar token:", error);
+            throw error;
+        }
+    }
+    
+    static async limparTokenReset(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            await updateDoc(userRef, {
+                reset_token: deleteField(),
+                reset_token_expiracao: deleteField()
+            });
+            return { success: true };
+        } catch (error) {
+            console.error("Erro ao limpar token:", error);
+            throw error;
+        }
+    }
+    
+    // ==================== FUNÇÕES DE LISTA DE PACIENTES (HTML) ====================
+    
+    static gerarTabelaPacientes(pacientesList, callbacks) {
+        if (pacientesList.length === 0) {
+            return '<p style="text-align: center; padding: 40px; color: #666;">Nenhum paciente cadastrado.</p>';
+        }
+        
+        let html = `<div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden;">
+                <thead>
+                    <tr style="background: #1a237e; color: white;">
+                        <th style="padding: 12px; text-align: left;">Paciente</th>
+                        <th style="padding: 12px; text-align: left;">Login</th>
+                        <th style="padding: 12px; text-align: center;">Status</th>
+                        <th style="padding: 12px; text-align: center;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
+        for (const paciente of pacientesList) {
+            const hasPrimeiroAcesso = paciente.hasUltimoLogin;
+            
+            const statusBadge = hasPrimeiroAcesso 
+                ? '<span style="background: #10b981; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px;">✅ Já acessou</span>'
+                : '<span style="background: #f59e0b; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px;">⏳ Aguardando 1º acesso</span>';
+            
+            html += `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 12px;">
+                        <strong>${paciente.nome}</strong><br>
+                        <small style="color: #666;">Cadastro: ${paciente.dataHoraCadastro || 'Data não registrada'}</small>
+                    </td>
+                    <td style="padding: 12px;"><code style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px;">${paciente.login}</code></td>
+                    <td style="padding: 12px; text-align: center;">${statusBadge}</td>
+                    <td style="padding: 12px; text-align: center;">`;
+            
+            if (!hasPrimeiroAcesso) {
+                html += `
+                    <button class="btn-ver-codigo" data-login="${paciente.login}" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; margin-right: 8px; cursor: pointer;">👁️ Ver Código</button>
+                    <button class="btn-regerar-codigo" data-login="${paciente.login}" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;">🔄 Gerar Código</button>
+                `;
+            } else {
+                html += `
+                    <button class="btn-reset-senha" data-login="${paciente.login}" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; margin-right: 8px; cursor: pointer;">🔑 Reset Senha</button>
+                    <button class="btn-ver-token" data-login="${paciente.login}" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;">👁️ Ver Token</button>
+                `;
+            }
+            
+            html += `</td></tr>`;
+        }
+        
+        html += `</tbody></table></div>`;
+        
+        return html;
     }
     
     // ==================== FUNÇÕES DE AVALIAÇÃO ====================
