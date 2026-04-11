@@ -20,7 +20,10 @@ import {
     getAuth,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    signOut
+    signOut,
+    sendPasswordResetEmail,
+    confirmPasswordReset,
+    verifyPasswordResetCode
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Configuração do projeto Firebase: tratamentoweb
@@ -68,5 +71,8 @@ export {
     setDoc,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    signOut
+    signOut,
+    sendPasswordResetEmail,
+    confirmPasswordReset,
+    verifyPasswordResetCode
 };
