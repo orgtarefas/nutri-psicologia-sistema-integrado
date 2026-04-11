@@ -1043,3 +1043,26 @@ input[type="password"]::-ms-reveal,
 input[type="password"]::-webkit-credentials-auto-fill-button {
     display: none !important;
 }
+
+/* Estilos para os botões da tabela */
+.btn-ver-codigo:hover {
+    background: #2563eb !important;
+    transform: translateY(-1px);
+}
+
+.btn-regerar-codigo:hover {
+    background: #d97706 !important;
+    transform: translateY(-1px);
+}
+
+/* Estilo da tabela responsiva */
+@media (max-width: 768px) {
+    #pacientesTableContainer table {
+        font-size: 12px;
+    }
+    
+    .btn-ver-codigo, .btn-regerar-codigo {
+        padding: 4px 8px !important;
+        font-size: 11px;
+    }
+}
