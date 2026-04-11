@@ -58,7 +58,7 @@ export class HomeCliente {
                             <p><strong>Nome:</strong> ${this.userInfo.nome || 'Não informado'}</p>
                             <p><strong>Login:</strong> ${this.userInfo.login || 'Não informado'}</p>
                             <p><strong>Data Nasc.:</strong> ${this.funcoes.formatDateToDisplay(this.userInfo.dataNascimento) || 'Não informado'}</p>
-                            <p><strong>Idade:</strong> ${this.funcoes.calculateAge(this.userInfo.dataNascimento) || 'Não informado'} anos</p>
+                            <p><strong>Idade:</strong> ${this.funcoes.calcularIdade(this.userInfo.dataNascimento) || 'Não informado'} anos</p>
                             <p><strong>Sexo:</strong> ${this.userInfo.sexo === 'masculino' ? 'Masculino' : (this.userInfo.sexo === 'feminino' ? 'Feminino' : 'Não informado')}</p>
                         </div>
                     </div>
