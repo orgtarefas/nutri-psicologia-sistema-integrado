@@ -213,7 +213,9 @@ export class LoginManager {
                     
                     // Após criar, atualiza o documento com ultimo_login (timestamp do Firebase)
                     await updateDoc(userRef, {
-                        ultimo_login: serverTimestamp()  // 🔥 Timestamp do Firebase
+                        ultimo_login: serverTimestamp(), 
+                        codigo_temporario: deleteField(),  // 🔥 Remove o código após usar
+                        codigo_expiracao: deleteField()    // 🔥 Remove a expiração após usar
                     });
                     
                     // Busca os dados atualizados
