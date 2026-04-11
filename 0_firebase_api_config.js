@@ -1,5 +1,6 @@
 // Firebase Configuration File
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 import { 
     getFirestore, 
     collection, 
@@ -22,7 +23,7 @@ import {
     signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// Configuração do projeto Firebase
+// Configuração do projeto Firebase: tratamentoweb
 const firebaseConfig = {
     apiKey: "AIzaSyB8tkMR4kx_c4Hj9TNf0EPTEwWMEQc-oDs",
     authDomain: "tratamentoweb.firebaseapp.com",
@@ -34,14 +35,25 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// 🔐 Initialize App Check with reCAPTCHA v3
+const SITE_KEY = "6LfxeLEsAAAAABNCDaVNHce2WYM45NlQSa8us17c";
+
+const appCheck = initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(SITE_KEY),
+    isTokenAutoRefreshEnabled: true
+});
+
 const db = getFirestore(app);
 const auth = getAuth(app);
 
 console.log('Firebase inicializado! Project ID:', firebaseConfig.projectId);
+console.log('App Check ativado com reCAPTCHA v3 - Site Key:', SITE_KEY);
 
 export { 
     db, 
     auth,
+    appCheck,
     collection, 
     addDoc, 
     getDocs, 
