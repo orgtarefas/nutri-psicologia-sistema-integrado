@@ -2020,3 +2020,80 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
         margin-bottom: 4px;
     }
 }
+
+/* Admin Dashboard Cards */
+.admin-welcome {
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
+    padding: 32px;
+    border-radius: var(--radius-xl);
+    margin-bottom: 32px;
+    color: white;
+}
+
+.admin-welcome h2 {
+    margin-bottom: 8px;
+    font-size: 24px;
+}
+
+.admin-welcome p {
+    opacity: 0.8;
+}
+
+.admin-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.admin-card {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.admin-card-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.admin-card h3 {
+    color: var(--secondary);
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
+.admin-card p {
+    color: var(--gray-600);
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.card-badge {
+    display: inline-block;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.menu-divider {
+    padding: 12px 24px 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
