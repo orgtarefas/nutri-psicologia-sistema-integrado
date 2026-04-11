@@ -22,14 +22,14 @@ import {
     signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// Configuração do projeto Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyAO8iQ-Fo16MFjq17MDKvqUFT3n2tlHyFc",
-    authDomain: "data-base-online-evox1.firebaseapp.com",
-    databaseURL: "https://data-base-online-evox1-default-rtdb.firebaseio.com",
-    projectId: "data-base-online-evox1",
-    storageBucket: "data-base-online-evox1.firebasestorage.app",
-    messagingSenderId: "972957988116",
-    appId: "1:972957988116:web:072faae5fdfcceab767e01"
+    apiKey: "AIzaSyB8tkMR4kx_c4Hj9TNf0EPTEwWMEQc-oDs",
+    authDomain: "tratamentoweb.firebaseapp.com",
+    projectId: "tratamentoweb",
+    storageBucket: "tratamentoweb.firebasestorage.app",
+    messagingSenderId: "894728971208",
+    appId: "1:894728971208:web:52278dc3754180626c16fd"
 };
 
 // Initialize Firebase
