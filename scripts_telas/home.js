@@ -393,6 +393,17 @@ export class FuncoesCompartilhadas {
             throw error;
         }
     }
+
+    static async updatePaciente(login, data) {
+        try {
+            const userRef = doc(db, "logins", login);
+            await updateDoc(userRef, data);
+            return { success: true };
+        } catch (error) {
+            console.error("Erro ao atualizar paciente:", error);
+            throw new Error('Erro ao atualizar dados do paciente');
+        }
+    }
     
     // ==================== FUNÇÕES DE LISTA DE PACIENTES (HTML) ====================
     
@@ -639,6 +650,12 @@ export class HomeManager {
             this.currentViewCargo = 'nutricionista';
             this.currentViewPerfil = 'supervisor_nutricionista';
         }
+    }
+
+    async navigateToCadastroCliente() {
+        const { CadastroCliente } = await import('./cadastro_cliente.js');
+        const cadastroScreen = new CadastroCliente(this.userInfo);
+        cadastroScreen.render();
     }
 
     render() {
