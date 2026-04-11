@@ -366,6 +366,132 @@ export class HomeNutricionista {
         }
     }
 
+    async loadPacientesListWithButtons() {
+        this.pacientesList = await this.funcoes.loadPacientesList();
+        this.displayPacientesTable();
+    }
+
+    displayPacientesTable() {
+        const pacienteSelect = document.getElementById('pacienteSelect');
+        if (!pacienteSelect) return;
+        
+        // Verificar se já existe uma tabela
+        let tableContainer = document.getElementById('pacientesTableContainer');
+        if (!tableContainer) {
+            // Criar container para a tabela
+            tableContainer = document.createElement('div');
+            tableContainer.id = 'pacientesTableContainer';
+            tableContainer.style.marginTop = '20px';
+            pacienteSelect.parentElement.parentElement.appendChild(tableContainer);
+        }
+        
+        if (this.pacientesList.length === 0) {
+            tableContainer.innerHTML = '<p style="color: #666;">Nenhum paciente cadastrado.</p>';
+            return;
+        }
+        
+        let html = `
+            <h4 style="margin: 20px 0 10px 0; color: #1a237e;">📋 Lista de Pacientes</h4>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden;">
+                    <thead>
+                        <tr style="background: #1a237e; color: white;">
+                            <th style="padding: 12px; text-align: left;">Paciente</th>
+                            <th style="padding: 12px; text-align: left;">Login</th>
+                            <th style="padding: 12px; text-align: center;">Status</th>
+                            <th style="padding: 12px; text-align: center;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        for (const paciente of this.pacientesList) {
+            const hasPrimeiroAcesso = paciente.hasUltimoLogin;
+            const statusBadge = hasPrimeiroAcesso 
+                ? '<span style="background: #10b981; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px;">✅ Já acessou</span>'
+                : '<span style="background: #f59e0b; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px;">⏳ Aguardando 1º acesso</span>';
+            
+            html += `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 12px;">${paciente.nome}</td>
+                    <td style="padding: 12px;"><code>${paciente.login}</code></td>
+                    <td style="padding: 12px; text-align: center;">${statusBadge}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        ${!hasPrimeiroAcesso ? `
+                            <button class="btn-ver-codigo" data-login="${paciente.login}" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; margin-right: 8px; cursor: pointer;">
+                                👁️ Ver Código
+                            </button>
+                            <button class="btn-regerar-codigo" data-login="${paciente.login}" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;">
+                                🔄 Regenerar
+                            </button>
+                        ` : `
+                            <span style="color: #94a3b8;">Sem ações</span>
+                        `}
+                    </td>
+                </tr>
+            `;
+        }
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        tableContainer.innerHTML = html;
+        
+        // Adicionar event listeners
+        document.querySelectorAll('.btn-ver-codigo').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const login = btn.getAttribute('data-login');
+                await this.visualizarCodigo(login);
+            });
+        });
+        
+        document.querySelectorAll('.btn-regerar-codigo').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const login = btn.getAttribute('data-login');
+                await this.regenerarCodigo(login);
+            });
+        });
+    }
+
+    async visualizarCodigo(login) {
+        try {
+            const result = await this.funcoes.visualizarCodigoPaciente(login);
+            
+            const dataExpiracao = new Date(result.expiracao).toLocaleString('pt-BR');
+            
+            alert(`🔑 CÓDIGO DE ACESSO\n\nPaciente: ${result.nome}\nLogin: ${result.login}\nCódigo: ${result.codigo}\n\n⚠️ Expira em: ${dataExpiracao}\n\nInforme este código ao paciente para o primeiro acesso.`);
+            
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    async regenerarCodigo(login) {
+        const confirmar = confirm(`⚠️ ATENÇÃO!\n\nVocê está prestes a gerar um NOVO código para este paciente.\n\nO código anterior será invalidado.\n\nDeseja continuar?`);
+        
+        if (!confirmar) return;
+        
+        try {
+            const result = await this.funcoes.regenerarCodigoPaciente(login);
+            
+            const dataExpiracao = new Date(result.expiracao).toLocaleString('pt-BR');
+            
+            alert(`✅ NOVO CÓDIGO GERADO!\n\nPaciente: ${result.nome}\nLogin: ${result.login}\nNovo Código: ${result.codigo}\n\n⚠️ Expira em: ${dataExpiracao}\n\nInforme este NOVO código ao paciente.`);
+            
+            // Recarregar a lista para atualizar
+            await this.loadPacientesList();
+            this.displayPacientesTable();
+            
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    // ==================== FUNÇÕES DE EXIBIÇÃO ====================    
+
     displayPacienteInfo() {
         if (this.selectedPaciente) {
             document.getElementById('pacienteInfo').style.display = 'block';
