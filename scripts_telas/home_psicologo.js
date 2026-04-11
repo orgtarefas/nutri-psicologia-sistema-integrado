@@ -348,7 +348,6 @@ export class HomePsicologo {
     clearRegisterForm() {
         document.getElementById('regNome').value = '';
         document.getElementById('regLogin').value = '';
-        document.getElementById('regSenha').value = '';
         document.getElementById('regDataNascimento').value = '';
         document.getElementById('regSexo').value = '';
     }
