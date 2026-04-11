@@ -405,7 +405,7 @@ export class HomePsicologo {
             
             document.getElementById('infoSexo').textContent = this.selectedPaciente.sexo === 'masculino' ? 'Masculino' : 'Feminino';
             
-            const idade = this.funcoes.calculateAge(this.selectedPaciente.dataNascimento);
+            const idade = this.funcoes.calcularIdade(this.selectedPaciente.dataNascimento);
             document.getElementById('infoIdade').textContent = idade || 'Não informado';
         }
     }
