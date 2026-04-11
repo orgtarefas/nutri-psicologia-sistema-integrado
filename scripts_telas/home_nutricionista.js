@@ -60,6 +60,10 @@ export class HomeNutricionista {
                             <span class="menu-icon">🍽️</span>
                             <span>Plano Alimentar</span>
                         </button>
+                        <button class="menu-item" data-module="cadastro_cliente">
+                            <span class="menu-icon">👥</span>
+                            <span>Clientes</span>
+                        </button>
                         <button class="menu-item" data-module="atendimento_grupo">
                             <span class="menu-icon">👥</span>
                             <span>Atendimento em Grupo</span>
@@ -75,10 +79,6 @@ export class HomeNutricionista {
                         <button class="menu-item" data-module="palestras_videos">
                             <span class="menu-icon">🎥</span>
                             <span>Palestras e Vídeos</span>
-                        </button>
-                        <button class="menu-item" data-module="gestao_pacientes">
-                            <span class="menu-icon">📋</span>
-                            <span>Gestão de Pacientes</span>
                         </button>
                         <button class="menu-item" data-module="chat">
                             <span class="menu-icon">💬</span>
@@ -293,14 +293,14 @@ export class HomeNutricionista {
                 this.render();
                 break;
             case 'plano_alimentar':
-                const { PlanoAlimentar } = await import('./plano_alimentar.js');
-                const planoAlimentar = new PlanoAlimentar(this.userInfo, this.pacientesList);
+                const { PlanoAlimentarNutricionista } = await import('./plano_alimentar_nutricionista.js');
+                const planoAlimentar = new PlanoAlimentarNutricionista(this.userInfo, this.pacientesList);
                 planoAlimentar.render();
                 break;
-            case 'gestao_pacientes':
-                const { GestaoPacientes } = await import('./gestao_pacientes.js');
-                const gestaoPacientes = new GestaoPacientes(this.userInfo);
-                gestaoPacientes.render();
+            case 'cadastro_cliente':
+                const { CadastroCliente } = await import('./cadastro_cliente.js');
+                const cadastroCliente = new CadastroCliente(this.userInfo);
+                cadastroCliente.render();
                 break;
             case 'atendimento_grupo':
                 alert('🚧 Módulo Atendimento em Grupo em desenvolvimento');
