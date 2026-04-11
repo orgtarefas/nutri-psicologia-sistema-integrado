@@ -320,16 +320,18 @@ export class HomeNutricionista {
         const pacienteData = {
             nome: document.getElementById('regNome').value,
             login: document.getElementById('regLogin').value,
-            senha: document.getElementById('regSenha').value,
             dataNascimento: document.getElementById('regDataNascimento').value,
             sexo: document.getElementById('regSexo').value
         };
         
         try {
             const result = await this.funcoes.registerPaciente(pacienteData);
-            alert(result.message);
+            
+            alert(`${result.message}\n\n📋 Login: ${result.login}\n🔑 Código Temporário: ${result.codigo}\n\n⚠️ Informe este código ao paciente para o primeiro acesso.`);
+            
             this.funcoes.closeModal('registerModal');
             await this.loadPacientesList();
+            
         } catch (error) {
             alert('❌ ' + error.message);
         }
