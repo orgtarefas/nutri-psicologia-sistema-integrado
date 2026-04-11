@@ -187,6 +187,10 @@ export class FuncoesCompartilhadas {
         const codigo = codigoTemporario || this.gerarCodigoTemporario();
         const emailGerado = this.gerarEmailPorLogin(login);
         
+        // Calcular data de expiração do código (7 dias)
+        const dataExpiracao = new Date();
+        dataExpiracao.setDate(dataExpiracao.getDate() + 7);
+        
         // Verificar se o login já existe
         const loginExiste = await this.verificarLoginExistente(login);
         if (loginExiste) {
@@ -206,7 +210,10 @@ export class FuncoesCompartilhadas {
                 perfil: "operador",
                 status_ativo: true,
                 dataHoraCadastro: this.formatarDataHoraCadastro(),
-                dataCadastro: new Date().toISOString()
+                dataCadastro: new Date().toISOString(),
+                // 🔑 CÓDIGO TEMPORÁRIO (será removido no primeiro login)
+                codigo_temporario: codigo,
+                codigo_expiracao: dataExpiracao.toISOString()
                 // ⚠️ NÃO TEM campo ultimo_login - será criado no primeiro login
             };
             
@@ -216,7 +223,8 @@ export class FuncoesCompartilhadas {
                 success: true, 
                 message: `✅ Paciente "${nome}" cadastrado com sucesso!`,
                 codigo: codigo,
-                login: login
+                login: login,
+                expiracao: dataExpiracao.toISOString()
             };
             
         } catch (error) {
