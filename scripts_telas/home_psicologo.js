@@ -42,7 +42,7 @@ export class HomePsicologo {
                     <div class="nav-buttons">
                         <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
                         <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
-                        <button class="nav-btn" data-module="journey">🌟 Minha Jornada</button>
+                        <button class="nav-btn" data-module="journey">🌟 Acompanhar Jornadas</button>
                         <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
                         <button class="nav-btn" id="registerPacienteBtn" style="background: #48bb78; color: white;">➕ Cadastrar Paciente</button>
                         <button class="nav-btn" id="listaPacientesBtn" style="background: #3b82f6; color: white;">📋 Lista de Pacientes</button>
