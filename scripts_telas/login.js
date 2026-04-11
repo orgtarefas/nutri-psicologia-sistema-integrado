@@ -1,4 +1,13 @@
-import { db, auth, getDoc, doc, signInWithEmailAndPassword } from '../0_firebase_api_config.js';
+import { 
+    db, 
+    auth, 
+    getDoc, 
+    doc, 
+    signInWithEmailAndPassword, 
+    updateDoc,
+    createUserWithEmailAndPassword,
+    serverTimestamp
+} from '../0_firebase_api_config.js';
 import { HomeManager, FuncoesCompartilhadas } from './home.js';
 
 export class LoginManager {
@@ -51,6 +60,7 @@ export class LoginManager {
                                     <span class="checkmark"></span>
                                     <span class="checkbox-text">Lembrar meus dados</span>
                                 </label>
+                                <a href="#" id="forgotPasswordLink" class="forgot-password">Esqueci minha senha</a>
                             </div>
     
                             <button type="submit" class="login-button">
@@ -63,7 +73,7 @@ export class LoginManager {
             `;
         }
     }
-        
+    
     loadSavedCredentials() {
         const savedLogin = localStorage.getItem('savedLogin');
         const savedPassword = localStorage.getItem('savedPassword');
@@ -78,7 +88,6 @@ export class LoginManager {
             if (passwordInput) passwordInput.value = savedPassword;
             if (rememberCheckbox) rememberCheckbox.checked = true;
             
-            // Ativar animação dos labels
             setTimeout(() => {
                 const inputs = document.querySelectorAll('.input-field input');
                 inputs.forEach(input => {
@@ -99,7 +108,14 @@ export class LoginManager {
             });
         }
 
-        // Toggle para exibir/esconder senha
+        const forgotLink = document.getElementById('forgotPasswordLink');
+        if (forgotLink) {
+            forgotLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showPasswordResetDialog();
+            });
+        }
+
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
         
@@ -116,7 +132,6 @@ export class LoginManager {
             });
         }
 
-        // Animação dos inputs
         const inputs = document.querySelectorAll('.input-field input');
         inputs.forEach(input => {
             input.addEventListener('focus', () => {
@@ -156,7 +171,6 @@ export class LoginManager {
             return;
         }
 
-        // Mostrar loading no botão
         const submitBtn = document.querySelector('.login-button');
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Entrando...';
@@ -183,8 +197,70 @@ export class LoginManager {
                 return;
             }
             
+            // 🔐 VERIFICAÇÃO: Campo "ultimo_login" existe?
+            const hasUltimoLogin = userData.hasOwnProperty('ultimo_login');
+            
+            if (!hasUltimoLogin) {
+                // ==========================================
+                // PRIMEIRO ACESSO: Criar conta no Auth
+                // ==========================================
+                console.log('Primeiro acesso - criando conta no Firebase Auth...');
+                
+                try {
+                    // Cria o usuário no Firebase Auth com email fake e senha fornecida
+                    const userCredential = await createUserWithEmailAndPassword(auth, userData.email, password);
+                    
+                    // Após criar, atualiza o documento com ultimo_login (timestamp do Firebase)
+                    await updateDoc(userRef, {
+                        ultimo_login: serverTimestamp()  // 🔥 Timestamp do Firebase
+                    });
+                    
+                    // Busca os dados atualizados
+                    const updatedDoc = await getDoc(userRef);
+                    const updatedUserData = updatedDoc.data();
+                    updatedUserData.login = loginInput;
+                    
+                    if (!updatedUserData.perfil) {
+                        updatedUserData.perfil = FuncoesCompartilhadas.getPerfilPadrao(updatedUserData.cargo);
+                    }
+                    
+                    if (rememberCheckbox && rememberCheckbox.checked) {
+                        localStorage.setItem('savedLogin', loginInput);
+                        localStorage.setItem('savedPassword', password);
+                        localStorage.setItem('rememberLogin', 'true');
+                    } else {
+                        localStorage.removeItem('savedLogin');
+                        localStorage.removeItem('savedPassword');
+                        localStorage.setItem('rememberLogin', 'false');
+                    }
+                    
+                    localStorage.setItem('currentUser', JSON.stringify(updatedUserData));
+                    this.showHome(updatedUserData);
+                    
+                } catch (authError) {
+                    console.error("Erro ao criar usuário:", authError);
+                    
+                    if (authError.code === 'auth/email-already-in-use') {
+                        this.showError('❌ Este login já possui cadastro. Contate o administrador.');
+                    } else if (authError.code === 'auth/weak-password') {
+                        this.showError('❌ Senha muito fraca. Use pelo menos 6 caracteres.');
+                    } else {
+                        this.showError('❌ Erro ao criar conta: ' + authError.message);
+                    }
+                }
+                return;
+            }
+            
+            // ==========================================
+            // LOGIN NORMAL (usuário já tem conta)
+            // ==========================================
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, userData.email, password);
+                
+                // Atualiza o ultimo_login com timestamp do Firebase
+                await updateDoc(userRef, {
+                    ultimo_login: serverTimestamp()
+                });
                 
                 userData.login = loginInput;
                 
@@ -192,7 +268,6 @@ export class LoginManager {
                     userData.perfil = FuncoesCompartilhadas.getPerfilPadrao(userData.cargo);
                 }
                 
-                // Salvar credenciais se "Lembrar dados" estiver marcado
                 if (rememberCheckbox && rememberCheckbox.checked) {
                     localStorage.setItem('savedLogin', loginInput);
                     localStorage.setItem('savedPassword', password);
@@ -213,14 +288,14 @@ export class LoginManager {
                     authError.code === 'auth/wrong-password') {
                     this.showError('❌ Senha incorreta!');
                 } else if (authError.code === 'auth/user-not-found') {
-                    this.showError('❌ Usuário não encontrado no sistema de autenticação!');
+                    this.showError('❌ Usuário não encontrado! Contate o administrador.');
                 } else {
-                    this.showError('❌ Erro de autenticação: ' + authError.message);
+                    this.showError('❌ Erro: ' + authError.message);
                 }
             }
             
         } catch (error) {
-            console.error("Erro ao fazer login:", error);
+            console.error("Erro:", error);
             this.showError('❌ Erro ao conectar com o servidor!');
         } finally {
             submitBtn.innerHTML = originalText;
@@ -228,12 +303,49 @@ export class LoginManager {
         }
     }
 
+    // ==========================================
+    // TELA DE RESET DE SENHA
+    // ==========================================
+    showPasswordResetDialog() {
+        const app = document.getElementById('app');
+        if (app) {
+            app.innerHTML = `
+                <div class="login-wrapper">
+                    <div class="login-card">
+                        <div class="login-header">
+                            <div class="logo-container">
+                                <img src="./imagens/logo.png" alt="TratamentoWeb" class="login-logo-img">
+                            </div>
+                            <h2>Recuperar Senha</h2>
+                            <p>Para recuperar sua senha, entre em contato com o administrador da clínica.</p>
+                            <p>Ele poderá gerar uma nova senha temporária para você.</p>
+                        </div>
+    
+                        <form id="resetForm" class="login-form">
+                            <button type="button" id="backToLoginBtn" class="login-button">
+                                <i class="bi bi-arrow-left"></i>
+                                Voltar ao Login
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            const backBtn = document.getElementById('backToLoginBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', () => {
+                    this.renderLoginScreen();
+                    this.setupEventListeners();
+                    this.loadSavedCredentials();
+                });
+            }
+        }
+    }
+
     showError(message) {
-        // Remove erro existente
         const existingError = document.querySelector('.error-message-custom');
         if (existingError) existingError.remove();
         
-        // Criar elemento de erro estilizado
         const errorDiv = document.createElement('div');
         errorDiv.className = 'error-message-custom';
         errorDiv.innerHTML = `
@@ -246,7 +358,6 @@ export class LoginManager {
             form.insertBefore(errorDiv, form.querySelector('.login-button'));
         }
         
-        // Auto fechar após 5 segundos
         setTimeout(() => {
             if (errorDiv) errorDiv.remove();
         }, 5000);
