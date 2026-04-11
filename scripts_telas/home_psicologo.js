@@ -203,43 +203,79 @@ export class HomePsicologo {
     async carregarListaPacientes() {
         const container = document.getElementById('listaPacientesContainer');
         if (!container) return;
-        container.innerHTML = '<div class="loading"></div> Carregando...';
+        
+        container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading"></div> Carregando...</div>';
         await this.loadPacientesList();
-        if (this.pacientesList.length === 0) {
-            container.innerHTML = '<p>Nenhum paciente</p>';
-            return;
-        }
-        let html = '<table style="width:100%"><thead><tr><th>Paciente</th><th>Login</th><th>Status</th><th>Ações</th></tr></thead><tbody>';
-        for (const p of this.pacientesList) {
-            const hasLogin = p.hasUltimoLogin;
-            html += `<tr><td>${p.nome}</td><td>${p.login}</td><td>${hasLogin ? '✅ Já acessou' : '⏳ Aguardando'}</td>
-                <td>${!hasLogin ? `<button class="btn-ver-codigo-modal" data-login="${p.login}">Ver Código</button>
-                <button class="btn-regerar-codigo-modal" data-login="${p.login}">Regenerar</button>` : 'Sem ações'}</td></tr>`;
-        }
-        html += '</tbody></table>';
-        container.innerHTML = html;
-        document.querySelectorAll('.btn-ver-codigo-modal').forEach(btn => {
-            btn.onclick = () => this.visualizarCodigo(btn.dataset.login);
+        
+        const tabelaHtml = this.funcoes.gerarTabelaPacientes(this.pacientesList);
+        container.innerHTML = tabelaHtml;
+        
+        // Event listeners para códigos (primeiro acesso)
+        document.querySelectorAll('.btn-ver-codigo').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                await this.visualizarCodigo(btn.getAttribute('data-login'));
+            });
         });
-        document.querySelectorAll('.btn-regerar-codigo-modal').forEach(btn => {
-            btn.onclick = () => this.regenerarCodigo(btn.dataset.login);
+        
+        document.querySelectorAll('.btn-regerar-codigo').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                await this.regenerarCodigo(btn.getAttribute('data-login'));
+            });
+        });
+        
+        // Event listeners para reset de senha
+        document.querySelectorAll('.btn-reset-senha').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                await this.resetarSenhaPaciente(btn.getAttribute('data-login'));
+            });
+        });
+        
+        document.querySelectorAll('.btn-ver-token').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                await this.visualizarTokenReset(btn.getAttribute('data-login'));
+            });
         });
     }
 
     async visualizarCodigo(login) {
         try {
-            const r = await this.funcoes.visualizarCodigoPaciente(login);
-            alert(`Código: ${r.codigo}\nExpira: ${new Date(r.expiracao).toLocaleString()}`);
-        } catch(e) { alert(e.message); }
+            const result = await this.funcoes.visualizarCodigoPaciente(login);
+            alert(`🔑 CÓDIGO DE ACESSO\n\nPaciente: ${result.nome}\nLogin: ${result.login}\nCódigo: ${result.codigo}\n\nExpira em: ${new Date(result.expiracao).toLocaleString('pt-BR')}`);
+        } catch (error) {
+            alert(error.message);
+        }
     }
 
     async regenerarCodigo(login) {
-        if (!confirm('Gerar novo código?')) return;
+        if (!confirm('⚠️ Gerar NOVO código? O anterior será invalidado.')) return;
         try {
-            const r = await this.funcoes.regenerarCodigoPaciente(login);
-            alert(`Novo código: ${r.codigo}`);
+            const result = await this.funcoes.regenerarCodigoPaciente(login);
+            alert(`✅ NOVO CÓDIGO GERADO!\n\nPaciente: ${result.nome}\nLogin: ${result.login}\nNovo Código: ${result.codigo}`);
             await this.carregarListaPacientes();
-        } catch(e) { alert(e.message); }
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+   
+    async resetarSenhaPaciente(login) {
+        if (!confirm(`⚠️ ATENÇÃO!\n\nGerar TOKEN DE RESET DE SENHA para:\n\nPaciente: ${login}\n\nO token será válido por 1 hora.\n\nDeseja continuar?`)) return;
+        
+        try {
+            const result = await this.funcoes.resetarSenhaPaciente(login);
+            alert(`🔑 TOKEN DE RESET DE SENHA GERADO!\n\nPaciente: ${result.login}\nToken: ${result.token}\n\n⚠️ Válido por 1 hora\n\nInforme este token ao paciente.`);
+            await this.carregarListaPacientes();
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+    
+    async visualizarTokenReset(login) {
+        try {
+            const result = await this.funcoes.visualizarTokenReset(login);
+            alert(`🔑 TOKEN DE RESET DE SENHA\n\nPaciente: ${result.nome}\nLogin: ${result.login}\nToken: ${result.token}\n\n⚠️ Expira em: ${new Date(result.expiracao).toLocaleString('pt-BR')}`);
+        } catch (error) {
+            alert(error.message);
+        }
     }
 
     clearRegisterForm() {
@@ -257,10 +293,12 @@ export class HomePsicologo {
                 dataNascimento: document.getElementById('regDataNascimento').value,
                 sexo: document.getElementById('regSexo').value
             });
-            alert(`${result.message}\nCódigo: ${result.codigo}`);
+            alert(`${result.message}\n\n📋 Login: ${result.login}\n🔑 Código: ${result.codigo}`);
             this.funcoes.closeModal('registerModal');
             await this.loadPacientesList();
-        } catch(e) { alert(e.message); }
+        } catch (error) {
+            alert('❌ ' + error.message);
+        }
     }
 
     async loadPacientesList() {
