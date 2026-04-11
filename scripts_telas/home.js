@@ -10,7 +10,7 @@ import {
     createUserWithEmailAndPassword, 
     signOut, 
     serverTimestamp,
-    updateDoc     
+    updateDoc
 } from '../0_firebase_api_config.js';
 import { HomeCliente } from './home_cliente.js';
 import { HomeNutricionista } from './home_nutricionista.js';
@@ -22,17 +22,14 @@ export class FuncoesCompartilhadas {
     
     // ==================== UTILITÁRIOS GERAIS ====================
     
-    // Gera código aleatório de 6 dígitos
     static gerarCodigoTemporario() {
-        return Math.floor(100000 + Math.random()  * 900000).toString();
+        return Math.floor(100000 + Math.random() * 900000).toString();
     }
     
-    // Gera e-mail automático baseado no login
     static gerarEmailPorLogin(login) {
         return `${login.toLowerCase()}@tratamentoweb.com`;
     }
     
-    // Formatar data de YYYY-MM-DD para DD/MM/YYYY para exibição
     static formatDateToDisplay(dateString) {
         if (!dateString) return '';
         const partes = dateString.split('-');
@@ -42,7 +39,6 @@ export class FuncoesCompartilhadas {
         return dateString;
     }
     
-    // Formatar data para exibição completa
     static formatarDataHoraCadastro() {
         const agora = new Date();
         const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
@@ -62,7 +58,6 @@ export class FuncoesCompartilhadas {
         return `${dia} de ${mes} de ${ano} às ${horas}:${minutos}:${segundos} ${offsetStr}`;
     }
     
-    // Validar idade mínima (18 anos)
     static validarIdade(dataNascimento) {
         if (!dataNascimento) return false;
         const dataNasc = new Date(dataNascimento);
@@ -87,7 +82,6 @@ export class FuncoesCompartilhadas {
         return idade;
     }
     
-    // Mapeamento de perfis padrão por cargo
     static getPerfilPadrao(cargo) {
         const mapaPerfis = {
             'paciente': 'operador',
@@ -100,7 +94,6 @@ export class FuncoesCompartilhadas {
         return mapaPerfis[cargo] || 'operador';
     }
     
-    // Nome amigável do perfil
     static getPerfilDisplayName(perfil) {
         const nomes = {
             'operador': 'Operador',
@@ -113,7 +106,6 @@ export class FuncoesCompartilhadas {
         return nomes[perfil] || perfil;
     }
     
-    // Classe CSS do badge do perfil
     static getPerfilBadgeClass(perfil) {
         const classes = {
             'operador': 'perfil-operador',
@@ -126,7 +118,6 @@ export class FuncoesCompartilhadas {
         return classes[perfil] || 'perfil-operador';
     }
     
-    // Nome amigável do cargo para visualização
     static getCargoDisplayName(cargo) {
         const nomes = {
             'paciente': 'Paciente',
@@ -180,7 +171,7 @@ export class FuncoesCompartilhadas {
         }
     }
     
-    static async registerPaciente(pacienteData, codigoTemporario = null) {
+    static async registerPaciente(pacienteData) {
         const { nome, login, dataNascimento, sexo } = pacienteData;
         
         if (!nome || !login || !dataNascimento || !sexo) {
@@ -191,27 +182,21 @@ export class FuncoesCompartilhadas {
             throw new Error('O login não pode conter espaços!');
         }
         
-        // Validar idade mínima
         if (!this.validarIdade(dataNascimento)) {
             throw new Error('Paciente deve ter 18 anos ou mais!');
         }
         
-        // Gerar código temporário se não foi fornecido
-        const codigo = codigoTemporario || this.gerarCodigoTemporario();
+        const codigo = this.gerarCodigoTemporario();
         const emailGerado = this.gerarEmailPorLogin(login);
-        
-        // Calcular data de expiração do código (7 dias)
         const dataExpiracao = new Date();
         dataExpiracao.setDate(dataExpiracao.getDate() + 7);
         
-        // Verificar se o login já existe
         const loginExiste = await this.verificarLoginExistente(login);
         if (loginExiste) {
             throw new Error('❌ Este login já está cadastrado! Escolha outro.');
         }
         
         try {
-            // Salvar no Firestore (SEM criar usuário no Auth)
             const pacienteRef = doc(db, "logins", login);
             
             const pacienteDataToSave = {
@@ -224,10 +209,8 @@ export class FuncoesCompartilhadas {
                 status_ativo: true,
                 dataHoraCadastro: this.formatarDataHoraCadastro(),
                 dataCadastro: new Date().toISOString(),
-                // 🔑 CÓDIGO TEMPORÁRIO (será removido no primeiro login)
                 codigo_temporario: codigo,
                 codigo_expiracao: dataExpiracao.toISOString()
-                // ⚠️ NÃO TEM campo ultimo_login - será criado no primeiro login
             };
             
             await setDoc(pacienteRef, pacienteDataToSave);
@@ -236,8 +219,7 @@ export class FuncoesCompartilhadas {
                 success: true, 
                 message: `✅ Paciente "${nome}" cadastrado com sucesso!`,
                 codigo: codigo,
-                login: login,
-                expiracao: dataExpiracao.toISOString()
+                login: login
             };
             
         } catch (error) {
@@ -245,7 +227,7 @@ export class FuncoesCompartilhadas {
             throw new Error('❌ Erro ao cadastrar paciente: ' + error.message);
         }
     }
-
+    
     // ==================== FUNÇÕES DE GESTÃO DE CÓDIGO ====================
     
     static async visualizarCodigoPaciente(login) {
@@ -259,20 +241,17 @@ export class FuncoesCompartilhadas {
             
             const userData = userDoc.data();
             
-            // Verificar se já fez primeiro login
             if (userData.hasOwnProperty('ultimo_login')) {
-                throw new Error('❌ Este paciente já fez o primeiro acesso! Use a funcionalidade de reset de senha.');
+                throw new Error('❌ Este paciente já fez o primeiro acesso!');
             }
             
-            // Verificar se tem código temporário
             if (!userData.codigo_temporario) {
-                throw new Error('❌ Nenhum código temporário encontrado. Gere um novo código.');
+                throw new Error('❌ Nenhum código temporário encontrado.');
             }
             
-            // Verificar se o código expirou
             const dataExpiracao = new Date(userData.codigo_expiracao);
             if (dataExpiracao < new Date()) {
-                throw new Error('⚠️ O código expirou! Gere um novo código para o paciente.');
+                throw new Error('⚠️ O código expirou! Gere um novo código.');
             }
             
             return {
@@ -300,17 +279,14 @@ export class FuncoesCompartilhadas {
             
             const userData = userDoc.data();
             
-            // Verificar se já fez primeiro login
             if (userData.hasOwnProperty('ultimo_login')) {
-                throw new Error('❌ Este paciente já fez o primeiro acesso! Use a funcionalidade de reset de senha.');
+                throw new Error('❌ Este paciente já fez o primeiro acesso!');
             }
             
-            // Gerar novo código
             const novoCodigo = this.gerarCodigoTemporario();
             const dataExpiracao = new Date();
             dataExpiracao.setDate(dataExpiracao.getDate() + 7);
             
-            // Atualizar no Firestore
             await updateDoc(userRef, {
                 codigo_temporario: novoCodigo,
                 codigo_expiracao: dataExpiracao.toISOString()
@@ -328,7 +304,7 @@ export class FuncoesCompartilhadas {
             console.error("Erro ao regenerar código:", error);
             throw error;
         }
-    }    
+    }
     
     // ==================== FUNÇÕES DE AVALIAÇÃO ====================
     
@@ -365,8 +341,6 @@ export class FuncoesCompartilhadas {
             throw new Error('Erro ao salvar avaliação: ' + error.message);
         }
     }
-    
-    // ==================== FUNÇÕES DE CÁLCULO NUTRICIONAL ====================
     
     static calculateNutritionalParameters(weight, height, idade, sexo) {
         if (!weight || !height || height <= 0) return null;
@@ -478,10 +452,7 @@ export class FuncoesCompartilhadas {
         
         const errorDiv = document.createElement('div');
         errorDiv.className = 'error-message-custom';
-        errorDiv.innerHTML = `
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <span>${message}</span>
-        `;
+        errorDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i><span>${message}</span>`;
         
         const form = document.getElementById(formId);
         if (form) {
@@ -496,32 +467,6 @@ export class FuncoesCompartilhadas {
         setTimeout(() => {
             if (errorDiv) errorDiv.remove();
         }, 5000);
-    }
-    
-    static showSuccess(message, formId) {
-        const existingSuccess = document.querySelector('.success-message-custom');
-        if (existingSuccess) existingSuccess.remove();
-        
-        const successDiv = document.createElement('div');
-        successDiv.className = 'success-message-custom';
-        successDiv.innerHTML = `
-            <i class="bi bi-check-circle-fill"></i>
-            <span>${message}</span>
-        `;
-        
-        const form = document.getElementById(formId);
-        if (form) {
-            const button = form.querySelector('button');
-            if (button) {
-                form.insertBefore(successDiv, button);
-            } else {
-                form.appendChild(successDiv);
-            }
-        }
-        
-        setTimeout(() => {
-            if (successDiv) successDiv.remove();
-        }, 3000);
     }
     
     static async logout() {
