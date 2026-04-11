@@ -11,6 +11,7 @@ export class HomeNutricionista {
         this.imcChart = null;
         this.muscleChart = null;
         this.selectedPaciente = null;
+        this.isMenuOpen = false;
     }
 
     render() {
@@ -23,170 +24,182 @@ export class HomeNutricionista {
     renderHTML() {
         const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
         const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
-        
         const isGerente = this.userInfo.perfil === 'gerente_nutricionista' && !this.userInfo.isAdminView;
-        const cargoDisplayText = this.userInfo.isAdminView ? 
-            `[Admin] Visualizando como ${this.funcoes.getCargoDisplayName(this.userInfo.cargo)}` : 
-            'Nutricionista';
         
         return `
-            <div class="home-container">
-                <div class="header">
-                    <div class="header-logo">
-                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img">
-                        <h1>Sistema de Avaliação Nutricional</h1>
+            <div class="dashboard-container">
+                <!-- TOP BAR -->
+                <div class="top-bar">
+                    <div class="logo-area">
+                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="logo">
+                        <h2>Sistema Nutricional</h2>
                     </div>
-                    <div class="user-info">
-                        <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ ${cargoDisplayText}</span>
-                        <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        <button class="logout-btn" id="logoutBtn">Sair</button>
+                    <div class="top-bar-actions">
+                        <div class="user-greeting">
+                            <span>👋 ${this.userInfo.nome}</span>
+                            <span class="role-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
+                        </div>
+                        <button class="menu-toggle" id="menuToggle">
+                            <span class="menu-icon">☰</span>
+                        </button>
                     </div>
                 </div>
-                <div class="content">
-                    <div class="nav-buttons">
-                        <button class="nav-btn nav-home" id="homeBtn" style="background: #667eea; color: white;">🏠 Home</button>
-                        <button class="nav-btn nav-meal-plan" id="mealPlanBtn" style="background: #48bb78; color: white;">🍽️ Plano Alimentar</button>
-                        <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
-                        <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
-                        <button class="nav-btn" data-module="journey">🌟 Acompanhar Jornadas</button>
-                        <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
-                        <button class="nav-btn" id="registerPacienteBtn" style="background: #48bb78; color: white;">➕ Cadastrar Paciente</button>
-                        <button class="nav-btn" id="listaPacientesBtn" style="background: #3b82f6; color: white;">📋 Lista de Pacientes</button>
+
+                <!-- MENU LATERAL -->
+                <div class="side-menu" id="sideMenu">
+                    <div class="menu-header">
+                        <h3>Menu</h3>
+                        <button class="close-menu" id="closeMenu">×</button>
+                    </div>
+                    <nav class="menu-nav">
+                        <button class="menu-item active" data-module="home">
+                            <span class="menu-icon">🏠</span>
+                            <span>Home</span>
+                        </button>
+                        <button class="menu-item" data-module="plano_alimentar">
+                            <span class="menu-icon">🍽️</span>
+                            <span>Plano Alimentar</span>
+                        </button>
+                        <button class="menu-item" data-module="atendimento_grupo">
+                            <span class="menu-icon">👥</span>
+                            <span>Atendimento em Grupo</span>
+                        </button>
+                        <button class="menu-item" data-module="gestao_agendamentos">
+                            <span class="menu-icon">📅</span>
+                            <span>Gestão de Agendamentos</span>
+                        </button>
+                        <button class="menu-item" data-module="acompanhar_jornadas">
+                            <span class="menu-icon">🌟</span>
+                            <span>Acompanhar Jornadas</span>
+                        </button>
+                        <button class="menu-item" data-module="palestras_videos">
+                            <span class="menu-icon">🎥</span>
+                            <span>Palestras e Vídeos</span>
+                        </button>
+                        <button class="menu-item" data-module="gestao_pacientes">
+                            <span class="menu-icon">📋</span>
+                            <span>Gestão de Pacientes</span>
+                        </button>
+                        <button class="menu-item" data-module="chat">
+                            <span class="menu-icon">💬</span>
+                            <span>Chat</span>
+                        </button>
                         ${isGerente ? `
-                            <button class="nav-btn" id="manageTeamBtn" style="background: #9f7aea; color: white;">👥 Gerenciar Equipe</button>
-                            <button class="nav-btn" id="reportsBtn" style="background: #ed8936; color: white;">📊 Relatórios Gerenciais</button>
+                            <button class="menu-item" data-module="gerenciar_equipe">
+                                <span class="menu-icon">👥</span>
+                                <span>Gerenciar Equipe</span>
+                            </button>
+                            <button class="menu-item" data-module="relatorios">
+                                <span class="menu-icon">📊</span>
+                                <span>Relatórios</span>
+                            </button>
                         ` : ''}
-                    </div>
-                    
-                    <!-- MODAL DE CADASTRO DE PACIENTE -->
-                    <div id="registerModal" class="modal" style="display: none;">
-                        <div class="modal-content">
-                            <span class="close">&times;</span>
-                            <h3>📝 Cadastrar Novo Paciente</h3>
-                            <form id="registerPacienteForm">
-                                <div class="form-field">
-                                    <label>👤 Nome Completo:</label>
-                                    <input type="text" id="regNome" required>
-                                </div>
-                                <div class="form-field">
-                                    <label>⚥ Sexo:</label>
-                                    <select id="regSexo" required>
-                                        <option value="">Selecione</option>
-                                        <option value="feminino">Feminino</option>
-                                        <option value="masculino">Masculino</option>
-                                    </select>
-                                </div>
-                                <div class="form-field">
-                                    <label>🔑 Login (ex: bia.santos):</label>
-                                    <input type="text" id="regLogin" placeholder="Ex: bia.santos" required>
-                                    <small>⚠️ Este login será único e não poderá ser alterado</small>
-                                </div>
-                                <div class="form-field">
-                                    <label>📅 Data de Nascimento:</label>
-                                    <input type="date" id="regDataNascimento" required>
-                                </div>
-                                <button type="submit" class="submit-btn">Cadastrar Paciente</button>
-                            </form>
-                        </div>
-                    </div>
-                    
-                    <!-- MODAL DE LISTA DE PACIENTES -->
-                    <div id="listaPacientesModal" class="modal" style="display: none;">
-                        <div class="modal-content" style="max-width: 800px;">
-                            <span class="close">&times;</span>
-                            <h3>📋 Lista de Pacientes</h3>
-                            <div id="listaPacientesContainer"></div>
-                        </div>
-                    </div>
-                    
+                        <button class="menu-item logout" id="logoutMenuItem">
+                            <span class="menu-icon">🚪</span>
+                            <span>Sair</span>
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- OVERLAY -->
+                <div class="menu-overlay" id="menuOverlay"></div>
+
+                <!-- CONTEÚDO PRINCIPAL -->
+                <div class="main-content">
                     <!-- FORMULÁRIO DE AVALIAÇÃO -->
-                    <div class="evaluation-form">
-                        <h3>📊 Nova Avaliação Nutricional</h3>
+                    <div class="evaluation-section">
+                        <div class="section-header">
+                            <h3>📊 Nova Avaliação Nutricional</h3>
+                        </div>
                         <form id="nutritionalForm">
                             <div class="form-grid">
                                 <div class="form-field">
-                                    <label>👤 Paciente:</label>
+                                    <label>👤 Paciente</label>
                                     <select id="pacienteSelect" required>
                                         <option value="">-- Selecione um paciente --</option>
                                     </select>
                                 </div>
                                 <div class="form-field">
-                                    <label>📅 Data:</label>
+                                    <label>📅 Data</label>
                                     <input type="date" id="evaluationDate" required>
                                 </div>
                                 <div class="form-field">
-                                    <label>📏 Peso (kg):</label>
+                                    <label>📏 Peso (kg)</label>
                                     <input type="number" id="weight" step="0.1" required>
                                 </div>
                                 <div class="form-field">
-                                    <label>📐 Altura (m):</label>
+                                    <label>📐 Altura (m)</label>
                                     <input type="number" id="height" step="0.01" required>
                                 </div>
                                 <div class="form-field">
-                                    <label>📊 IMC:</label>
+                                    <label>📊 IMC</label>
                                     <input type="text" id="imc" readonly>
                                 </div>
                                 <div class="form-field">
-                                    <label>📋 Classificação:</label>
+                                    <label>📋 Classificação</label>
                                     <input type="text" id="imcClassification" readonly>
                                 </div>
                                 <div class="form-field">
-                                    <label>💪 Massa Muscular Ideal (kg):</label>
-                                    <input type="text" id="idealMuscleMass" readonly>
-                                </div>
-                                <div class="form-field">
-                                    <label>💪 Massa Muscular (kg):</label>
+                                    <label>💪 Massa Muscular (kg)</label>
                                     <input type="number" id="muscleMass" step="0.1">
                                 </div>
                                 <div class="form-field">
-                                    <label>🧈 Gordura Ideal (%):</label>
-                                    <input type="text" id="idealBodyFat" readonly>
-                                </div>
-                                <div class="form-field">
-                                    <label>🧈 Gordura (%):</label>
+                                    <label>🧈 Gordura (%)</label>
                                     <input type="number" id="bodyFat" step="0.1">
                                 </div>
                                 <div class="form-field">
-                                    <label>💧 Água Ideal (%):</label>
-                                    <input type="text" id="idealBodyWater" readonly>
-                                </div>
-                                <div class="form-field">
-                                    <label>🩸 Glicemia (mg/dL):</label>
+                                    <label>🩸 Glicemia (mg/dL)</label>
                                     <input type="number" id="glucose">
                                 </div>
                                 <div class="form-field">
-                                    <label>🩸 Colesterol (mg/dL):</label>
+                                    <label>🩸 Colesterol (mg/dL)</label>
                                     <input type="number" id="cholesterol">
                                 </div>
                             </div>
-                            <button type="submit" class="submit-btn">💾 Salvar Avaliação</button>
+                            <button type="submit" class="btn-primary">💾 Salvar Avaliação</button>
                         </form>
                     </div>
-                    
+
                     <!-- INFORMAÇÕES DO PACIENTE -->
-                    <div id="pacienteInfo" class="client-info" style="display: none;">
-                        <h3>📋 Informações do Paciente</h3>
-                        <div class="info-card">
-                            <p><strong>Nome:</strong> <span id="infoNome"></span></p>
-                            <p><strong>Login:</strong> <span id="infoLogin"></span></p>
-                            <p><strong>Data Nasc.:</strong> <span id="infoDataNasc"></span></p>
-                            <p><strong>Idade:</strong> <span id="infoIdade"></span> anos</p>
-                            <p><strong>Sexo:</strong> <span id="infoSexo"></span></p>
+                    <div id="pacienteInfo" class="info-section" style="display: none;">
+                        <div class="section-header">
+                            <h3>📋 Informações do Paciente</h3>
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <span class="info-label">Nome</span>
+                                <span class="info-value" id="infoNome"></span>
+                            </div>
+                            <div class="info-card">
+                                <span class="info-label">Login</span>
+                                <span class="info-value" id="infoLogin"></span>
+                            </div>
+                            <div class="info-card">
+                                <span class="info-label">Data Nasc.</span>
+                                <span class="info-value" id="infoDataNasc"></span>
+                            </div>
+                            <div class="info-card">
+                                <span class="info-label">Idade</span>
+                                <span class="info-value" id="infoIdade"></span>
+                            </div>
+                            <div class="info-card">
+                                <span class="info-label">Sexo</span>
+                                <span class="info-value" id="infoSexo"></span>
+                            </div>
                         </div>
                     </div>
-                    
+
                     <!-- GRÁFICOS -->
                     <div class="charts-section">
-                        <div class="chart-container">
+                        <div class="chart-card">
                             <h4>📈 Evolução do Peso</h4>
                             <canvas id="weightChart"></canvas>
                         </div>
-                        <div class="chart-container">
+                        <div class="chart-card">
                             <h4>📊 Evolução do IMC</h4>
                             <canvas id="imcChart"></canvas>
                         </div>
-                        <div class="chart-container">
+                        <div class="chart-card">
                             <h4>💪 Evolução da Massa Muscular</h4>
                             <canvas id="muscleChart"></canvas>
                         </div>
@@ -197,62 +210,42 @@ export class HomeNutricionista {
     }
 
     attachEvents() {
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) logoutBtn.addEventListener('click', () => this.funcoes.logout());
-    
-        // Botão Home - recarrega a página atual
-        const homeBtn = document.getElementById('homeBtn');
-        if (homeBtn) {
-            homeBtn.addEventListener('click', () => {
-                this.render();
+        // Menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const sideMenu = document.getElementById('sideMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const closeMenu = document.getElementById('closeMenu');
+
+        const openMenu = () => {
+            sideMenu.classList.add('open');
+            menuOverlay.classList.add('open');
+            this.isMenuOpen = true;
+        };
+
+        const closeMenuFunc = () => {
+            sideMenu.classList.remove('open');
+            menuOverlay.classList.remove('open');
+            this.isMenuOpen = false;
+        };
+
+        if (menuToggle) menuToggle.addEventListener('click', openMenu);
+        if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
+        if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
+
+        // Logout
+        const logoutMenuItem = document.getElementById('logoutMenuItem');
+        if (logoutMenuItem) logoutMenuItem.addEventListener('click', () => this.funcoes.logout());
+
+        // Menu items navigation
+        document.querySelectorAll('.menu-item[data-module]').forEach(item => {
+            item.addEventListener('click', async (e) => {
+                const module = item.getAttribute('data-module');
+                closeMenuFunc();
+                await this.navigateTo(module);
             });
-        }
-    
-        // Botão Plano Alimentar - navega para a nova tela
-        const mealPlanBtn = document.getElementById('mealPlanBtn');
-        if (mealPlanBtn) {
-            mealPlanBtn.addEventListener('click', async () => {
-                const { HomeNutricionistaPlanoAlimentar } = await import('./home_nutricionista_plano_alimentar.js');
-                const planoAlimentarScreen = new HomeNutricionistaPlanoAlimentar(this.userInfo, this.pacientesList);
-                planoAlimentarScreen.render();
-            });
-        }
-    
-        const registerBtn = document.getElementById('registerPacienteBtn');
-        if (registerBtn) {
-            registerBtn.addEventListener('click', () => {
-                this.clearRegisterForm();
-                this.funcoes.showModal('registerModal');
-            });
-        }
-    
-        const listaPacientesBtn = document.getElementById('listaPacientesBtn');
-        if (listaPacientesBtn) {
-            listaPacientesBtn.addEventListener('click', () => this.abrirListaPacientes());
-        }
-    
-        this.funcoes.setupModalEvents('registerModal');
-        this.setupListaModalEvents();
-    
-        const registerForm = document.getElementById('registerPacienteForm');
-        if (registerForm) {
-            registerForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await this.registerPaciente();
-            });
-        }
-    
-        const manageTeamBtn = document.getElementById('manageTeamBtn');
-        if (manageTeamBtn) manageTeamBtn.addEventListener('click', () => this.manageTeam());
-    
-        const reportsBtn = document.getElementById('reportsBtn');
-        if (reportsBtn) reportsBtn.addEventListener('click', () => this.showReports());
-    
-        document.querySelectorAll('.nav-btn[data-module]').forEach(btn => {
-            const module = btn.getAttribute('data-module');
-            if (module) btn.addEventListener('click', () => alert(`🚧 Módulo "${module}" em desenvolvimento!`));
         });
-    
+
+        // Form events
         const form = document.getElementById('nutritionalForm');
         if (form) {
             form.addEventListener('submit', async (e) => {
@@ -264,7 +257,7 @@ export class HomeNutricionista {
                 await this.saveNutritionalEvaluation();
             });
         }
-    
+
         const weightInput = document.getElementById('weight');
         const heightInput = document.getElementById('height');
         const calculateFields = () => { if (this.selectedPaciente) this.calculateNutritionalParameters(); };
@@ -272,122 +265,64 @@ export class HomeNutricionista {
             weightInput.addEventListener('input', calculateFields);
             heightInput.addEventListener('input', calculateFields);
         }
-    
+
         const dateInput = document.getElementById('evaluationDate');
         if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
-    }
 
-    setupListaModalEvents() {
-        const modal = document.getElementById('listaPacientesModal');
-        if (!modal) return;
-        const closeBtn = modal.querySelector('.close');
-        if (closeBtn) closeBtn.onclick = () => this.funcoes.closeModal('listaPacientesModal');
-        window.onclick = (event) => { if (event.target === modal) this.funcoes.closeModal('listaPacientesModal'); };
-    }
-
-    async abrirListaPacientes() {
-        await this.carregarListaPacientes();
-        this.funcoes.showModal('listaPacientesModal');
-    }
-
-    async carregarListaPacientes() {
-        const container = document.getElementById('listaPacientesContainer');
-        if (!container) return;
-        
-        container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading"></div> Carregando...</div>';
-        await this.loadPacientesList();
-        
-        const tabelaHtml = this.funcoes.gerarTabelaPacientes(this.pacientesList);
-        container.innerHTML = tabelaHtml;
-        
-        // Event listeners para códigos (primeiro acesso)
-        document.querySelectorAll('.btn-ver-codigo').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                await this.visualizarCodigo(btn.getAttribute('data-login'));
+        const pacienteSelect = document.getElementById('pacienteSelect');
+        if (pacienteSelect) {
+            pacienteSelect.addEventListener('change', async (e) => {
+                const login = e.target.value;
+                if (login) {
+                    this.selectedPaciente = this.pacientesList.find(p => p.login === login);
+                    this.displayPacienteInfo();
+                    await this.loadEvaluationData();
+                } else {
+                    this.selectedPaciente = null;
+                    document.getElementById('pacienteInfo').style.display = 'none';
+                    this.currentEvaluations = [];
+                    this.renderCharts();
+                }
             });
-        });
-        
-        document.querySelectorAll('.btn-regerar-codigo').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                await this.regenerarCodigo(btn.getAttribute('data-login'));
-            });
-        });
-        
-        // Event listeners para reset de senha
-        document.querySelectorAll('.btn-reset-senha').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                await this.resetarSenhaPaciente(btn.getAttribute('data-login'));
-            });
-        });
-        
-        document.querySelectorAll('.btn-ver-token').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                await this.visualizarTokenReset(btn.getAttribute('data-login'));
-            });
-        });
-    }
-
-    async visualizarCodigo(login) {
-        try {
-            const result = await this.funcoes.visualizarCodigoPaciente(login);
-            alert(`🔑 CÓDIGO DE ACESSO\n\nPaciente: ${result.nome}\nLogin: ${result.login}\nCódigo: ${result.codigo}\n\nExpira em: ${new Date(result.expiracao).toLocaleString('pt-BR')}`);
-        } catch (error) {
-            alert(error.message);
         }
     }
 
-    async regenerarCodigo(login) {
-        if (!confirm('⚠️ Gerar NOVO código? O anterior será invalidado.')) return;
-        try {
-            const result = await this.funcoes.regenerarCodigoPaciente(login);
-            alert(`✅ NOVO CÓDIGO GERADO!\n\nPaciente: ${result.nome}\nLogin: ${result.login}\nNovo Código: ${result.codigo}`);
-            await this.carregarListaPacientes();
-        } catch (error) {
-            alert(error.message);
-        }
-    }
-   
-    async resetarSenhaPaciente(login) {
-        if (!confirm(`⚠️ ATENÇÃO!\n\nGerar TOKEN DE RESET DE SENHA para:\n\nPaciente: ${login}\n\nO token será válido por 1 hora.\n\nDeseja continuar?`)) return;
-        
-        try {
-            const result = await this.funcoes.resetarSenhaPaciente(login);
-            alert(`🔑 TOKEN DE RESET DE SENHA GERADO!\n\nPaciente: ${result.login}\nToken: ${result.token}\n\n⚠️ Válido por 1 hora\n\nInforme este token ao paciente.`);
-            await this.carregarListaPacientes();
-        } catch (error) {
-            alert(error.message);
-        }
-    }
-    
-    async visualizarTokenReset(login) {
-        try {
-            const result = await this.funcoes.visualizarTokenReset(login);
-            alert(`🔑 TOKEN DE RESET DE SENHA\n\nPaciente: ${result.nome}\nLogin: ${result.login}\nToken: ${result.token}\n\n⚠️ Expira em: ${new Date(result.expiracao).toLocaleString('pt-BR')}`);
-        } catch (error) {
-            alert(error.message);
-        }
-    }
-
-    clearRegisterForm() {
-        ['regNome', 'regLogin', 'regDataNascimento', 'regSexo'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
-    }
-
-    async registerPaciente() {
-        try {
-            const result = await this.funcoes.registerPaciente({
-                nome: document.getElementById('regNome').value,
-                login: document.getElementById('regLogin').value,
-                dataNascimento: document.getElementById('regDataNascimento').value,
-                sexo: document.getElementById('regSexo').value
-            });
-            alert(`${result.message}\n\n📋 Login: ${result.login}\n🔑 Código: ${result.codigo}`);
-            this.funcoes.closeModal('registerModal');
-            await this.loadPacientesList();
-        } catch (error) {
-            alert('❌ ' + error.message);
+    async navigateTo(module) {
+        switch(module) {
+            case 'home':
+                this.render();
+                break;
+            case 'plano_alimentar':
+                const { PlanoAlimentar } = await import('./plano_alimentar.js');
+                const planoAlimentar = new PlanoAlimentar(this.userInfo, this.pacientesList);
+                planoAlimentar.render();
+                break;
+            case 'gestao_pacientes':
+                const { GestaoPacientes } = await import('./gestao_pacientes.js');
+                const gestaoPacientes = new GestaoPacientes(this.userInfo);
+                gestaoPacientes.render();
+                break;
+            case 'atendimento_grupo':
+                alert('🚧 Módulo Atendimento em Grupo em desenvolvimento');
+                break;
+            case 'gestao_agendamentos':
+                alert('🚧 Módulo Gestão de Agendamentos em desenvolvimento');
+                break;
+            case 'acompanhar_jornadas':
+                alert('🚧 Módulo Acompanhar Jornadas em desenvolvimento');
+                break;
+            case 'palestras_videos':
+                alert('🚧 Módulo Palestras e Vídeos em desenvolvimento');
+                break;
+            case 'chat':
+                alert('🚧 Módulo Chat em desenvolvimento');
+                break;
+            case 'gerenciar_equipe':
+                alert('👥 Gerenciar Equipe');
+                break;
+            case 'relatorios':
+                alert('📊 Relatórios Gerenciais');
+                break;
         }
     }
 
@@ -402,19 +337,6 @@ export class HomeNutricionista {
         select.innerHTML = '<option value="">-- Selecione um paciente --</option>';
         this.pacientesList.forEach(p => {
             select.appendChild(new Option(`${p.nome} (${p.login})`, p.login));
-        });
-        select.addEventListener('change', async (e) => {
-            const login = e.target.value;
-            if (login) {
-                this.selectedPaciente = this.pacientesList.find(p => p.login === login);
-                this.displayPacienteInfo();
-                await this.loadEvaluationData();
-            } else {
-                this.selectedPaciente = null;
-                document.getElementById('pacienteInfo').style.display = 'none';
-                this.currentEvaluations = [];
-                this.renderCharts();
-            }
         });
     }
 
@@ -437,9 +359,6 @@ export class HomeNutricionista {
         if (params) {
             document.getElementById('imc').value = params.imc;
             document.getElementById('imcClassification').value = params.classification;
-            document.getElementById('idealMuscleMass').value = params.idealMuscleMass;
-            document.getElementById('idealBodyFat').value = params.idealBodyFat;
-            document.getElementById('idealBodyWater').value = params.idealBodyWater;
         }
     }
 
@@ -468,7 +387,7 @@ export class HomeNutricionista {
                 }
             });
             alert('✅ Avaliação salva!');
-            ['weight', 'height', 'muscleMass', 'bodyFat', 'glucose', 'cholesterol', 'imc', 'imcClassification', 'idealMuscleMass', 'idealBodyFat', 'idealBodyWater'].forEach(id => {
+            ['weight', 'height', 'muscleMass', 'bodyFat', 'glucose', 'cholesterol', 'imc', 'imcClassification'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -531,7 +450,4 @@ export class HomeNutricionista {
             });
         }
     }
-
-    manageTeam() { alert('👥 Gerenciar Equipe'); }
-    showReports() { alert('📊 Relatórios Gerenciais'); }
 }
