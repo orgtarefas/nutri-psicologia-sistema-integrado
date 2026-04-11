@@ -504,7 +504,7 @@ export class HomeNutricionista {
             
             document.getElementById('infoSexo').textContent = this.selectedPaciente.sexo || 'Não informado';
             
-            const idade = this.funcoes.calculateAge(this.selectedPaciente.dataNascimento);
+            const idade = this.funcoes.calcularIdade(this.selectedPaciente.dataNascimento);
             document.getElementById('infoIdade').textContent = idade || 'Não informado';
         }
     }
