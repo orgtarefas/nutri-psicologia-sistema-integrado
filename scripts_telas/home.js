@@ -1,4 +1,4 @@
-import { db, collection, getDocs, doc, setDoc, getDoc, addDoc, auth, createUserWithEmailAndPassword, signOut } from '../0_firebase_api_config.js';
+import { db, collection, getDocs, doc, setDoc, getDoc, addDoc, auth, createUserWithEmailAndPassword, signOut, serverTimestamp } from '../0_firebase_api_config.js';
 import { HomeCliente } from './home_cliente.js';
 import { HomeNutricionista } from './home_nutricionista.js';
 import { HomePsicologo } from './home_psicologo.js';
@@ -7,9 +7,71 @@ import { HomePsicologo } from './home_psicologo.js';
 
 export class FuncoesCompartilhadas {
     
+    // ==================== UTILITÁRIOS GERAIS ====================
+    
+    // Gera código aleatório de 6 dígitos
+    static gerarCodigoTemporario() {
+        return Math.floor(100000 + Math.random()  * 900000).toString();
+    }
+    
     // Gera e-mail automático baseado no login
     static gerarEmailPorLogin(login) {
         return `${login.toLowerCase()}@tratamentoweb.com`;
+    }
+    
+    // Formatar data de YYYY-MM-DD para DD/MM/YYYY para exibição
+    static formatDateToDisplay(dateString) {
+        if (!dateString) return '';
+        const partes = dateString.split('-');
+        if (partes.length === 3) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        return dateString;
+    }
+    
+    // Formatar data para exibição completa
+    static formatarDataHoraCadastro() {
+        const agora = new Date();
+        const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
+                       'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+        
+        const dia = agora.getDate();
+        const mes = meses[agora.getMonth()];
+        const ano = agora.getFullYear();
+        const horas = agora.getHours().toString().padStart(2, '0');
+        const minutos = agora.getMinutes().toString().padStart(2, '0');
+        const segundos = agora.getSeconds().toString().padStart(2, '0');
+        
+        const offset = -agora.getTimezoneOffset() / 60;
+        const offsetSinal = offset >= 0 ? '+' : '';
+        const offsetStr = `UTC${offsetSinal}${offset}`;
+        
+        return `${dia} de ${mes} de ${ano} às ${horas}:${minutos}:${segundos} ${offsetStr}`;
+    }
+    
+    // Validar idade mínima (18 anos)
+    static validarIdade(dataNascimento) {
+        if (!dataNascimento) return false;
+        const dataNasc = new Date(dataNascimento);
+        const hoje = new Date();
+        let idade = hoje.getFullYear() - dataNasc.getFullYear();
+        const mesDiff = hoje.getMonth() - dataNasc.getMonth();
+        if (mesDiff < 0 || (mesDiff === 0 && hoje.getDate() < dataNasc.getDate())) {
+            idade--;
+        }
+        return idade >= 18;
+    }
+    
+    static calcularIdade(dataNascimento) {
+        if (!dataNascimento) return null;
+        const dataNasc = new Date(dataNascimento);
+        const hoje = new Date();
+        let idade = hoje.getFullYear() - dataNasc.getFullYear();
+        const mesDiff = hoje.getMonth() - dataNasc.getMonth();
+        if (mesDiff < 0 || (mesDiff === 0 && hoje.getDate() < dataNasc.getDate())) {
+            idade--;
+        }
+        return idade;
     }
     
     // Mapeamento de perfis padrão por cargo
@@ -25,14 +87,41 @@ export class FuncoesCompartilhadas {
         return mapaPerfis[cargo] || 'operador';
     }
     
-    // Formatar data de YYYY-MM-DD para DD/MM/YYYY para exibição
-    static formatDateToDisplay(dateString) {
-        if (!dateString) return '';
-        const partes = dateString.split('-');
-        if (partes.length === 3) {
-            return `${partes[2]}/${partes[1]}/${partes[0]}`;
-        }
-        return dateString;
+    // Nome amigável do perfil
+    static getPerfilDisplayName(perfil) {
+        const nomes = {
+            'operador': 'Operador',
+            'operador_membro': 'Membro',
+            'supervisor_nutricionista': 'Supervisor Nutrição',
+            'supervisor_psicologo': 'Supervisor Psicologia',
+            'gerente_nutricionista': 'Gerente Nutrição',
+            'admin': 'Administrador'
+        };
+        return nomes[perfil] || perfil;
+    }
+    
+    // Classe CSS do badge do perfil
+    static getPerfilBadgeClass(perfil) {
+        const classes = {
+            'operador': 'perfil-operador',
+            'operador_membro': 'perfil-operador-membro',
+            'supervisor_nutricionista': 'perfil-supervisor',
+            'supervisor_psicologo': 'perfil-supervisor',
+            'gerente_nutricionista': 'perfil-gerente',
+            'admin': 'perfil-admin'
+        };
+        return classes[perfil] || 'perfil-operador';
+    }
+    
+    // Nome amigável do cargo para visualização
+    static getCargoDisplayName(cargo) {
+        const nomes = {
+            'paciente': 'Paciente',
+            'nutricionista': 'Nutricionista',
+            'psicologo': 'Psicólogo',
+            'desenvolvedor': 'Administrador'
+        };
+        return nomes[cargo] || cargo;
     }
     
     // ==================== FUNÇÕES DE PACIENTE ====================
@@ -54,7 +143,8 @@ export class FuncoesCompartilhadas {
                         status_ativo: data.status_ativo,
                         cargo: data.cargo,
                         perfil: data.perfil,
-                        dataHoraCadastro: data.dataHoraCadastro
+                        dataHoraCadastro: data.dataHoraCadastro,
+                        hasUltimoLogin: data.hasOwnProperty('ultimo_login')
                     });
                 }
             });
@@ -66,10 +156,21 @@ export class FuncoesCompartilhadas {
         }
     }
     
-    static async registerPaciente(pacienteData) {
-        const { nome, login, senha, dataNascimento, sexo } = pacienteData;
+    static async verificarLoginExistente(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            const userDoc = await getDoc(userRef);
+            return userDoc.exists();
+        } catch (error) {
+            console.error("Erro ao verificar login:", error);
+            return false;
+        }
+    }
+    
+    static async registerPaciente(pacienteData, codigoTemporario = null) {
+        const { nome, login, dataNascimento, sexo } = pacienteData;
         
-        if (!nome || !login || !senha || !dataNascimento || !sexo) {
+        if (!nome || !login || !dataNascimento || !sexo) {
             throw new Error('Preencha todos os campos!');
         }
         
@@ -77,101 +178,49 @@ export class FuncoesCompartilhadas {
             throw new Error('O login não pode conter espaços!');
         }
         
-        if (senha.length < 6) {
-            throw new Error('A senha deve ter no mínimo 6 caracteres!');
-        }
-        
-        // Gerar e-mail automaticamente
-        const emailGerado = this.gerarEmailPorLogin(login);
-        
-        // Converter data de nascimento
-        let dataNascimentoFormatada = dataNascimento;
-        if (dataNascimento.includes('/')) {
-            const partes = dataNascimento.split('/');
-            dataNascimentoFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
-        }
-        
-        const dataNasc = new Date(dataNascimentoFormatada);
-        const hoje = new Date();
-        if (dataNasc > hoje) {
-            throw new Error('Data de nascimento não pode ser futura!');
-        }
-        
-        let idade = hoje.getFullYear() - dataNasc.getFullYear();
-        const mesDiff = hoje.getMonth() - dataNasc.getMonth();
-        if (mesDiff < 0 || (mesDiff === 0 && hoje.getDate() < dataNasc.getDate())) {
-            idade--;
-        }
-        
-        if (idade < 18) {
+        // Validar idade mínima
+        if (!this.validarIdade(dataNascimento)) {
             throw new Error('Paciente deve ter 18 anos ou mais!');
         }
         
-        // Verificar se o login já existe no Firestore
-        const existingPacientes = await this.loadPacientesList();
-        const existingPaciente = existingPacientes.find(c => c.login === login);
-        if (existingPaciente) {
+        // Gerar código temporário se não foi fornecido
+        const codigo = codigoTemporario || this.gerarCodigoTemporario();
+        const emailGerado = this.gerarEmailPorLogin(login);
+        
+        // Verificar se o login já existe
+        const loginExiste = await this.verificarLoginExistente(login);
+        if (loginExiste) {
             throw new Error('❌ Este login já está cadastrado! Escolha outro.');
         }
         
-        // Verificar se o e-mail gerado já existe
-        const emailExiste = existingPacientes.find(c => c.email === emailGerado);
-        if (emailExiste) {
-            throw new Error('❌ Este login já está cadastrado no sistema! Escolha outro.');
-        }
-        
         try {
-            // 1° Criar usuário no Firebase Auth com e-mail automático
-            const userCredential = await createUserWithEmailAndPassword(auth, emailGerado, senha);
-            
-            // 2° Salvar dados no Firestore (SEM O CAMPO SENHA)
+            // Salvar no Firestore (SEM criar usuário no Auth)
             const pacienteRef = doc(db, "logins", login);
-            
-            // Formatar data e hora
-            const agora = new Date();
-            const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
-                           'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-            
-            const dia = agora.getDate();
-            const mes = meses[agora.getMonth()];
-            const ano = agora.getFullYear();
-            const horas = agora.getHours().toString().padStart(2, '0');
-            const minutos = agora.getMinutes().toString().padStart(2, '0');
-            const segundos = agora.getSeconds().toString().padStart(2, '0');
-            
-            const offset = -agora.getTimezoneOffset() / 60;
-            const offsetSinal = offset >= 0 ? '+' : '';
-            const offsetStr = `UTC${offsetSinal}${offset}`;
-            
-            const dataHoraCadastro = `${dia} de ${mes} de ${ano} às ${horas}:${minutos}:${segundos} ${offsetStr}`;
             
             const pacienteDataToSave = {
                 nome: nome.toUpperCase(),
                 email: emailGerado,
-                dataNascimento: dataNascimentoFormatada,
+                dataNascimento: dataNascimento,
                 sexo: sexo,
                 cargo: "paciente",
                 perfil: "operador",
                 status_ativo: true,
-                dataHoraCadastro: dataHoraCadastro,
-                dataCadastro: agora.toISOString()
+                dataHoraCadastro: this.formatarDataHoraCadastro(),
+                dataCadastro: new Date().toISOString()
+                // ⚠️ NÃO TEM campo ultimo_login - será criado no primeiro login
             };
             
             await setDoc(pacienteRef, pacienteDataToSave);
             
-            return { success: true, message: `✅ Paciente "${nome}" cadastrado com sucesso!\n📋 Login: ${login}\n🔒 Senha: ${senha}` };
+            return { 
+                success: true, 
+                message: `✅ Paciente "${nome}" cadastrado com sucesso!`,
+                codigo: codigo,
+                login: login
+            };
             
         } catch (error) {
             console.error("Erro ao cadastrar paciente:", error);
-            
-            if (error.code === 'auth/email-already-in-use') {
-                throw new Error('❌ Este login já está cadastrado no sistema! Escolha outro.');
-            } else if (error.code === 'auth/invalid-email') {
-                throw new Error('❌ Erro interno: e-mail gerado inválido. Contate o administrador.');
-            } else if (error.code === 'auth/weak-password') {
-                throw new Error('❌ Senha muito fraca! Use pelo menos 6 caracteres.');
-            }
-            
             throw new Error('❌ Erro ao cadastrar paciente: ' + error.message);
         }
     }
@@ -291,53 +340,7 @@ export class FuncoesCompartilhadas {
         };
     }
     
-    static calculateAge(birthDate) {
-        if (!birthDate) return null;
-        const birth = new Date(birthDate);
-        const today = new Date();
-        let age = today.getFullYear() - birth.getFullYear();
-        const monthDiff = today.getMonth() - birth.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-            age--;
-        }
-        return age;
-    }
-    
-    // ==================== FUNÇÕES DE UTILITÁRIOS ====================
-    
-    static getPerfilBadgeClass(perfil) {
-        const classes = {
-            'operador': 'perfil-operador',
-            'operador_membro': 'perfil-operador-membro',
-            'supervisor_nutricionista': 'perfil-supervisor',
-            'supervisor_psicologo': 'perfil-supervisor',
-            'gerente_nutricionista': 'perfil-gerente',
-            'admin': 'perfil-admin'
-        };
-        return classes[perfil] || 'perfil-operador';
-    }
-    
-    static getPerfilDisplayName(perfil) {
-        const nomes = {
-            'operador': 'Operador',
-            'operador_membro': 'Membro',
-            'supervisor_nutricionista': 'Supervisor Nutrição',
-            'supervisor_psicologo': 'Supervisor Psicologia',
-            'gerente_nutricionista': 'Gerente Nutrição',
-            'admin': 'Administrador'
-        };
-        return nomes[perfil] || perfil;
-    }
-    
-    static async logout() {
-        try {
-            await signOut(auth);
-        } catch (error) {
-            console.error("Erro ao fazer logout do Auth:", error);
-        }
-        localStorage.removeItem('currentUser');
-        window.location.reload();
-    }
+    // ==================== FUNÇÕES DE UI ====================
     
     static showModal(modalId) {
         const modal = document.getElementById(modalId);
@@ -363,6 +366,68 @@ export class FuncoesCompartilhadas {
             }
         };
     }
+    
+    static showError(message, formId = 'loginForm') {
+        const existingError = document.querySelector('.error-message-custom');
+        if (existingError) existingError.remove();
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message-custom';
+        errorDiv.innerHTML = `
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>${message}</span>
+        `;
+        
+        const form = document.getElementById(formId);
+        if (form) {
+            const button = form.querySelector('button');
+            if (button) {
+                form.insertBefore(errorDiv, button);
+            } else {
+                form.appendChild(errorDiv);
+            }
+        }
+        
+        setTimeout(() => {
+            if (errorDiv) errorDiv.remove();
+        }, 5000);
+    }
+    
+    static showSuccess(message, formId) {
+        const existingSuccess = document.querySelector('.success-message-custom');
+        if (existingSuccess) existingSuccess.remove();
+        
+        const successDiv = document.createElement('div');
+        successDiv.className = 'success-message-custom';
+        successDiv.innerHTML = `
+            <i class="bi bi-check-circle-fill"></i>
+            <span>${message}</span>
+        `;
+        
+        const form = document.getElementById(formId);
+        if (form) {
+            const button = form.querySelector('button');
+            if (button) {
+                form.insertBefore(successDiv, button);
+            } else {
+                form.appendChild(successDiv);
+            }
+        }
+        
+        setTimeout(() => {
+            if (successDiv) successDiv.remove();
+        }, 3000);
+    }
+    
+    static async logout() {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Erro ao fazer logout do Auth:", error);
+        }
+        localStorage.removeItem('currentUser');
+        window.location.reload();
+    }
 }
 
 // ==================== GERENCIADOR PRINCIPAL ====================
@@ -371,13 +436,12 @@ export class HomeManager {
     constructor(userInfo) {
         this.userInfo = userInfo;
         this.currentHome = null;
+        this.funcoes = FuncoesCompartilhadas;
         this.isAdmin = (userInfo.cargo === 'desenvolvedor' || userInfo.perfil === 'admin');
         
         if (this.isAdmin) {
-            // Guarda o cargo original
             this.originalCargo = this.userInfo.cargo;
             this.originalPerfil = this.userInfo.perfil;
-            // Define cargo padrão para visualização (nutricionista)
             this.currentViewCargo = 'nutricionista';
             this.currentViewPerfil = 'supervisor_nutricionista';
         }
@@ -385,25 +449,20 @@ export class HomeManager {
 
     render() {
         if (this.isAdmin) {
-            // Mostra a tela baseada na visualização atual
             this.showHomeByCargo(this.currentViewCargo);
-            // Aguarda o DOM carregar e adiciona o seletor especial
             setTimeout(() => this.setupAdminViewSelector(), 100);
         } else {
             this.showHomeByCargo(this.userInfo.cargo);
         }
     }
     
-    // método para configurar o seletor de visualização do admin
     setupAdminViewSelector() {
         const userInfoDiv = document.querySelector('.user-info');
         if (!userInfoDiv) return;
         
-        // Remove seletor existente se houver
         const existingSelector = document.getElementById('adminViewSelector');
         if (existingSelector) existingSelector.remove();
                 
-        // Cria o seletor de visualização
         const selectorHtml = `
             <select id="adminViewSelector" class="role-selector" style="background: #f97316; border-color: #f97316;">
                 <option value="nutricionista|supervisor_nutricionista" ${this.currentViewCargo === 'nutricionista' ? 'selected' : ''}>🍎 Visualizar como Nutricionista</option>
@@ -413,7 +472,6 @@ export class HomeManager {
             </select>
         `;
         
-        // Insere antes do botão de logout
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.insertAdjacentHTML('beforebegin', selectorHtml);
@@ -421,40 +479,32 @@ export class HomeManager {
             userInfoDiv.insertAdjacentHTML('beforeend', selectorHtml);
         }
         
-        // Adiciona evento de mudança
         const selector = document.getElementById('adminViewSelector');
         if (selector) {
             selector.addEventListener('change', (e) => {
                 const [cargo, perfil] = e.target.value.split('|');
                 this.currentViewCargo = cargo;
                 this.currentViewPerfil = perfil;
-                
-                // Recria a tela com o novo cargo
                 this.showHomeByCargo(cargo, perfil);
-                
-                // Recria o seletor na nova tela
                 setTimeout(() => this.setupAdminViewSelector(), 100);
             });
         }
     }
     
-    // Modificar showHomeByCargo para aceitar perfil opcional
     showHomeByCargo(cargo, customPerfil = null) {
-        // Cria um objeto userInfo modificado para a visualização
         let viewUserInfo = { ...this.userInfo };
         
         if (this.isAdmin) {
-            // Não altera o cargo original no banco, apenas para visualização
             let perfilFinal = customPerfil;
             if (!perfilFinal) {
-                perfilFinal = this.getPerfilForCargo(cargo);
+                perfilFinal = this.funcoes.getPerfilPadrao(cargo);
             }
             
             viewUserInfo = {
                 ...this.userInfo,
                 cargo: cargo === 'paciente_membro' ? 'paciente' : cargo,
                 perfil: perfilFinal,
-                isAdminView: true,  // Marca que é uma visualização de admin
+                isAdminView: true,
                 viewCargo: cargo
             };
         }
@@ -478,16 +528,5 @@ export class HomeManager {
         }
         
         this.currentHome.render();
-    }
-    
-    // Helper para pegar perfil padrão por cargo
-    getPerfilForCargo(cargo) {
-        const perfis = {
-            'nutricionista': 'supervisor_nutricionista',
-            'psicologo': 'supervisor_psicologo',
-            'paciente': 'operador',
-            'paciente_membro': 'operador_membro'
-        };
-        return perfis[cargo] || 'operador';
     }
 }
