@@ -8,7 +8,7 @@ import {
     createUserWithEmailAndPassword,
     serverTimestamp
 } from '../0_firebase_api_config.js';
-import { deleteField } from "firebase/firestore";
+import { deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { HomeManager, FuncoesCompartilhadas } from './home.js';
 
 export class LoginManager {
