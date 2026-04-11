@@ -17,6 +17,7 @@ export class LoginManager {
         this.setupEventListeners();
         this.checkAutoLogin();
         this.loadSavedCredentials();
+        this.tempData = null; // Armazenar dados temporários do primeiro acesso
     }
 
     renderLoginScreen() {
@@ -48,7 +49,7 @@ export class LoginManager {
                                 </div>
                                 <div class="input-field">
                                     <input type="password" id="password" placeholder=" " autocomplete="current-password">
-                                    <label>Senha</label>
+                                    <label>Senha / Código</label>
                                 </div>
                                 <div class="input-icon password-toggle" id="togglePassword">
                                     <i class="bi bi-eye-slash"></i>
@@ -203,58 +204,32 @@ export class LoginManager {
             
             if (!hasUltimoLogin) {
                 // ==========================================
-                // PRIMEIRO ACESSO: Criar conta no Auth
+                // PRIMEIRO ACESSO: Validar código temporário
                 // ==========================================
-                console.log('Primeiro acesso - criando conta no Firebase Auth...');
+                console.log('Primeiro acesso - validando código temporário...');
                 
-                try {
-                    // Cria o usuário no Firebase Auth com email fake e senha fornecida
-                    const userCredential = await createUserWithEmailAndPassword(auth, userData.email, password);
-                    
-                    // ==========================================
-                    // Após criar, atualiza o documento:
-                    // - Adiciona ultimo_login
-                    // - REMOVE os campos de código temporário
-                    // ==========================================
-                    await updateDoc(userRef, {
-                        ultimo_login: serverTimestamp(),     // 🔥 Adiciona timestamp do primeiro login
-                        codigo_temporario: deleteField(),    // 🔥 Remove o código temporário
-                        codigo_expiracao: deleteField()      // 🔥 Remove a data de expiração
-                    });
-                    
-                    // Busca os dados atualizados
-                    const updatedDoc = await getDoc(userRef);
-                    const updatedUserData = updatedDoc.data();
-                    updatedUserData.login = loginInput;
-                    
-                    if (!updatedUserData.perfil) {
-                        updatedUserData.perfil = FuncoesCompartilhadas.getPerfilPadrao(updatedUserData.cargo);
-                    }
-                    
-                    if (rememberCheckbox && rememberCheckbox.checked) {
-                        localStorage.setItem('savedLogin', loginInput);
-                        localStorage.setItem('savedPassword', password);
-                        localStorage.setItem('rememberLogin', 'true');
-                    } else {
-                        localStorage.removeItem('savedLogin');
-                        localStorage.removeItem('savedPassword');
-                        localStorage.setItem('rememberLogin', 'false');
-                    }
-                    
-                    localStorage.setItem('currentUser', JSON.stringify(updatedUserData));
-                    this.showHome(updatedUserData);
-                    
-                } catch (authError) {
-                    console.error("Erro ao criar usuário:", authError);
-                    
-                    if (authError.code === 'auth/email-already-in-use') {
-                        this.showError('❌ Este login já possui cadastro. Contate o administrador.');
-                    } else if (authError.code === 'auth/weak-password') {
-                        this.showError('❌ Senha muito fraca. Use pelo menos 6 caracteres.');
-                    } else {
-                        this.showError('❌ Erro ao criar conta: ' + authError.message);
-                    }
+                // Verificar se o código digitado é o código temporário
+                if (password !== userData.codigo_temporario) {
+                    this.showError('❌ Código temporário inválido!');
+                    return;
                 }
+                
+                // Verificar se o código expirou
+                const dataExpiracao = new Date(userData.codigo_expiracao);
+                if (dataExpiracao < new Date()) {
+                    this.showError('⚠️ Código expirado! Solicite um novo código ao profissional.');
+                    return;
+                }
+                
+                // Código válido! Armazenar dados temporários e pedir nova senha
+                this.tempData = {
+                    login: loginInput,
+                    email: userData.email,
+                    nome: userData.nome,
+                    userRef: userRef
+                };
+                
+                this.showCreatePasswordScreen();
                 return;
             }
             
@@ -311,6 +286,152 @@ export class LoginManager {
     }
 
     // ==========================================
+    // TELA PARA CRIAR SENHA PESSOAL (primeiro acesso)
+    // ==========================================
+    showCreatePasswordScreen() {
+        const app = document.getElementById('app');
+        if (app) {
+            app.innerHTML = `
+                <div class="login-wrapper">
+                    <div class="login-card">
+                        <div class="login-header">
+                            <div class="logo-container">
+                                <img src="./imagens/logo.png" alt="TratamentoWeb" class="login-logo-img">
+                            </div>
+                            <h2>Primeiro Acesso</h2>
+                            <p>Olá, <strong>${this.tempData.nome || this.tempData.login}</strong>!</p>
+                            <p>Cadastre sua senha pessoal para continuar.</p>
+                        </div>
+    
+                        <form id="createPasswordForm" class="login-form">
+                            <div class="info-box">
+                                <i class="bi bi-info-circle"></i>
+                                <span>Crie uma senha forte e segura para suas próximas visitas.</span>
+                            </div>
+    
+                            <div class="input-group-custom">
+                                <div class="input-icon">
+                                    <i class="bi bi-shield-lock"></i>
+                                </div>
+                                <div class="input-field">
+                                    <input type="password" id="newPassword" placeholder=" " required>
+                                    <label>Nova Senha</label>
+                                </div>
+                                <div class="input-icon password-toggle" id="toggleNewPassword">
+                                    <i class="bi bi-eye-slash"></i>
+                                </div>
+                            </div>
+    
+                            <div class="input-group-custom">
+                                <div class="input-icon">
+                                    <i class="bi bi-shield-check"></i>
+                                </div>
+                                <div class="input-field">
+                                    <input type="password" id="confirmPassword" placeholder=" " required>
+                                    <label>Confirmar Senha</label>
+                                </div>
+                                <div class="input-icon password-toggle" id="toggleConfirmPassword">
+                                    <i class="bi bi-eye-slash"></i>
+                                </div>
+                            </div>
+    
+                            <button type="submit" class="login-button">
+                                <i class="bi bi-check-circle"></i>
+                                Cadastrar Senha e Entrar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            this.setupCreatePasswordEvents();
+        }
+    }
+
+    setupCreatePasswordEvents() {
+        const form = document.getElementById('createPasswordForm');
+        const newPassword = document.getElementById('newPassword');
+        const confirmPassword = document.getElementById('confirmPassword');
+        
+        // Toggle de senha
+        const toggleNew = document.getElementById('toggleNewPassword');
+        const toggleConfirm = document.getElementById('toggleConfirmPassword');
+        
+        if (toggleNew && newPassword) {
+            toggleNew.addEventListener('click', () => {
+                const type = newPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+                newPassword.setAttribute('type', type);
+                toggleNew.querySelector('i').classList.toggle('bi-eye');
+                toggleNew.querySelector('i').classList.toggle('bi-eye-slash');
+            });
+        }
+        
+        if (toggleConfirm && confirmPassword) {
+            toggleConfirm.addEventListener('click', () => {
+                const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+                confirmPassword.setAttribute('type', type);
+                toggleConfirm.querySelector('i').classList.toggle('bi-eye');
+                toggleConfirm.querySelector('i').classList.toggle('bi-eye-slash');
+            });
+        }
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = newPassword.value;
+            const confirm = confirmPassword.value;
+            
+            if (password !== confirm) {
+                this.showError('As senhas não coincidem!', 'createPasswordForm');
+                return;
+            }
+            
+            if (password.length < 6) {
+                this.showError('A senha deve ter no mínimo 6 caracteres!', 'createPasswordForm');
+                return;
+            }
+            
+            try {
+                // Criar conta no Firebase Auth com a senha pessoal do usuário
+                const userCredential = await createUserWithEmailAndPassword(
+                    auth, 
+                    this.tempData.email, 
+                    password
+                );
+                
+                // Atualizar o Firestore: adicionar ultimo_login e REMOVER os campos de código
+                await updateDoc(this.tempData.userRef, {
+                    ultimo_login: serverTimestamp(),
+                    codigo_temporario: deleteField(),
+                    codigo_expiracao: deleteField()
+                });
+                
+                // Buscar dados atualizados
+                const updatedDoc = await getDoc(this.tempData.userRef);
+                const userData = updatedDoc.data();
+                userData.login = this.tempData.login;
+                
+                if (!userData.perfil) {
+                    userData.perfil = FuncoesCompartilhadas.getPerfilPadrao(userData.cargo);
+                }
+                
+                localStorage.setItem('currentUser', JSON.stringify(userData));
+                this.showHome(userData);
+                
+            } catch (authError) {
+                console.error("Erro ao criar usuário:", authError);
+                
+                if (authError.code === 'auth/email-already-in-use') {
+                    this.showError('❌ Este login já possui cadastro. Contate o administrador.', 'createPasswordForm');
+                } else if (authError.code === 'auth/weak-password') {
+                    this.showError('❌ Senha muito fraca. Use pelo menos 6 caracteres.', 'createPasswordForm');
+                } else {
+                    this.showError('❌ Erro ao criar conta: ' + authError.message, 'createPasswordForm');
+                }
+            }
+        });
+    }
+
+    // ==========================================
     // TELA DE RESET DE SENHA
     // ==========================================
     showPasswordResetDialog() {
@@ -349,7 +470,7 @@ export class LoginManager {
         }
     }
 
-    showError(message) {
+    showError(message, formId = 'loginForm') {
         const existingError = document.querySelector('.error-message-custom');
         if (existingError) existingError.remove();
         
@@ -360,9 +481,14 @@ export class LoginManager {
             <span>${message}</span>
         `;
         
-        const form = document.getElementById('loginForm');
+        const form = document.getElementById(formId);
         if (form) {
-            form.insertBefore(errorDiv, form.querySelector('.login-button'));
+            const button = form.querySelector('button');
+            if (button) {
+                form.insertBefore(errorDiv, button);
+            } else {
+                form.appendChild(errorDiv);
+            }
         }
         
         setTimeout(() => {
