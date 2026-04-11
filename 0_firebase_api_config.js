@@ -14,7 +14,8 @@ import {
     updateDoc,
     deleteDoc,
     getDoc,
-    setDoc
+    setDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import {
     getAuth,
@@ -47,16 +48,21 @@ const appCheck = initializeAppCheck(app, {
     isTokenAutoRefreshEnabled: true
 });
 
+// Initialize Firestore and Auth
 const db = getFirestore(app);
 const auth = getAuth(app);
 
 console.log('Firebase inicializado! Project ID:', firebaseConfig.projectId);
 console.log('App Check ativado com reCAPTCHA v3 - Site Key:', SITE_KEY);
 
+// Export all necessary modules
 export { 
+    // Firebase instances
     db, 
     auth,
     appCheck,
+    
+    // Firestore functions
     collection, 
     addDoc, 
     getDocs, 
@@ -69,6 +75,9 @@ export {
     deleteDoc,
     getDoc,
     setDoc,
+    serverTimestamp,
+    
+    // Auth functions
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signOut,
