@@ -6,7 +6,8 @@ import {
     signInWithEmailAndPassword, 
     updateDoc,
     createUserWithEmailAndPassword,
-    serverTimestamp
+    serverTimestamp,
+    deleteField
 } from '../0_firebase_api_config.js';
 import { HomeManager, FuncoesCompartilhadas } from './home.js';
 
