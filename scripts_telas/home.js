@@ -10,7 +10,7 @@ import {
     createUserWithEmailAndPassword, 
     signOut, 
     serverTimestamp,
-    updateDoc      // ← ADICIONE ESTA LINHA
+    updateDoc     
 } from '../0_firebase_api_config.js';
 import { HomeCliente } from './home_cliente.js';
 import { HomeNutricionista } from './home_nutricionista.js';
