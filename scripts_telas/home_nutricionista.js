@@ -336,6 +336,7 @@ export class HomeNutricionista {
     async loadPacientesList() {
         this.pacientesList = await this.funcoes.loadPacientesList();
         this.populatePacienteSelect();
+        this.displayPacientesTable();
     }
 
     populatePacienteSelect() {
