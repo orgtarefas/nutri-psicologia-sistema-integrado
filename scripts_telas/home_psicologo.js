@@ -80,11 +80,6 @@ export class HomePsicologo {
                                     <small style="color: #666; font-size: 11px; margin-top: 5px; display: block;">⚠️ Este login será único e não poderá ser alterado</small>
                                 </div>
                                 <div class="form-field">
-                                    <label>🔒 Senha:</label>
-                                    <input type="password" id="regSenha" required>
-                                    <small style="color: #666; font-size: 11px; margin-top: 5px; display: block;">⚠️ Mínimo 6 caracteres</small>
-                                </div>
-                                <div class="form-field">
                                     <label>📅 Data de Nascimento:</label>
                                     <input type="date" id="regDataNascimento" required>
                                 </div>
