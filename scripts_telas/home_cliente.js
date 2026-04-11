@@ -46,6 +46,7 @@ export class HomeCliente {
                         <button class="nav-btn" data-module="results">📈 Resultados</button>
                         <button class="nav-btn" data-module="schedule">📅 Agendamentos</button>
                         <button class="nav-btn" data-module="messages">💬 Mensagens</button>
+                        <button class="nav-btn" id="minhaJornadaBtn" style="background: #8b5cf6; color: white;">🌟 Minha Jornada</button>
                         ${isMembro ? `
                             <button class="nav-btn" id="membroExclusiveBtn" style="background: #ed8936; color: white;">⭐ Conteúdo Exclusivo Membro</button>
                         ` : ''}
