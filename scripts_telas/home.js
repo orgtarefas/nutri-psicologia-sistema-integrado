@@ -42,14 +42,21 @@ export class FuncoesCompartilhadas {
     
     static formatarDataHoraCadastro() {
         const agora = new Date();
-        return agora.toLocaleString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
+        const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
+                       'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+        
+        const dia = agora.getDate();
+        const mes = meses[agora.getMonth()];
+        const ano = agora.getFullYear();
+        const horas = agora.getHours().toString().padStart(2, '0');
+        const minutos = agora.getMinutes().toString().padStart(2, '0');
+        const segundos = agora.getSeconds().toString().padStart(2, '0');
+        
+        const offset = -agora.getTimezoneOffset() / 60;
+        const offsetSinal = offset >= 0 ? '+' : '';
+        const offsetStr = `UTC${offsetSinal}${offset}`;
+        
+        return `${dia} de ${mes} de ${ano} às ${horas}:${minutos}:${segundos} ${offsetStr}`;
     }
     
     static validarIdade(dataNascimento) {
@@ -202,7 +209,6 @@ export class FuncoesCompartilhadas {
                 perfil: "operador",
                 status_ativo: true,
                 dataHoraCadastro: this.formatarDataHoraCadastro(),
-                dataCadastro: new Date().toISOString(),
                 codigo_temporario: codigo,
                 codigo_expiracao: dataExpiracao.toISOString()
             };
