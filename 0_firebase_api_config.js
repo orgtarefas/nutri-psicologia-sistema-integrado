@@ -52,8 +52,8 @@ const appCheck = initializeAppCheck(app, {
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-console.log('Firebase inicializado! Project ID:', firebaseConfig.projectId);
-console.log('App Check ativado com reCAPTCHA v3 - Site Key:', SITE_KEY);
+// console.log('Firebase inicializado! Project ID:', firebaseConfig.projectId);
+// console.log('App Check ativado com reCAPTCHA v3 - Site Key:', SITE_KEY);
 
 // Export all necessary modules
 export { 
