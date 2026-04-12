@@ -2097,3 +2097,13 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
     font-weight: 600;
     letter-spacing: 0.5px;
 }
+
+.preview-badge {
+    background: rgba(249, 115, 22, 0.2);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
