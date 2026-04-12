@@ -1,4 +1,5 @@
 import { FuncoesCompartilhadas } from './0_home.js';
+import { MenuProfissional } from './0_complementos_menu_profissional.js';
 import { collection, addDoc, getDocs, query, where, doc, updateDoc } from '../0_firebase_api_config.js';
 
 export class PlanoAlimentarNutricionista {
@@ -8,12 +9,18 @@ export class PlanoAlimentarNutricionista {
         this.pacientesList = pacientesList || [];
         this.selectedPaciente = null;
         this.currentMealPlan = null;
-        this.isMenuOpen = false;
+        this.menu = null;
     }
 
     render() {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
+        
+        // Inicializa o menu (componente centralizado)
+        this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'plano_alimentar');
+        this.menu.render();
+        this.menu.attachEvents();
+        
         this.attachEvents();
         if (this.selectedPaciente) {
             this.loadMealPlan();
@@ -21,40 +28,10 @@ export class PlanoAlimentarNutricionista {
     }
 
     renderHTML() {
-        const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
-        const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
-        
         return `
             <div class="dashboard-container">
-                <div class="top-bar">
-                    <div class="logo-area">
-                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="logo">
-                        <h2>Plano Alimentar</h2>
-                    </div>
-                    <div class="top-bar-actions">
-                        <div class="user-greeting">
-                            <span>👋 ${this.userInfo.nome}</span>
-                            <span class="role-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        </div>
-                        <button class="menu-toggle" id="menuToggle">
-                            <span class="menu-icon">☰</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="side-menu" id="sideMenu">
-                    <div class="menu-header">
-                        <h3>Menu</h3>
-                        <button class="close-menu" id="closeMenu">×</button>
-                    </div>
-                    <nav class="menu-nav">
-                        <button class="menu-item" data-module="home">🏠 Home</button>
-                        <button class="menu-item active" data-module="plano_alimentar">🍽️ Plano Alimentar</button>
-                        <button class="menu-item" data-module="cadastro_cliente">👥 Clientes</button>
-                        <button class="menu-item logout" id="logoutMenuItem">🚪 Sair</button>
-                    </nav>
-                </div>
-                <div class="menu-overlay" id="menuOverlay"></div>
+                <!-- O MENU SERÁ INSERIDO AQUI PELO COMPONENTE -->
+                <div id="menuContainer"></div>
 
                 <div class="main-content">
                     <div class="patient-selector">
@@ -137,28 +114,6 @@ export class PlanoAlimentarNutricionista {
     }
 
     attachEvents() {
-        const menuToggle = document.getElementById('menuToggle');
-        const sideMenu = document.getElementById('sideMenu');
-        const menuOverlay = document.getElementById('menuOverlay');
-        const closeMenu = document.getElementById('closeMenu');
-
-        const openMenu = () => sideMenu.classList.add('open');
-        const closeMenuFunc = () => sideMenu.classList.remove('open');
-        if (menuToggle) menuToggle.addEventListener('click', openMenu);
-        if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
-        if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
-
-        const logoutMenuItem = document.getElementById('logoutMenuItem');
-        if (logoutMenuItem) logoutMenuItem.addEventListener('click', () => this.funcoes.logout());
-
-        document.querySelectorAll('.menu-item[data-module]').forEach(item => {
-            item.addEventListener('click', async (e) => {
-                const module = item.getAttribute('data-module');
-                closeMenuFunc();
-                await this.navigateTo(module);
-            });
-        });
-
         const pacienteSelect = document.getElementById('pacienteSelect');
         if (pacienteSelect) {
             pacienteSelect.addEventListener('change', async (e) => {
@@ -192,6 +147,11 @@ export class PlanoAlimentarNutricionista {
             case 'plano_alimentar':
                 this.render();
                 break;
+            case 'logout':
+                this.funcoes.logout();
+                break;
+            default:
+                alert(`🚧 Módulo "${module}" em desenvolvimento`);
         }
     }
 
@@ -207,6 +167,7 @@ export class PlanoAlimentarNutricionista {
                 this.currentMealPlan = null;
             }
         } catch (error) {
+            console.error("Erro ao carregar plano:", error);
             this.currentMealPlan = null;
         }
     }
@@ -235,15 +196,16 @@ export class PlanoAlimentarNutricionista {
             if (this.currentMealPlan?.id) {
                 const planDoc = doc(window.db, 'planos_alimentares', this.currentMealPlan.id);
                 await updateDoc(planDoc, mealPlanData);
-                alert('✅ Plano atualizado!');
+                alert('✅ Plano atualizado com sucesso!');
             } else {
                 await addDoc(plansRef, mealPlanData);
-                alert('✅ Plano criado!');
+                alert('✅ Plano criado com sucesso!');
             }
             
             await this.loadMealPlan();
         } catch (error) {
-            alert('❌ Erro: ' + error.message);
+            console.error("Erro ao salvar plano:", error);
+            alert('❌ Erro ao salvar: ' + error.message);
         }
     }
 }
