@@ -88,21 +88,17 @@ export class FuncoesCompartilhadas {
             'paciente': 'operador',
             'cliente': 'operador',
             'nutricionista': 'supervisor_nutricionista',
-            'psicologo': 'supervisor_psicologo',
-            'desenvolvedor': 'admin',
-            'admin': 'admin'
+            'psicologo': 'supervisor_psicologo'
         };
         return mapaPerfis[cargo] || 'operador';
     }
     
     static getPerfilDisplayName(perfil) {
         const nomes = {
-            'operador': 'Operador',
-            'operador_membro': 'Membro',
-            'supervisor_nutricionista': 'Supervisor Nutrição',
-            'supervisor_psicologo': 'Supervisor Psicologia',
-            'gerente_nutricionista': 'Gerente Nutrição',
-            'admin': 'Administrador'
+            'operador': 'Paciente',
+            'operador_membro': 'Membro Premium',
+            'supervisor_nutricionista': 'Nutricionista',
+            'supervisor_psicologo': 'Psicólogo'
         };
         return nomes[perfil] || perfil;
     }
@@ -112,9 +108,7 @@ export class FuncoesCompartilhadas {
             'operador': 'perfil-operador',
             'operador_membro': 'perfil-operador-membro',
             'supervisor_nutricionista': 'perfil-supervisor',
-            'supervisor_psicologo': 'perfil-supervisor',
-            'gerente_nutricionista': 'perfil-gerente',
-            'admin': 'perfil-admin'
+            'supervisor_psicologo': 'perfil-supervisor'
         };
         return classes[perfil] || 'perfil-operador';
     }
@@ -123,8 +117,7 @@ export class FuncoesCompartilhadas {
         const nomes = {
             'paciente': 'Paciente',
             'nutricionista': 'Nutricionista',
-            'psicologo': 'Psicólogo',
-            'desenvolvedor': 'Administrador'
+            'psicologo': 'Psicólogo'
         };
         return nomes[cargo] || cargo;
     }
@@ -405,62 +398,6 @@ export class FuncoesCompartilhadas {
         }
     }
     
-    // ==================== FUNÇÕES DE LISTA DE PACIENTES (HTML) ====================
-    
-    static gerarTabelaPacientes(pacientesList, callbacks) {
-        if (pacientesList.length === 0) {
-            return '<p style="text-align: center; padding: 40px; color: #666;">Nenhum paciente cadastrado.</p>';
-        }
-        
-        let html = `<div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden;">
-                <thead>
-                    <tr style="background: #1a237e; color: white;">
-                        <th style="padding: 12px; text-align: left;">Paciente</th>
-                        <th style="padding: 12px; text-align: left;">Login</th>
-                        <th style="padding: 12px; text-align: center;">Status</th>
-                        <th style="padding: 12px; text-align: center;">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-        
-        for (const paciente of pacientesList) {
-            const hasPrimeiroAcesso = paciente.hasUltimoLogin;
-            
-            const statusBadge = hasPrimeiroAcesso 
-                ? '<span style="background: #10b981; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px;">✅ Já acessou</span>'
-                : '<span style="background: #f59e0b; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px;">⏳ Aguardando 1º acesso</span>';
-            
-            html += `
-                <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 12px;">
-                        <strong>${paciente.nome}</strong><br>
-                        <small style="color: #666;">Cadastro: ${paciente.dataHoraCadastro || 'Data não registrada'}</small>
-                    </td>
-                    <td style="padding: 12px;"><code style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px;">${paciente.login}</code></td>
-                    <td style="padding: 12px; text-align: center;">${statusBadge}</td>
-                    <td style="padding: 12px; text-align: center;">`;
-            
-            if (!hasPrimeiroAcesso) {
-                html += `
-                    <button class="btn-ver-codigo" data-login="${paciente.login}" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; margin-right: 8px; cursor: pointer;">👁️ Ver Código</button>
-                    <button class="btn-regerar-codigo" data-login="${paciente.login}" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;">🔄 Gerar Código</button>
-                `;
-            } else {
-                html += `
-                    <button class="btn-reset-senha" data-login="${paciente.login}" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; margin-right: 8px; cursor: pointer;">🔑 Reset Senha</button>
-                    <button class="btn-ver-token" data-login="${paciente.login}" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;">👁️ Ver Token</button>
-                `;
-            }
-            
-            html += `</td></tr>`;
-        }
-        
-        html += `</tbody></table></div>`;
-        
-        return html;
-    }
-    
     // ==================== FUNÇÕES DE AVALIAÇÃO ====================
     
     static async loadEvaluationsByPatient(patientLogin) {
@@ -642,305 +579,25 @@ export class HomeManager {
         this.userInfo = userInfo;
         this.currentHome = null;
         this.funcoes = FuncoesCompartilhadas;
-        this.isAdmin = (userInfo.cargo === 'desenvolvedor' || userInfo.perfil === 'admin');
-        
-        // Guardar o userInfo original do admin
-        this.originalUserInfo = { ...userInfo };
-        
-        // Estado de visualização temporária (não altera o admin)
-        this.previewMode = null; // 'nutricionista', 'psicologo', 'paciente'
     }
 
     render() {
-        if (this.isAdmin) {
-            // Admin sempre vê o dashboard, mesmo em preview
-            this.showAdminDashboard();
-        } else {
-            this.showHomeByCargo(this.userInfo.cargo);
-        }
+        this.showHomeByCargo(this.userInfo.cargo);
     }
     
-    // ==================== DASHBOARD DO ADMIN ====================
-    
-    showAdminDashboard() {
-        const app = document.getElementById('app');
-        app.innerHTML = this.renderAdminDashboard();
-        this.attachAdminEvents();
-    }
-    
-    renderAdminDashboard() {
-        const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
-        const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
-        
-        // Mostrar se está em modo de preview
-        const previewBadge = this.previewMode ? 
-            `<span class="preview-badge">🔍 Visualizando como: ${this.previewMode === 'nutricionista' ? '🍎 Nutricionista' : this.previewMode === 'psicologo' ? '🧠 Psicólogo' : '👤 Paciente'}</span>` : '';
-        
-        return `
-            <div class="dashboard-container">
-                <div class="top-bar">
-                    <div class="logo-area">
-                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="logo">
-                        <h2>Admin - TratamentoWeb</h2>
-                    </div>
-                    <div class="top-bar-actions">
-                        <div class="user-greeting">
-                            <span>👋 ${this.userInfo.nome}</span>
-                            <span class="role-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                            ${previewBadge}
-                        </div>
-                        <button class="menu-toggle" id="menuToggle">
-                            <span class="menu-icon">☰</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- MENU LATERAL COMPLETO DO ADMIN -->
-                <div class="side-menu" id="sideMenu">
-                    <div class="menu-header">
-                        <h3>Menu Administrativo</h3>
-                        <button class="close-menu" id="closeMenu">×</button>
-                    </div>
-                    <nav class="menu-nav">
-                        <button class="menu-item ${!this.previewMode ? 'active' : ''}" data-module="admin_dashboard">
-                            <span class="menu-icon">📊</span>
-                            <span>Dashboard Admin</span>
-                        </button>
-                        <div class="menu-divider">Visualizações</div>
-                        <button class="menu-item ${this.previewMode === 'nutricionista' ? 'active' : ''}" data-module="preview_nutricionista">
-                            <span class="menu-icon">🍎</span>
-                            <span>Ver como Nutricionista</span>
-                        </button>
-                        <button class="menu-item ${this.previewMode === 'psicologo' ? 'active' : ''}" data-module="preview_psicologo">
-                            <span class="menu-icon">🧠</span>
-                            <span>Ver como Psicólogo</span>
-                        </button>
-                        <button class="menu-item ${this.previewMode === 'paciente' ? 'active' : ''}" data-module="preview_paciente">
-                            <span class="menu-icon">👤</span>
-                            <span>Ver como Paciente</span>
-                        </button>
-                        ${this.previewMode ? `
-                            <button class="menu-item" data-module="exit_preview">
-                                <span class="menu-icon">🚪</span>
-                                <span>Sair da Visualização</span>
-                            </button>
-                        ` : ''}
-                        <div class="menu-divider">Módulos</div>
-                        <button class="menu-item" data-module="plano_alimentar">
-                            <span class="menu-icon">🍽️</span>
-                            <span>Plano Alimentar</span>
-                        </button>
-                        <button class="menu-item" data-module="cadastro_cliente">
-                            <span class="menu-icon">👥</span>
-                            <span>Clientes</span>
-                        </button>
-                        <button class="menu-item" data-module="usuarios">
-                            <span class="menu-icon">👥</span>
-                            <span>Gerenciar Usuários</span>
-                        </button>
-                        <div class="menu-divider">Sistema</div>
-                        <button class="menu-item logout" id="logoutMenuItem">
-                            <span class="menu-icon">🚪</span>
-                            <span>Sair</span>
-                        </button>
-                    </nav>
-                </div>
-                <div class="menu-overlay" id="menuOverlay"></div>
-
-                <div class="main-content">
-                    <div class="admin-welcome">
-                        <h2>Bem-vindo, Administrador ${this.userInfo.nome}!</h2>
-                        ${this.previewMode ? 
-                            `<p>🔍 Você está visualizando o sistema como <strong>${this.previewMode === 'nutricionista' ? 'Nutricionista' : this.previewMode === 'psicologo' ? 'Psicólogo' : 'Paciente'}</strong>. Clique em "Sair da Visualização" para voltar ao modo Admin.</p>` :
-                            `<p>Utilize o menu lateral para navegar entre os diferentes módulos do sistema ou escolha uma visualização para ver como outros perfis enxergam o sistema.</p>`
-                        }
-                    </div>
-                    
-                    <div class="admin-cards">
-                        <div class="admin-card" data-module="preview_nutricionista">
-                            <div class="admin-card-icon">🍎</div>
-                            <h3>Nutricionista</h3>
-                            <p>Visualizar o sistema como nutricionista</p>
-                            <span class="card-badge">Preview</span>
-                        </div>
-                        <div class="admin-card" data-module="preview_psicologo">
-                            <div class="admin-card-icon">🧠</div>
-                            <h3>Psicólogo</h3>
-                            <p>Visualizar o sistema como psicólogo</p>
-                            <span class="card-badge">Preview</span>
-                        </div>
-                        <div class="admin-card" data-module="preview_paciente">
-                            <div class="admin-card-icon">👤</div>
-                            <h3>Paciente</h3>
-                            <p>Visualizar o sistema como paciente</p>
-                            <span class="card-badge">Preview</span>
-                        </div>
-                        <div class="admin-card" data-module="plano_alimentar">
-                            <div class="admin-card-icon">🍽️</div>
-                            <h3>Plano Alimentar</h3>
-                            <p>Gerenciar planos alimentares</p>
-                            <span class="card-badge">Gerenciar</span>
-                        </div>
-                        <div class="admin-card" data-module="cadastro_cliente">
-                            <div class="admin-card-icon">👥</div>
-                            <h3>Clientes</h3>
-                            <p>Gerenciar cadastro de clientes</p>
-                            <span class="card-badge">Gerenciar</span>
-                        </div>
-                        <div class="admin-card" data-module="usuarios">
-                            <div class="admin-card-icon">⚙️</div>
-                            <h3>Usuários</h3>
-                            <p>Gerenciar usuários do sistema</p>
-                            <span class="card-badge">Admin</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    attachAdminEvents() {
-        // Menu toggle
-        const menuToggle = document.getElementById('menuToggle');
-        const sideMenu = document.getElementById('sideMenu');
-        const menuOverlay = document.getElementById('menuOverlay');
-        const closeMenu = document.getElementById('closeMenu');
-
-        const openMenu = () => sideMenu.classList.add('open');
-        const closeMenuFunc = () => sideMenu.classList.remove('open');
-        if (menuToggle) menuToggle.addEventListener('click', openMenu);
-        if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
-        if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
-
-        // Logout
-        const logoutMenuItem = document.getElementById('logoutMenuItem');
-        if (logoutMenuItem) logoutMenuItem.addEventListener('click', () => this.funcoes.logout());
-
-        // Menu items e cards navigation
-        document.querySelectorAll('.menu-item[data-module], .admin-card[data-module]').forEach(item => {
-            item.addEventListener('click', async (e) => {
-                const module = item.getAttribute('data-module');
-                closeMenuFunc();
-                await this.navigateAdminTo(module);
-            });
-        });
-    }
-    
-    async navigateAdminTo(module) {
-        switch(module) {
-            case 'admin_dashboard':
-                this.previewMode = null;
-                this.showAdminDashboard();
-                break;
-            case 'preview_nutricionista':
-                this.previewMode = 'nutricionista';
-                this.showPreviewAs('nutricionista', 'supervisor_nutricionista');
-                break;
-            case 'preview_psicologo':
-                this.previewMode = 'psicologo';
-                this.showPreviewAs('psicologo', 'supervisor_psicologo');
-                break;
-            case 'preview_paciente':
-                this.previewMode = 'paciente';
-                this.showPreviewAs('paciente', 'operador');
-                break;
-            case 'exit_preview':
-                this.previewMode = null;
-                this.showAdminDashboard();
-                break;
-            case 'plano_alimentar':
-                const { PlanoAlimentarNutricionista } = await import('./plano_alimentar_nutricionista.js');
-                const pacientesList = await this.funcoes.loadPacientesList();
-                const planoAlimentar = new PlanoAlimentarNutricionista(this.userInfo, pacientesList);
-                planoAlimentar.render();
-                break;
-            case 'cadastro_cliente':
-                const { CadastroCliente } = await import('./cadastro_cliente.js');
-                const cadastroCliente = new CadastroCliente(this.userInfo);
-                cadastroCliente.render();
-                break;
-            case 'usuarios':
-                alert('👥 Módulo Gerenciar Usuários em desenvolvimento');
-                break;
-        }
-    }
-    
-    // Mostrar preview sem perder o admin
-    showPreviewAs(cargo, perfil) {
-        // Criar um objeto de visualização TEMPORÁRIO
-        // O admin original permanece intacto
-        const previewUserInfo = {
-            ...this.userInfo,  // Mantém todos os dados do admin
-            cargo: cargo,
-            perfil: perfil,
-            isPreviewMode: true,
-            originalCargo: this.userInfo.cargo,
-            originalPerfil: this.userInfo.perfil
-        };
-        
-        // Renderizar a tela correspondente
-        switch(cargo) {
-            case 'nutricionista':
-                const homeNutri = new HomeNutricionista(previewUserInfo);
-                homeNutri.render();
-                break;
-            case 'psicologo':
-                const homePsi = new HomePsicologo(previewUserInfo);
-                homePsi.render();
-                break;
-            case 'paciente':
-                const homePaciente = new HomeCliente(previewUserInfo);
-                homePaciente.render();
-                break;
-        }
-    }
-    
-    // ==================== MÉTODOS LEGADO (mantidos para compatibilidade) ====================
-    
-    async navigateToCadastroCliente() {
-        const { CadastroCliente } = await import('./cadastro_cliente.js');
-        const cadastroScreen = new CadastroCliente(this.userInfo);
-        cadastroScreen.render();
-    }
-    
-    setupAdminViewSelector() {
-        // Não usado mais, mantido para compatibilidade
-    }
-    
-    showHomeByCargo(cargo, customPerfil = null) {
-        let viewUserInfo = { ...this.userInfo };
-        
-        if (this.isAdmin) {
-            let perfilFinal = customPerfil;
-            if (!perfilFinal) {
-                perfilFinal = this.funcoes.getPerfilPadrao(cargo);
-            }
-            
-            viewUserInfo = {
-                ...this.userInfo,
-                cargo: cargo === 'paciente_membro' ? 'paciente' : cargo,
-                perfil: perfilFinal,
-                isAdminView: true,
-                viewCargo: cargo
-            };
-        }
-        
+    showHomeByCargo(cargo) {
         switch(cargo) {
             case 'paciente':
-            case 'paciente_membro':
-                const perfilMembro = cargo === 'paciente_membro' ? 'operador_membro' : 'operador';
-                viewUserInfo.cargo = 'paciente';
-                viewUserInfo.perfil = perfilMembro;
-                this.currentHome = new HomeCliente(viewUserInfo);
+                this.currentHome = new HomeCliente(this.userInfo);
                 break;
             case 'nutricionista':
-                this.currentHome = new HomeNutricionista(viewUserInfo);
+                this.currentHome = new HomeNutricionista(this.userInfo);
                 break;
             case 'psicologo':
-                this.currentHome = new HomePsicologo(viewUserInfo);
+                this.currentHome = new HomePsicologo(this.userInfo);
                 break;
             default:
-                this.currentHome = new HomeNutricionista(viewUserInfo);
+                this.currentHome = new HomeCliente(this.userInfo);
         }
         
         this.currentHome.render();
