@@ -922,3 +922,32 @@ body.profile-profissional .info-group label {
         padding: 0;
     }
 }
+
+.btn-expand {
+    width: 52px;
+    height: 52px;
+    padding: 14px;
+    font-size: 20px;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-expand:hover {
+    width: auto;
+    padding: 14px 28px;
+}
+
+.btn-expand:hover .btn-text {
+    display: inline;
+}
+
+.btn-text {
+    display: none;
+    font-size: 16px;
+}
