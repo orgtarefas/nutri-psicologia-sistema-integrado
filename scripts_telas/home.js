@@ -644,17 +644,16 @@ export class HomeManager {
         this.funcoes = FuncoesCompartilhadas;
         this.isAdmin = (userInfo.cargo === 'desenvolvedor' || userInfo.perfil === 'admin');
         
-        if (this.isAdmin) {
-            this.originalCargo = this.userInfo.cargo;
-            this.originalPerfil = this.userInfo.perfil;
-            this.currentViewCargo = 'nutricionista';
-            this.currentViewPerfil = 'supervisor_nutricionista';
-        }
+        // Guardar o userInfo original do admin
+        this.originalUserInfo = { ...userInfo };
+        
+        // Estado de visualização temporária (não altera o admin)
+        this.previewMode = null; // 'nutricionista', 'psicologo', 'paciente'
     }
 
     render() {
         if (this.isAdmin) {
-            // Admin vê o dashboard completo com menu de navegação
+            // Admin sempre vê o dashboard, mesmo em preview
             this.showAdminDashboard();
         } else {
             this.showHomeByCargo(this.userInfo.cargo);
@@ -673,6 +672,10 @@ export class HomeManager {
         const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
         const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
         
+        // Mostrar se está em modo de preview
+        const previewBadge = this.previewMode ? 
+            `<span class="preview-badge">🔍 Visualizando como: ${this.previewMode === 'nutricionista' ? '🍎 Nutricionista' : this.previewMode === 'psicologo' ? '🧠 Psicólogo' : '👤 Paciente'}</span>` : '';
+        
         return `
             <div class="dashboard-container">
                 <div class="top-bar">
@@ -684,6 +687,7 @@ export class HomeManager {
                         <div class="user-greeting">
                             <span>👋 ${this.userInfo.nome}</span>
                             <span class="role-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
+                            ${previewBadge}
                         </div>
                         <button class="menu-toggle" id="menuToggle">
                             <span class="menu-icon">☰</span>
@@ -698,23 +702,29 @@ export class HomeManager {
                         <button class="close-menu" id="closeMenu">×</button>
                     </div>
                     <nav class="menu-nav">
-                        <button class="menu-item active" data-module="admin_dashboard">
+                        <button class="menu-item ${!this.previewMode ? 'active' : ''}" data-module="admin_dashboard">
                             <span class="menu-icon">📊</span>
                             <span>Dashboard Admin</span>
                         </button>
                         <div class="menu-divider">Visualizações</div>
-                        <button class="menu-item" data-module="view_nutricionista">
+                        <button class="menu-item ${this.previewMode === 'nutricionista' ? 'active' : ''}" data-module="preview_nutricionista">
                             <span class="menu-icon">🍎</span>
-                            <span>Como Nutricionista</span>
+                            <span>Ver como Nutricionista</span>
                         </button>
-                        <button class="menu-item" data-module="view_psicologo">
+                        <button class="menu-item ${this.previewMode === 'psicologo' ? 'active' : ''}" data-module="preview_psicologo">
                             <span class="menu-icon">🧠</span>
-                            <span>Como Psicólogo</span>
+                            <span>Ver como Psicólogo</span>
                         </button>
-                        <button class="menu-item" data-module="view_paciente">
+                        <button class="menu-item ${this.previewMode === 'paciente' ? 'active' : ''}" data-module="preview_paciente">
                             <span class="menu-icon">👤</span>
-                            <span>Como Paciente</span>
+                            <span>Ver como Paciente</span>
                         </button>
+                        ${this.previewMode ? `
+                            <button class="menu-item" data-module="exit_preview">
+                                <span class="menu-icon">🚪</span>
+                                <span>Sair da Visualização</span>
+                            </button>
+                        ` : ''}
                         <div class="menu-divider">Módulos</div>
                         <button class="menu-item" data-module="plano_alimentar">
                             <span class="menu-icon">🍽️</span>
@@ -740,27 +750,30 @@ export class HomeManager {
                 <div class="main-content">
                     <div class="admin-welcome">
                         <h2>Bem-vindo, Administrador ${this.userInfo.nome}!</h2>
-                        <p>Utilize o menu lateral para navegar entre os diferentes módulos do sistema.</p>
+                        ${this.previewMode ? 
+                            `<p>🔍 Você está visualizando o sistema como <strong>${this.previewMode === 'nutricionista' ? 'Nutricionista' : this.previewMode === 'psicologo' ? 'Psicólogo' : 'Paciente'}</strong>. Clique em "Sair da Visualização" para voltar ao modo Admin.</p>` :
+                            `<p>Utilize o menu lateral para navegar entre os diferentes módulos do sistema ou escolha uma visualização para ver como outros perfis enxergam o sistema.</p>`
+                        }
                     </div>
                     
                     <div class="admin-cards">
-                        <div class="admin-card" data-module="view_nutricionista">
+                        <div class="admin-card" data-module="preview_nutricionista">
                             <div class="admin-card-icon">🍎</div>
                             <h3>Nutricionista</h3>
-                            <p>Acessar o sistema como nutricionista</p>
-                            <span class="card-badge">Visualizar</span>
+                            <p>Visualizar o sistema como nutricionista</p>
+                            <span class="card-badge">Preview</span>
                         </div>
-                        <div class="admin-card" data-module="view_psicologo">
+                        <div class="admin-card" data-module="preview_psicologo">
                             <div class="admin-card-icon">🧠</div>
                             <h3>Psicólogo</h3>
-                            <p>Acessar o sistema como psicólogo</p>
-                            <span class="card-badge">Visualizar</span>
+                            <p>Visualizar o sistema como psicólogo</p>
+                            <span class="card-badge">Preview</span>
                         </div>
-                        <div class="admin-card" data-module="view_paciente">
+                        <div class="admin-card" data-module="preview_paciente">
                             <div class="admin-card-icon">👤</div>
                             <h3>Paciente</h3>
-                            <p>Acessar o sistema como paciente</p>
-                            <span class="card-badge">Visualizar</span>
+                            <p>Visualizar o sistema como paciente</p>
+                            <span class="card-badge">Preview</span>
                         </div>
                         <div class="admin-card" data-module="plano_alimentar">
                             <div class="admin-card-icon">🍽️</div>
@@ -816,43 +829,24 @@ export class HomeManager {
     async navigateAdminTo(module) {
         switch(module) {
             case 'admin_dashboard':
+                this.previewMode = null;
                 this.showAdminDashboard();
                 break;
-            case 'view_nutricionista':
-                // Visualizar como nutricionista
-                const viewUserInfoNutri = {
-                    ...this.userInfo,
-                    cargo: 'nutricionista',
-                    perfil: 'supervisor_nutricionista',
-                    isAdminView: true,
-                    viewCargo: 'nutricionista'
-                };
-                const homeNutri = new HomeNutricionista(viewUserInfoNutri);
-                homeNutri.render();
+            case 'preview_nutricionista':
+                this.previewMode = 'nutricionista';
+                this.showPreviewAs('nutricionista', 'supervisor_nutricionista');
                 break;
-            case 'view_psicologo':
-                // Visualizar como psicólogo
-                const viewUserInfoPsi = {
-                    ...this.userInfo,
-                    cargo: 'psicologo',
-                    perfil: 'supervisor_psicologo',
-                    isAdminView: true,
-                    viewCargo: 'psicologo'
-                };
-                const homePsi = new HomePsicologo(viewUserInfoPsi);
-                homePsi.render();
+            case 'preview_psicologo':
+                this.previewMode = 'psicologo';
+                this.showPreviewAs('psicologo', 'supervisor_psicologo');
                 break;
-            case 'view_paciente':
-                // Visualizar como paciente
-                const viewUserInfoPaciente = {
-                    ...this.userInfo,
-                    cargo: 'paciente',
-                    perfil: 'operador',
-                    isAdminView: true,
-                    viewCargo: 'paciente'
-                };
-                const homePaciente = new HomeCliente(viewUserInfoPaciente);
-                homePaciente.render();
+            case 'preview_paciente':
+                this.previewMode = 'paciente';
+                this.showPreviewAs('paciente', 'operador');
+                break;
+            case 'exit_preview':
+                this.previewMode = null;
+                this.showAdminDashboard();
                 break;
             case 'plano_alimentar':
                 const { PlanoAlimentarNutricionista } = await import('./plano_alimentar_nutricionista.js');
@@ -871,21 +865,46 @@ export class HomeManager {
         }
     }
     
-    // Mantido para compatibilidade (pode ser removido se não for usado)
+    // Mostrar preview sem perder o admin
+    showPreviewAs(cargo, perfil) {
+        // Criar um objeto de visualização TEMPORÁRIO
+        // O admin original permanece intacto
+        const previewUserInfo = {
+            ...this.userInfo,  // Mantém todos os dados do admin
+            cargo: cargo,
+            perfil: perfil,
+            isPreviewMode: true,
+            originalCargo: this.userInfo.cargo,
+            originalPerfil: this.userInfo.perfil
+        };
+        
+        // Renderizar a tela correspondente
+        switch(cargo) {
+            case 'nutricionista':
+                const homeNutri = new HomeNutricionista(previewUserInfo);
+                homeNutri.render();
+                break;
+            case 'psicologo':
+                const homePsi = new HomePsicologo(previewUserInfo);
+                homePsi.render();
+                break;
+            case 'paciente':
+                const homePaciente = new HomeCliente(previewUserInfo);
+                homePaciente.render();
+                break;
+        }
+    }
+    
+    // ==================== MÉTODOS LEGADO (mantidos para compatibilidade) ====================
+    
     async navigateToCadastroCliente() {
         const { CadastroCliente } = await import('./cadastro_cliente.js');
         const cadastroScreen = new CadastroCliente(this.userInfo);
         cadastroScreen.render();
     }
     
-    // Mantido para compatibilidade com visualização por cargo
     setupAdminViewSelector() {
-        // Este método não é mais usado, mas mantido para compatibilidade
-        const userInfoDiv = document.querySelector('.user-info');
-        if (!userInfoDiv) return;
-        
-        const existingSelector = document.getElementById('adminViewSelector');
-        if (existingSelector) existingSelector.remove();
+        // Não usado mais, mantido para compatibilidade
     }
     
     showHomeByCargo(cargo, customPerfil = null) {
