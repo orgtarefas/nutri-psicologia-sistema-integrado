@@ -17,7 +17,7 @@ export class LoginManager {
         this.setupEventListeners();
         this.checkAutoLogin();
         this.loadSavedCredentials();
-        this.tempData = null; // Armazenar dados temporários do primeiro acesso
+        this.tempData = null;
     }
 
     renderLoginScreen() {
@@ -199,29 +199,20 @@ export class LoginManager {
                 return;
             }
             
-            // 🔐 VERIFICAÇÃO: Campo "ultimo_login" existe?
             const hasUltimoLogin = userData.hasOwnProperty('ultimo_login');
             
             if (!hasUltimoLogin) {
-                // ==========================================
-                // PRIMEIRO ACESSO: Validar código temporário
-                // ==========================================
-                console.log('Primeiro acesso - validando código temporário...');
-                
-                // Verificar se o código digitado é o código temporário
                 if (password !== userData.codigo_temporario) {
                     this.showError('❌ Código temporário inválido!');
                     return;
                 }
                 
-                // Verificar se o código expirou
                 const dataExpiracao = new Date(userData.codigo_expiracao);
                 if (dataExpiracao < new Date()) {
                     this.showError('⚠️ Código expirado! Solicite um novo código ao profissional.');
                     return;
                 }
                 
-                // Código válido! Armazenar dados temporários e pedir nova senha
                 this.tempData = {
                     login: loginInput,
                     email: userData.email,
@@ -233,13 +224,9 @@ export class LoginManager {
                 return;
             }
             
-            // ==========================================
-            // LOGIN NORMAL (usuário já tem conta)
-            // ==========================================
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, userData.email, password);
                 
-                // Atualiza apenas o ultimo_login
                 await updateDoc(userRef, {
                     ultimo_login: serverTimestamp()
                 });
@@ -285,9 +272,6 @@ export class LoginManager {
         }
     }
 
-    // ==========================================
-    // TELA PARA CRIAR SENHA PESSOAL (primeiro acesso)
-    // ==========================================
     showCreatePasswordScreen() {
         const app = document.getElementById('app');
         if (app) {
@@ -304,9 +288,9 @@ export class LoginManager {
                         </div>
     
                         <form id="createPasswordForm" class="login-form">
-                            <div class="info-box">
-                                <i class="bi bi-info-circle"></i>
-                                <span>Crie uma senha forte e segura para suas próximas visitas.</span>
+                            <div class="info-box" style="background: #e8eaf6; padding: 12px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                                <i class="bi bi-info-circle" style="color: #1a237e;"></i>
+                                <span style="font-size: 13px; color: #1a237e;">Crie uma senha forte e segura para suas próximas visitas.</span>
                             </div>
     
                             <div class="input-group-custom">
@@ -352,7 +336,6 @@ export class LoginManager {
         const newPassword = document.getElementById('newPassword');
         const confirmPassword = document.getElementById('confirmPassword');
         
-        // Toggle de senha
         const toggleNew = document.getElementById('toggleNewPassword');
         const toggleConfirm = document.getElementById('toggleConfirmPassword');
         
@@ -391,21 +374,14 @@ export class LoginManager {
             }
             
             try {
-                // Criar conta no Firebase Auth com a senha pessoal do usuário
-                const userCredential = await createUserWithEmailAndPassword(
-                    auth, 
-                    this.tempData.email, 
-                    password
-                );
+                await createUserWithEmailAndPassword(auth, this.tempData.email, password);
                 
-                // Atualizar o Firestore: adicionar ultimo_login e REMOVER os campos de código
                 await updateDoc(this.tempData.userRef, {
                     ultimo_login: serverTimestamp(),
                     codigo_temporario: deleteField(),
                     codigo_expiracao: deleteField()
                 });
                 
-                // Buscar dados atualizados
                 const updatedDoc = await getDoc(this.tempData.userRef);
                 const userData = updatedDoc.data();
                 userData.login = this.tempData.login;
@@ -431,9 +407,6 @@ export class LoginManager {
         });
     }
 
-    // ==========================================
-    // TELA DE RESET DE SENHA
-    // ==========================================
     showPasswordResetDialog() {
         const app = document.getElementById('app');
         if (app) {
@@ -445,7 +418,7 @@ export class LoginManager {
                                 <img src="./imagens/logo.png" alt="TratamentoWeb" class="login-logo-img">
                             </div>
                             <h2>Recuperar Senha</h2>
-                            <p>Para recuperar sua senha, entre em contato com o administrador da clínica.</p>
+                            <p>Para recuperar sua senha, entre em contato com o profissional responsável.</p>
                             <p>Ele poderá gerar uma nova senha temporária para você.</p>
                         </div>
     
@@ -497,6 +470,16 @@ export class LoginManager {
     }
 
     showHome(userData) {
+        // Adiciona classe CSS no body conforme o perfil
+        const body = document.body;
+        body.classList.remove('profile-paciente', 'profile-profissional');
+        
+        if (userData.cargo === 'paciente') {
+            body.classList.add('profile-paciente');
+        } else {
+            body.classList.add('profile-profissional');
+        }
+        
         const homeManager = new HomeManager(userData);
         homeManager.render();
     }
