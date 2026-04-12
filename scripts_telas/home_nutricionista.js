@@ -1,4 +1,4 @@
-import { FuncoesCompartilhadas } from './home.js';
+import { FuncoesCompartilhadas } from './0_home.js';
 import { doc, updateDoc, getDoc } from '../0_firebase_api_config.js';
 
 export class HomeNutricionista {
