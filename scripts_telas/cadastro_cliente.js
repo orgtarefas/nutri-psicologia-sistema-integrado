@@ -1,59 +1,41 @@
 import { FuncoesCompartilhadas } from './0_home.js';
+import { MenuProfissional } from './0_complementos_menu_profissional.js';
 
 export class CadastroCliente {
     constructor(userInfo) {
         this.userInfo = userInfo;
         this.funcoes = FuncoesCompartilhadas;
         this.clientesList = [];
-        this.isMenuOpen = false;
         this.searchTerm = '';
         this.currentFilter = 'todos';
         this.isEditing = false;
         this.editingLogin = null;
+        this.menu = null;
     }
 
     async render() {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
+        
+        // Inicializa o menu e insere no container
+        this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'cadastro_cliente');
+        const menuHtml = this.menu.render();
+        const menuContainer = document.getElementById('menuContainer');
+        if (menuContainer) {
+            menuContainer.innerHTML = menuHtml;
+        }
+        this.menu.attachEvents();
+        
         this.attachEvents();
         await this.loadClientes();
     }
 
     renderHTML() {
-        const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
-        const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
+        const podeCadastrar = this.funcoes.podeCriarPaciente(this.userInfo.perfil);
         
         return `
             <div class="dashboard-container">
-                <div class="top-bar">
-                    <div class="logo-area">
-                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="logo">
-                        <h2>Gestão de Clientes</h2>
-                    </div>
-                    <div class="top-bar-actions">
-                        <div class="user-greeting">
-                            <span>👋 ${this.userInfo.nome}</span>
-                            <span class="role-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        </div>
-                        <button class="menu-toggle" id="menuToggle">
-                            <span class="menu-icon">☰</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="side-menu" id="sideMenu">
-                    <div class="menu-header">
-                        <h3>Menu</h3>
-                        <button class="close-menu" id="closeMenu">×</button>
-                    </div>
-                    <nav class="menu-nav">
-                        <button class="menu-item" data-module="home">🏠 Home</button>
-                        <button class="menu-item" data-module="plano_alimentar">🍽️ Plano Alimentar</button>
-                        <button class="menu-item active" data-module="cadastro_cliente">👥 Clientes</button>
-                        <button class="menu-item logout" id="logoutMenuItem">🚪 Sair</button>
-                    </nav>
-                </div>
-                <div class="menu-overlay" id="menuOverlay"></div>
+                <div id="menuContainer"></div>
 
                 <div class="main-content">
                     <div class="content-header">
@@ -61,9 +43,15 @@ export class CadastroCliente {
                             <h3>👥 Cadastro de Clientes / Pacientes</h3>
                             <p>Gerencie todos os clientes cadastrados no sistema</p>
                         </div>
-                        <button id="novoClienteBtn" class="btn-primary">
-                            <span>➕</span> Novo Cliente
-                        </button>
+                        ${podeCadastrar ? `
+                            <button id="novoClienteBtn" class="btn-primary">
+                                <span>➕</span> Novo Cliente
+                            </button>
+                        ` : `
+                            <button class="btn-secondary" disabled style="opacity:0.5; cursor:not-allowed;">
+                                <span>🔒</span> Apenas Gerentes podem cadastrar
+                            </button>
+                        `}
                     </div>
 
                     <div class="search-bar">
@@ -259,31 +247,6 @@ export class CadastroCliente {
     }
 
     attachEvents() {
-        // Menu
-        const menuToggle = document.getElementById('menuToggle');
-        const sideMenu = document.getElementById('sideMenu');
-        const menuOverlay = document.getElementById('menuOverlay');
-        const closeMenu = document.getElementById('closeMenu');
-
-        const openMenu = () => sideMenu.classList.add('open');
-        const closeMenuFunc = () => sideMenu.classList.remove('open');
-        if (menuToggle) menuToggle.addEventListener('click', openMenu);
-        if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
-        if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
-
-        // Logout
-        const logoutMenuItem = document.getElementById('logoutMenuItem');
-        if (logoutMenuItem) logoutMenuItem.addEventListener('click', () => this.funcoes.logout());
-
-        // Navigation
-        document.querySelectorAll('.menu-item[data-module]').forEach(item => {
-            item.addEventListener('click', async (e) => {
-                const module = item.getAttribute('data-module');
-                closeMenuFunc();
-                await this.navigateTo(module);
-            });
-        });
-
         // Search
         const searchInput = document.getElementById('searchCliente');
         if (searchInput) {
@@ -390,6 +353,9 @@ export class CadastroCliente {
             case 'cadastro_cliente':
                 this.render();
                 break;
+            case 'logout':
+                this.funcoes.logout();
+                break;
         }
     }
 
@@ -444,14 +410,11 @@ export class CadastroCliente {
                 endereco: document.getElementById('endereco').value
             };
 
-            let result;
             if (existingCliente) {
-                // Atualizar
                 await this.funcoes.updatePaciente(login, clienteData);
                 alert(`✅ Cliente "${clienteData.nome}" atualizado com sucesso!`);
             } else {
-                // Criar novo
-                result = await this.funcoes.registerPaciente(clienteData);
+                const result = await this.funcoes.registerPaciente(clienteData);
                 alert(`✅ Cliente cadastrado!\n\n📋 Login: ${result.login}\n🔑 Código: ${result.codigo}`);
             }
             
