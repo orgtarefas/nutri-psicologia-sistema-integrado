@@ -1,4 +1,4 @@
-'import { 
+import { 
     db, 
     auth, 
     getDoc, 
@@ -11,7 +11,6 @@
 import { deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { HomeManager, FuncoesCompartilhadas } from './0_home.js';
 
-// ==================== CARGOS VÁLIDOS NO SISTEMA ====================
 const CARGOS_VALIDOS = ['paciente', 'nutricionista', 'psicologo'];
 
 export class LoginManager {
@@ -52,7 +51,7 @@ export class LoginManager {
                                 </div>
                                 <div class="input-field">
                                     <input type="password" id="password" placeholder=" " autocomplete="current-password">
-                                    <label>Senha / Código</label>
+                                    <label>Senha / Codigo</label>
                                 </div>
                                 <div class="input-icon password-toggle" id="togglePassword">
                                     <i class="bi bi-eye-slash"></i>
@@ -159,32 +158,27 @@ export class LoginManager {
             try {
                 const user = JSON.parse(savedUser);
                 
-                // VALIDAÇÃO ESTRITA: Verifica se o cargo salvo ainda é válido
                 if (!this.isCargoValido(user.cargo)) {
-                    console.warn('Cargo inválido na sessão salva:', user.cargo);
+                    console.warn('Cargo invalido na sessao salva:', user.cargo);
                     localStorage.removeItem('currentUser');
                     return;
                 }
                 
                 this.showHome(user);
             } catch (error) {
-                console.error("Erro ao restaurar sessão:", error);
+                console.error("Erro ao restaurar sessao:", error);
                 localStorage.removeItem('currentUser');
             }
         }
     }
 
-    // ==================== VALIDAÇÃO DE CARGO ====================
-    
     isCargoValido(cargo) {
         return CARGOS_VALIDOS.includes(cargo);
     }
 
     getMensagemCargoInvalido(cargo) {
-        return `❌ Cargo inválido: ${cargo}`;
+        return `Cargo invalido: ${cargo}`;
     }
-
-    // ==================== LOGIN PRINCIPAL ====================
 
     async handleLogin() {
         const loginInput = document.getElementById('login')?.value.trim();
@@ -206,15 +200,14 @@ export class LoginManager {
             const userDoc = await getDoc(userRef);
             
             if (!userDoc.exists()) {
-                this.showError('❌ Login não encontrado!');
+                this.showError('Login nao encontrado!');
                 return;
             }
             
             const userData = userDoc.data();
             
-            // ==================== VALIDAÇÃO ESTRITA DE CARGO ====================
             if (!userData.cargo) {
-                this.showError('❌ Usuário sem cargo definido! Contate o administrador.');
+                this.showError('Usuario sem cargo definido! Contate o administrador.');
                 return;
             }
             
@@ -223,36 +216,32 @@ export class LoginManager {
                 return;
             }
             
-            // ==================== VALIDAÇÃO DA COMBINAÇÃO CARGO + PERFIL ====================
-            // Verifica se o perfil do banco é compatível com o cargo
             if (userData.perfil && !FuncoesCompartilhadas.isCombinacaoValida(userData.cargo, userData.perfil)) {
-                this.showError(`❌ Combinação inválida: cargo "${userData.cargo}" com perfil "${userData.perfil}"`);
+                this.showError(`Combinacao invalida: cargo "${userData.cargo}" com perfil "${userData.perfil}"`);
                 return;
             }
-            // ====================================================================
             
             if (userData.status_ativo === false) {
-                this.showError('❌ Conta desativada! Contate o administrador.');
+                this.showError('Conta desativada! Contate o administrador.');
                 return;
             }
             
             if (!userData.email) {
-                this.showError('❌ Erro de configuração: contate o administrador!');
+                this.showError('Erro de configuracao: contate o administrador!');
                 return;
             }
             
             const hasUltimoLogin = userData.hasOwnProperty('ultimo_login');
             
             if (!hasUltimoLogin) {
-                // PRIMEIRO ACESSO: Validar código temporário
                 if (password !== userData.codigo_temporario) {
-                    this.showError('❌ Código temporário inválido!');
+                    this.showError('Codigo temporario invalido!');
                     return;
                 }
                 
                 const dataExpiracao = new Date(userData.codigo_expiracao);
                 if (dataExpiracao < new Date()) {
-                    this.showError('⚠️ Código expirado! Solicite um novo código ao profissional.');
+                    this.showError('Codigo expirado! Solicite um novo codigo ao profissional.');
                     return;
                 }
                 
@@ -261,7 +250,7 @@ export class LoginManager {
                     email: userData.email,
                     nome: userData.nome,
                     cargo: userData.cargo,
-                    perfil: userData.perfil, // mantém o perfil do banco
+                    perfil: userData.perfil,
                     userRef: userRef
                 };
                 
@@ -269,9 +258,8 @@ export class LoginManager {
                 return;
             }
             
-            // LOGIN NORMAL (usuário já tem conta)
             try {
-                const userCredential = await signInWithEmailAndPassword(auth, userData.email, password);
+                await signInWithEmailAndPassword(auth, userData.email, password);
                 
                 await updateDoc(userRef, {
                     ultimo_login: serverTimestamp()
@@ -279,10 +267,8 @@ export class LoginManager {
                 
                 userData.login = loginInput;
                 
-                // O PERFIL JÁ VEM DO BANCO - não cria padrão
-                // Se por algum motivo não tiver perfil, só então usa o padrão
                 if (!userData.perfil) {
-                    console.warn(`Usuário ${loginInput} sem perfil definido, usando padrão`);
+                    console.warn(`Usuario ${loginInput} sem perfil definido, usando padrao`);
                     if (userData.cargo === 'paciente') {
                         userData.perfil = 'operador';
                     } else {
@@ -304,29 +290,27 @@ export class LoginManager {
                 this.showHome(userData);
                 
             } catch (authError) {
-                console.error("Erro de autenticação:", authError);
+                console.error("Erro de autenticacao:", authError);
                 
                 if (authError.code === 'auth/invalid-credential' || 
                     authError.code === 'auth/wrong-password') {
-                    this.showError('❌ Senha incorreta!');
+                    this.showError('Senha incorreta!');
                 } else if (authError.code === 'auth/user-not-found') {
-                    this.showError('❌ Usuário não encontrado! Contate o administrador.');
+                    this.showError('Usuario nao encontrado! Contate o administrador.');
                 } else {
-                    this.showError('❌ Erro: ' + authError.message);
+                    this.showError('Erro: ' + authError.message);
                 }
             }
             
         } catch (error) {
             console.error("Erro:", error);
-            this.showError('❌ Erro ao conectar com o servidor!');
+            this.showError('Erro ao conectar com o servidor!');
         } finally {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         }
     }
 
-    // ==================== TELA DE CRIAÇÃO DE SENHA (PRIMEIRO ACESSO) ====================
-    
     showCreatePasswordScreen() {
         const app = document.getElementById('app');
         if (app) {
@@ -338,14 +322,14 @@ export class LoginManager {
                                 <img src="./imagens/logo.png" alt="TratamentoWeb" class="login-logo-img">
                             </div>
                             <h2>Primeiro Acesso</h2>
-                            <p>Olá, <strong>${this.tempData.nome || this.tempData.login}</strong>!</p>
+                            <p>Ola, <strong>${this.tempData.nome || this.tempData.login}</strong>!</p>
                             <p>Cadastre sua senha pessoal para continuar.</p>
                         </div>
     
                         <form id="createPasswordForm" class="login-form">
                             <div class="info-box" style="background: #e8eaf6; padding: 12px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
                                 <i class="bi bi-info-circle" style="color: #1a237e;"></i>
-                                <span style="font-size: 13px; color: #1a237e;">Crie uma senha forte e segura para suas próximas visitas.</span>
+                                <span style="font-size: 13px; color: #1a237e;">Crie uma senha forte e segura para suas proximas visitas.</span>
                             </div>
     
                             <div class="input-group-custom">
@@ -398,8 +382,11 @@ export class LoginManager {
             toggleNew.addEventListener('click', () => {
                 const type = newPassword.getAttribute('type') === 'password' ? 'text' : 'password';
                 newPassword.setAttribute('type', type);
-                toggleNew.querySelector('i').classList.toggle('bi-eye');
-                toggleNew.querySelector('i').classList.toggle('bi-eye-slash');
+                const icon = toggleNew.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('bi-eye');
+                    icon.classList.toggle('bi-eye-slash');
+                }
             });
         }
         
@@ -407,8 +394,11 @@ export class LoginManager {
             toggleConfirm.addEventListener('click', () => {
                 const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
                 confirmPassword.setAttribute('type', type);
-                toggleConfirm.querySelector('i').classList.toggle('bi-eye');
-                toggleConfirm.querySelector('i').classList.toggle('bi-eye-slash');
+                const icon = toggleConfirm.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('bi-eye');
+                    icon.classList.toggle('bi-eye-slash');
+                }
             });
         }
         
@@ -419,12 +409,12 @@ export class LoginManager {
             const confirm = confirmPassword.value;
             
             if (password !== confirm) {
-                this.showError('As senhas não coincidem!', 'createPasswordForm');
+                this.showError('As senhas nao coincidem!', 'createPasswordForm');
                 return;
             }
             
             if (password.length < 6) {
-                this.showError('A senha deve ter no mínimo 6 caracteres!', 'createPasswordForm');
+                this.showError('A senha deve ter no minimo 6 caracteres!', 'createPasswordForm');
                 return;
             }
             
@@ -441,7 +431,6 @@ export class LoginManager {
                 const userData = updatedDoc.data();
                 userData.login = this.tempData.login;
                 
-                // Mantém o perfil que já estava no banco
                 if (!userData.perfil) {
                     if (userData.cargo === 'paciente') {
                         userData.perfil = 'operador';
@@ -454,21 +443,19 @@ export class LoginManager {
                 this.showHome(userData);
                 
             } catch (authError) {
-                console.error("Erro ao criar usuário:", authError);
+                console.error("Erro ao criar usuario:", authError);
                 
                 if (authError.code === 'auth/email-already-in-use') {
-                    this.showError('❌ Este login já possui cadastro. Contate o administrador.', 'createPasswordForm');
+                    this.showError('Este login ja possui cadastro. Contate o administrador.', 'createPasswordForm');
                 } else if (authError.code === 'auth/weak-password') {
-                    this.showError('❌ Senha muito fraca. Use pelo menos 6 caracteres.', 'createPasswordForm');
+                    this.showError('Senha muito fraca. Use pelo menos 6 caracteres.', 'createPasswordForm');
                 } else {
-                    this.showError('❌ Erro ao criar conta: ' + authError.message, 'createPasswordForm');
+                    this.showError('Erro ao criar conta: ' + authError.message, 'createPasswordForm');
                 }
             }
         });
     }
 
-    // ==================== TELA DE RESET DE SENHA ====================
-    
     showPasswordResetDialog() {
         const app = document.getElementById('app');
         if (app) {
@@ -480,8 +467,8 @@ export class LoginManager {
                                 <img src="./imagens/logo.png" alt="TratamentoWeb" class="login-logo-img">
                             </div>
                             <h2>Recuperar Senha</h2>
-                            <p>Para recuperar sua senha, entre em contato com o profissional responsável.</p>
-                            <p>Ele poderá gerar uma nova senha temporária para você.</p>
+                            <p>Para recuperar sua senha, entre em contato com o profissional responsavel.</p>
+                            <p>Ele podera gerar uma nova senha temporaria para voce.</p>
                         </div>
     
                         <form id="resetForm" class="login-form">
@@ -532,7 +519,6 @@ export class LoginManager {
     }
 
     showHome(userData) {
-        // Adiciona classe CSS no body conforme o perfil
         const body = document.body;
         body.classList.remove('profile-paciente', 'profile-profissional');
         
