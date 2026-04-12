@@ -9,7 +9,7 @@ import {
     serverTimestamp
 } from '../0_firebase_api_config.js';
 import { deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { HomeManager, FuncoesCompartilhadas } from './home.js';
+import { HomeManager, FuncoesCompartilhadas } from './0_home.js';
 
 export class LoginManager {
     constructor() {
