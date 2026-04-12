@@ -11,6 +11,9 @@ import {
 import { deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { HomeManager, FuncoesCompartilhadas } from './0_home.js';
 
+// ==================== CARGOS VÁLIDOS NO SISTEMA ====================
+const CARGOS_VALIDOS = ['paciente', 'nutricionista', 'psicologo'];
+
 export class LoginManager {
     constructor() {
         this.renderLoginScreen();
@@ -155,6 +158,14 @@ export class LoginManager {
         if (savedUser) {
             try {
                 const user = JSON.parse(savedUser);
+                
+                // VALIDAÇÃO ESTRITA: Verifica se o cargo salvo ainda é válido
+                if (!this.isCargoValido(user.cargo)) {
+                    console.warn('Cargo inválido na sessão salva:', user.cargo);
+                    localStorage.removeItem('currentUser');
+                    return;
+                }
+                
                 this.showHome(user);
             } catch (error) {
                 console.error("Erro ao restaurar sessão:", error);
@@ -162,6 +173,18 @@ export class LoginManager {
             }
         }
     }
+
+    // ==================== VALIDAÇÃO DE CARGO ====================
+    
+    isCargoValido(cargo) {
+        return CARGOS_VALIDOS.includes(cargo);
+    }
+
+    getMensagemCargoInvalido(cargo) {
+        return `❌ Acesso negado! O perfil "${cargo}" não é válido neste sistema.\n\nPerfis permitidos: paciente, nutricionista, psicologo.`;
+    }
+
+    // ==================== LOGIN PRINCIPAL ====================
 
     async handleLogin() {
         const loginInput = document.getElementById('login')?.value.trim();
@@ -189,6 +212,19 @@ export class LoginManager {
             
             const userData = userDoc.data();
             
+            // ==================== VALIDAÇÃO ESTRITA DE CARGO ====================
+            // Verifica se o cargo existe e é válido
+            if (!userData.cargo) {
+                this.showError('❌ Usuário sem cargo definido! Contate o administrador.');
+                return;
+            }
+            
+            if (!this.isCargoValido(userData.cargo)) {
+                this.showError(this.getMensagemCargoInvalido(userData.cargo));
+                return;
+            }
+            // ====================================================================
+            
             if (userData.status_ativo === false) {
                 this.showError('❌ Conta desativada! Contate o administrador.');
                 return;
@@ -202,6 +238,7 @@ export class LoginManager {
             const hasUltimoLogin = userData.hasOwnProperty('ultimo_login');
             
             if (!hasUltimoLogin) {
+                // PRIMEIRO ACESSO: Validar código temporário
                 if (password !== userData.codigo_temporario) {
                     this.showError('❌ Código temporário inválido!');
                     return;
@@ -217,6 +254,7 @@ export class LoginManager {
                     login: loginInput,
                     email: userData.email,
                     nome: userData.nome,
+                    cargo: userData.cargo,
                     userRef: userRef
                 };
                 
@@ -224,6 +262,7 @@ export class LoginManager {
                 return;
             }
             
+            // LOGIN NORMAL (usuário já tem conta)
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, userData.email, password);
                 
@@ -272,6 +311,8 @@ export class LoginManager {
         }
     }
 
+    // ==================== TELA DE CRIAÇÃO DE SENHA (PRIMEIRO ACESSO) ====================
+    
     showCreatePasswordScreen() {
         const app = document.getElementById('app');
         if (app) {
@@ -407,6 +448,8 @@ export class LoginManager {
         });
     }
 
+    // ==================== TELA DE RESET DE SENHA ====================
+    
     showPasswordResetDialog() {
         const app = document.getElementById('app');
         if (app) {
