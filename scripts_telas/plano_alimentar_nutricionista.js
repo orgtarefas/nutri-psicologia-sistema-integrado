@@ -1,4 +1,4 @@
-import { FuncoesCompartilhadas } from './home.js';
+import { FuncoesCompartilhadas } from './0_home.js';
 import { collection, addDoc, getDocs, query, where, doc, updateDoc } from '../0_firebase_api_config.js';
 
 export class PlanoAlimentarNutricionista {
