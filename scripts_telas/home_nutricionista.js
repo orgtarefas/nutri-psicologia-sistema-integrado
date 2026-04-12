@@ -38,26 +38,24 @@ export class HomeNutricionista {
     }
 
     renderHTML() {
-        const cargoFormatado = this.funcoes.formatarCargo(this.userInfo.cargo);
-        const perfil = this.userInfo.perfil || '';
-        
         return `
             <div class="dashboard-container" style="height: 100vh; display: flex; flex-direction: column;">
                 <div id="menuContainer"></div>
 
                 <div class="main-content" style="flex: 1; overflow-y: auto; padding: 20px 32px;">
-                    <!-- SELETOR DE PACIENTE (simplificado) -->
-                    <div style="display: flex; justify-content: flex-end; margin-bottom: 24px;">
-                        <select id="pacienteSelect" style="min-width: 280px; padding: 10px 14px; border-radius: 10px; border: 2px solid #e2e8f0; background: white;">
-                            <option value="">-- Selecione um paciente --</option>
-                        </select>
-                    </div>
-
-                    <!-- INFORMAÇÕES DO PACIENTE (sempre visível, mas vazio até selecionar) -->
+                    <!-- INFORMAÇÕES DO PACIENTE (com seletor dentro) -->
                     <div id="pacienteInfo" class="info-section" style="margin-bottom: 24px;">
                         <div class="section-header">
                             <h3>📋 Informações do Paciente</h3>
                         </div>
+                        
+                        <!-- SELETOR DE PACIENTE DENTRO DO CARD -->
+                        <div style="margin-bottom: 20px;">
+                            <select id="pacienteSelect" style="width: 100%; max-width: 350px; padding: 10px 14px; border-radius: 10px; border: 2px solid #e2e8f0; background: white;">
+                                <option value="">-- Selecione um paciente --</option>
+                            </select>
+                        </div>
+
                         <div class="info-grid">
                             <div class="info-card">
                                 <span class="info-label">Nome</span>
@@ -82,7 +80,7 @@ export class HomeNutricionista {
                         </div>
                     </div>
 
-                    <!-- SELEÇÃO DE PERÍODO (sem botões) -->
+                    <!-- SELEÇÃO DE PERÍODO -->
                     <div id="periodoSection" class="evaluation-section" style="display: none; margin-bottom: 24px;">
                         <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
                             <div class="form-field">
@@ -388,7 +386,6 @@ export class HomeNutricionista {
         document.getElementById('infoSexo').textContent = this.selectedPaciente.sexo || '--';
         document.getElementById('infoIdade').textContent = this.funcoes.calcularIdade(this.selectedPaciente.dataNascimento) || '--';
 
-        // Definir período inicial e final baseado nas avaliações
         this.definirPeriodoPadrao();
     }
 
