@@ -109,8 +109,9 @@ export class HomeNutricionista {
 
                     <!-- BOTÃO NOVA AVALIAÇÃO -->
                     <div style="position: fixed; bottom: 30px; right: 30px; z-index: 100;">
-                        <button id="novaAvaliacaoBtn" class="btn-primary" style="padding: 14px 28px; font-size: 16px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                            ➕ Nova Avaliação Nutricional
+                        <button id="novaAvaliacaoBtn" class="btn-primary btn-expand">
+                            <span>➕</span>
+                            <span class="btn-text">Nova Avaliação Nutricional</span>
                         </button>
                     </div>
                 </div>
