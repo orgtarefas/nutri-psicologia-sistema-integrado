@@ -32,19 +32,16 @@ export class PlanoAlimentarNutricionista {
     }
 
     renderHTML() {
-        const cargoFormatado = this.funcoes.formatarCargo(this.userInfo.cargo);
-        const perfil = this.userInfo.perfil || '';
-        
         return `
             <div class="dashboard-container" style="height: 100vh; display: flex; flex-direction: column;">
                 <div id="menuContainer"></div>
 
                 <div class="main-content" style="flex: 1; overflow-y: auto; padding: 20px 32px;">
-                    <!-- TOPO: Seletor de Paciente + Informações do Profissional -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
-                        <div style="display: flex; align-items: center; gap: 16px;">
-                            <label style="font-weight: 600; color: #1a237e;">👤 Paciente:</label>
-                            <select id="pacienteSelect" style="min-width: 250px; padding: 10px 14px; border-radius: 10px; border: 2px solid #e2e8f0; background: white;">
+                    <!-- INFORMAÇÕES DO PACIENTE (com seletor dentro) -->
+                    <div id="pacienteInfo" class="info-section" style="margin-bottom: 24px;">
+                        <!-- SELETOR DE PACIENTE DENTRO DO CARD -->
+                        <div style="margin-bottom: 20px;">
+                            <select id="pacienteSelect" style="width: 100%; max-width: 350px; padding: 10px 14px; border-radius: 10px; border: 2px solid #e2e8f0; background: white;">
                                 <option value="">-- Selecione um paciente --</option>
                                 ${this.pacientesList.map(p => `
                                     <option value="${p.login}" ${this.selectedPaciente?.login === p.login ? 'selected' : ''}>
@@ -53,45 +50,30 @@ export class PlanoAlimentarNutricionista {
                                 `).join('')}
                             </select>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 16px; background: #f1f5f9; padding: 8px 20px; border-radius: 40px;">
-                            <span>👨‍⚕️ <strong>${cargoFormatado}</strong></span>
-                            <span class="role-badge" style="background: #1a237e; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">${perfil}</span>
+
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <span class="info-label">Nome</span>
+                                <span class="info-value" id="infoNome">${this.selectedPaciente?.nome || '--'}</span>
+                            </div>
+                            <div class="info-card">
+                                <span class="info-label">Login</span>
+                                <span class="info-value" id="infoLogin">${this.selectedPaciente?.login || '--'}</span>
+                            </div>
+                            <div class="info-card">
+                                <span class="info-label">Idade</span>
+                                <span class="info-value" id="infoIdade">${this.selectedPaciente ? this.funcoes.calcularIdade(this.selectedPaciente.dataNascimento) : '--'} anos</span>
+                            </div>
+                            <div class="info-card">
+                                <span class="info-label">Sexo</span>
+                                <span class="info-value" id="infoSexo">${this.selectedPaciente?.sexo || '--'}</span>
+                            </div>
                         </div>
                     </div>
 
                     ${this.selectedPaciente ? `
-                        <!-- INFORMAÇÕES DO PACIENTE -->
-                        <div class="info-section" style="margin-bottom: 24px;">
-                            <div class="section-header">
-                                <h3>📋 Informações do Paciente</h3>
-                            </div>
-                            <div class="info-grid">
-                                <div class="info-card">
-                                    <span class="info-label">Nome</span>
-                                    <span class="info-value">${this.selectedPaciente.nome}</span>
-                                </div>
-                                <div class="info-card">
-                                    <span class="info-label">Login</span>
-                                    <span class="info-value">${this.selectedPaciente.login}</span>
-                                </div>
-                                <div class="info-card">
-                                    <span class="info-label">Idade</span>
-                                    <span class="info-value">${this.funcoes.calcularIdade(this.selectedPaciente.dataNascimento)} anos</span>
-                                </div>
-                                <div class="info-card">
-                                    <span class="info-label">Sexo</span>
-                                    <span class="info-value">${this.selectedPaciente.sexo || 'N/I'}</span>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- PLANO ALIMENTAR -->
                         <div class="meal-plan-container">
-                            <div class="plan-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                                <h3 style="margin: 0;">📝 Plano Alimentar Personalizado</h3>
-                                <button id="savePlanBtn" class="btn-primary" style="padding: 12px 24px;">💾 Salvar Plano</button>
-                            </div>
-
                             <div class="meals-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 24px;">
                                 <div class="meal-card" style="background: #f8fafc; border-radius: 1rem; overflow: hidden; border: 1px solid #e2e8f0;">
                                     <div class="meal-header" style="background: #1a237e; color: white; padding: 12px 16px; font-weight: 600;">🌅 Café da Manhã</div>
@@ -141,6 +123,14 @@ export class PlanoAlimentarNutricionista {
                             <p style="color: #64748b;">Escolha um paciente para criar ou editar o plano alimentar</p>
                         </div>
                     `}
+                </div>
+
+                <!-- BOTÃO SALVAR PLANO (flutuante) -->
+                <div style="position: fixed; bottom: 30px; right: 30px; z-index: 100;">
+                    <button id="savePlanBtn" class="btn-primary btn-expand">
+                        <span>💾</span>
+                        <span class="btn-text">Salvar Plano Alimentar</span>
+                    </button>
                 </div>
             </div>
         `;
@@ -206,6 +196,11 @@ export class PlanoAlimentarNutricionista {
     }
 
     async saveMealPlan() {
+        if (!this.selectedPaciente) {
+            alert('❌ Selecione um paciente primeiro!');
+            return;
+        }
+
         try {
             const mealPlanData = {
                 paciente_login: this.selectedPaciente.login,
