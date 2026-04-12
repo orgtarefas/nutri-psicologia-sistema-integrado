@@ -16,9 +16,13 @@ export class PlanoAlimentarNutricionista {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         
-        // Inicializa o menu (componente centralizado)
+        // Inicializa o menu e insere no container
         this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'plano_alimentar');
-        this.menu.render();
+        const menuHtml = this.menu.render();
+        const menuContainer = document.getElementById('menuContainer');
+        if (menuContainer) {
+            menuContainer.innerHTML = menuHtml;
+        }
         this.menu.attachEvents();
         
         this.attachEvents();
