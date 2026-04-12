@@ -45,9 +45,6 @@ export class HomeNutricionista {
                 <div class="main-content" style="flex: 1; overflow-y: auto; padding: 20px 32px;">
                     <!-- INFORMAÇÕES DO PACIENTE (com seletor dentro) -->
                     <div id="pacienteInfo" class="info-section" style="margin-bottom: 24px;">
-                        <div class="section-header">
-                            <h3>📋 Informações do Paciente</h3>
-                        </div>
                         
                         <!-- SELETOR DE PACIENTE DENTRO DO CARD -->
                         <div style="margin-bottom: 20px;">
