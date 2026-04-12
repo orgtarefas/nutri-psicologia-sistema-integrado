@@ -1,4 +1,4 @@
-import { FuncoesCompartilhadas } from './home.js';
+import { FuncoesCompartilhadas } from './0_home.js';
 
 export class HomeCliente {
     constructor(userInfo) {
