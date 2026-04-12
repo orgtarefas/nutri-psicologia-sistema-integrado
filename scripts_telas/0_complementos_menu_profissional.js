@@ -7,10 +7,8 @@ export class MenuProfissional {
     }
 
     render() {
-        const perfilBadgeClass = this.userInfo.funcoes?.getPerfilBadgeClass(this.userInfo.perfil) || 'perfil-admin';
-        const perfilDisplayName = this.userInfo.funcoes?.getPerfilDisplayName(this.userInfo.perfil) || 'Administrador';
-        const isGerente = this.userInfo.perfil === 'gerente_nutricionista' && !this.userInfo.isAdminView;
-        const isAdmin = this.userInfo.cargo === 'desenvolvedor' || this.userInfo.perfil === 'admin';
+        const perfilBadgeClass = this.userInfo.funcoes?.getPerfilBadgeClass(this.userInfo.perfil) || 'perfil-supervisor';
+        const perfilDisplayName = this.userInfo.funcoes?.getPerfilDisplayName(this.userInfo.perfil) || 'Profissional';
         
         return `
             <div class="top-bar">
@@ -22,7 +20,6 @@ export class MenuProfissional {
                     <div class="user-greeting">
                         <span>👋 ${this.userInfo.nome}</span>
                         <span class="role-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        ${this.userInfo.isPreviewMode ? '<span class="preview-badge">🔍 Preview</span>' : ''}
                     </div>
                     <button class="menu-toggle" id="menuToggle">
                         <span class="menu-icon">☰</span>
@@ -36,7 +33,7 @@ export class MenuProfissional {
                     <button class="close-menu" id="closeMenu">×</button>
                 </div>
                 <nav class="menu-nav">
-                    ${this.renderMenuItems(isAdmin, isGerente)}
+                    ${this.renderMenuItems()}
                     <div class="menu-divider">Sistema</div>
                     <button class="menu-item logout" id="logoutMenuItem">
                         <span class="menu-icon">🚪</span>
@@ -49,57 +46,23 @@ export class MenuProfissional {
     }
 
     getTitle() {
-        if (this.userInfo.isPreviewMode) {
-            return `Preview - ${this.userInfo.cargo === 'nutricionista' ? 'Nutricionista' : this.userInfo.cargo === 'psicologo' ? 'Psicólogo' : 'Administrador'}`;
-        }
         if (this.userInfo.cargo === 'nutricionista') return 'Sistema Nutricional';
         if (this.userInfo.cargo === 'psicologo') return 'Sistema Psicológico';
-        return 'Administração - TratamentoWeb';
+        return 'TratamentoWeb';
     }
 
-    renderMenuItems(isAdmin, isGerente) {
-        let items = '';
-        
-        // Dashboard Admin (só para admin)
-        if (isAdmin && !this.userInfo.isPreviewMode) {
-            items += `
-                <button class="menu-item ${this.userInfo.currentModule === 'admin_dashboard' ? 'active' : ''}" data-module="admin_dashboard">
-                    <span class="menu-icon">📊</span>
-                    <span>Dashboard Admin</span>
-                </button>
-                <div class="menu-divider">Visualizações</div>
-                <button class="menu-item ${this.userInfo.previewMode === 'nutricionista' ? 'active' : ''}" data-module="preview_nutricionista">
-                    <span class="menu-icon">🍎</span>
-                    <span>Ver como Nutricionista</span>
-                </button>
-                <button class="menu-item ${this.userInfo.previewMode === 'psicologo' ? 'active' : ''}" data-module="preview_psicologo">
-                    <span class="menu-icon">🧠</span>
-                    <span>Ver como Psicólogo</span>
-                </button>
-                <button class="menu-item ${this.userInfo.previewMode === 'paciente' ? 'active' : ''}" data-module="preview_paciente">
-                    <span class="menu-icon">👤</span>
-                    <span>Ver como Paciente</span>
-                </button>
-                ${this.userInfo.previewMode ? `
-                    <button class="menu-item" data-module="exit_preview">
-                        <span class="menu-icon">🚪</span>
-                        <span>Sair da Visualização</span>
-                    </button>
-                ` : ''}
-                <div class="menu-divider">Módulos</div>
-            `;
-        }
-        
-        // Módulos comuns para todos profissionais
-        items += `
+    renderMenuItems() {
+        return `
             <button class="menu-item ${this.userInfo.currentModule === 'home' ? 'active' : ''}" data-module="home">
                 <span class="menu-icon">🏠</span>
                 <span>Home</span>
             </button>
-            <button class="menu-item ${this.userInfo.currentModule === 'plano_alimentar' ? 'active' : ''}" data-module="plano_alimentar">
-                <span class="menu-icon">🍽️</span>
-                <span>Plano Alimentar</span>
-            </button>
+            ${this.userInfo.cargo === 'nutricionista' ? `
+                <button class="menu-item ${this.userInfo.currentModule === 'plano_alimentar' ? 'active' : ''}" data-module="plano_alimentar">
+                    <span class="menu-icon">🍽️</span>
+                    <span>Plano Alimentar</span>
+                </button>
+            ` : ''}
             <button class="menu-item ${this.userInfo.currentModule === 'cadastro_cliente' ? 'active' : ''}" data-module="cadastro_cliente">
                 <span class="menu-icon">👥</span>
                 <span>Clientes</span>
@@ -125,36 +88,6 @@ export class MenuProfissional {
                 <span>Chat</span>
             </button>
         `;
-        
-        // Itens específicos para gerente
-        if (isGerente) {
-            items += `
-                <button class="menu-item ${this.userInfo.currentModule === 'gerenciar_equipe' ? 'active' : ''}" data-module="gerenciar_equipe">
-                    <span class="menu-icon">👥</span>
-                    <span>Gerenciar Equipe</span>
-                </button>
-                <button class="menu-item ${this.userInfo.currentModule === 'relatorios' ? 'active' : ''}" data-module="relatorios">
-                    <span class="menu-icon">📊</span>
-                    <span>Relatórios</span>
-                </button>
-            `;
-        }
-        
-        // Itens específicos para admin (não em preview)
-        if (isAdmin && !this.userInfo.isPreviewMode) {
-            items += `
-                <button class="menu-item ${this.userInfo.currentModule === 'usuarios' ? 'active' : ''}" data-module="usuarios">
-                    <span class="menu-icon">⚙️</span>
-                    <span>Gerenciar Usuários</span>
-                </button>
-                <button class="menu-item ${this.userInfo.currentModule ==='configuracoes' ? 'active' : ''}" data-module="configuracoes">
-                    <span class="menu-icon">⚙️</span>
-                    <span>Configurações</span>
-                </button>
-            `;
-        }
-        
-        return items;
     }
 
     attachEvents() {
@@ -170,11 +103,9 @@ export class MenuProfissional {
         if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
         if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
 
-        // Logout
         const logoutMenuItem = document.getElementById('logoutMenuItem');
         if (logoutMenuItem) logoutMenuItem.addEventListener('click', () => this.onNavigate('logout'));
 
-        // Menu items
         document.querySelectorAll('.menu-item[data-module]').forEach(item => {
             item.addEventListener('click', (e) => {
                 const module = item.getAttribute('data-module');
