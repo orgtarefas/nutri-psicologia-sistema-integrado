@@ -1,4 +1,5 @@
 import { FuncoesCompartilhadas } from './0_home.js';
+import { MenuProfissional } from './0_complementos_menu_profissional.js';
 
 export class HomePsicologo {
     constructor(userInfo) {
@@ -8,71 +9,33 @@ export class HomePsicologo {
         this.currentEvaluations = [];
         this.selectedPaciente = null;
         this.psicologiaChart = null;
+        this.menu = null;
     }
 
     render() {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
+        
+        // Inicializa o menu e insere no container
+        this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'home');
+        const menuHtml = this.menu.render();
+        const menuContainer = document.getElementById('menuContainer');
+        if (menuContainer) {
+            menuContainer.innerHTML = menuHtml;
+        }
+        this.menu.attachEvents();
+        
         this.attachEvents();
         this.loadPacientesList();
     }
 
     renderHTML() {
-        const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
-        const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
-        const isSupervisor = this.userInfo.perfil === 'supervisor_psicologo' && !this.userInfo.isAdminView;
-        const cargoDisplayText = this.userInfo.isAdminView ? 
-            `[Admin] Visualizando como ${this.funcoes.getCargoDisplayName(this.userInfo.cargo)}` : 'Psicólogo';
-        
         return `
-            <div class="home-container">
-                <div class="header">
-                    <div class="header-logo">
-                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img">
-                        <h1>Sistema de Avaliação Psicológica</h1>
-                    </div>
-                    <div class="user-info">
-                        <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ ${cargoDisplayText}</span>
-                        <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        <button class="logout-btn" id="logoutBtn">Sair</button>
-                    </div>
-                </div>
-                <div class="content">
-                    <div class="nav-buttons">
-                        <button class="nav-btn" data-module="group">👥 Atendimento em Grupo</button>
-                        <button class="nav-btn" data-module="scheduled">📅 Atendimento Agendado</button>
-                        <button class="nav-btn" data-module="journey">🌟 Acompanhar Jornadas</button>
-                        <button class="nav-btn" data-module="challenges">🏆 Desafios</button>
-                        <button class="nav-btn" id="registerPacienteBtn" style="background: #48bb78; color: white;">➕ Cadastrar Paciente</button>
-                        <button class="nav-btn" id="listaPacientesBtn" style="background: #3b82f6; color: white;">📋 Lista de Pacientes</button>
-                        ${isSupervisor ? `
-                            <button class="nav-btn" id="superviseTeamBtn" style="background: #9f7aea; color: white;">👥 Supervisionar Equipe</button>
-                        ` : ''}
-                    </div>
-                    
-                    <div id="registerModal" class="modal" style="display: none;">
-                        <div class="modal-content">
-                            <span class="close">&times;</span>
-                            <h3>📝 Cadastrar Novo Paciente</h3>
-                            <form id="registerPacienteForm">
-                                <div class="form-field"><label>👤 Nome Completo:</label><input type="text" id="regNome" required></div>
-                                <div class="form-field"><label>⚥ Sexo:</label><select id="regSexo" required><option value="">Selecione</option><option value="feminino">Feminino</option><option value="masculino">Masculino</option></select></div>
-                                <div class="form-field"><label>🔑 Login:</label><input type="text" id="regLogin" required><small>⚠️ Login único</small></div>
-                                <div class="form-field"><label>📅 Data Nascimento:</label><input type="date" id="regDataNascimento" required></div>
-                                <button type="submit" class="submit-btn">Cadastrar</button>
-                            </form>
-                        </div>
-                    </div>
-                    
-                    <div id="listaPacientesModal" class="modal" style="display: none;">
-                        <div class="modal-content" style="max-width: 800px;">
-                            <span class="close">&times;</span>
-                            <h3>📋 Lista de Pacientes</h3>
-                            <div id="listaPacientesContainer"></div>
-                        </div>
-                    </div>
-                    
+            <div class="dashboard-container">
+                <!-- O MENU SERÁ INSERIDO AQUI PELO COMPONENTE -->
+                <div id="menuContainer"></div>
+
+                <div class="main-content">
                     <div class="evaluation-form" style="text-align: left;">
                         <h3>👤 Selecionar Paciente</h3>
                         <select id="pacienteSelect" class="form-field" style="width: 100%; padding: 12px;">
@@ -80,47 +43,122 @@ export class HomePsicologo {
                         </select>
                     </div>
                     
-                    <div id="pacienteInfo" class="client-info" style="display: none;">
+                    <div id="pacienteInfo" class="info-section" style="display: none;">
                         <h3>📋 Dados do Paciente</h3>
-                        <div class="info-card">
-                            <p><strong>Nome:</strong> <span id="infoNome"></span></p>
-                            <p><strong>Login:</strong> <span id="infoLogin"></span></p>
-                            <p><strong>Idade:</strong> <span id="infoIdade"></span> anos</p>
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <span class="info-label">Nome</span>
+                                <span class="info-value" id="infoNome"></span>
+                            </div>
+                            <div class="info-card">
+                                <span class="info-label">Login</span>
+                                <span class="info-value" id="infoLogin"></span>
+                            </div>
+                            <div class="info-card">
+                                <span class="info-label">Idade</span>
+                                <span class="info-value" id="infoIdade"></span>
+                            </div>
                         </div>
                     </div>
                     
-                    <div id="avaliacaoForm" class="evaluation-form" style="display: none;">
-                        <h3>📝 Nova Avaliação</h3>
+                    <div id="avaliacaoForm" class="evaluation-section" style="display: none;">
+                        <div class="section-header">
+                            <h3>📝 Nova Avaliação Psicológica</h3>
+                        </div>
                         <form id="psicologiaForm">
                             <div class="form-grid">
-                                <div class="form-field"><label>📅 Data:</label><input type="date" id="evaluationDate" required></div>
-                                <div class="form-field"><label>😰 Ansiedade (0-10):</label><input type="range" id="ansiedade" min="0" max="10" value="5"><span id="ansiedadeValue">5</span></div>
-                                <div class="form-field"><label>😔 Depressão (0-10):</label><input type="range" id="depressao" min="0" max="10" value="5"><span id="depressaoValue">5</span></div>
-                                <div class="form-field"><label>😫 Estresse (0-10):</label><input type="range" id="estresse" min="0" max="10" value="5"><span id="estresseValue">5</span></div>
-                                <div class="form-field"><label>💤 Sono (0-10):</label><input type="range" id="sono" min="0" max="10" value="5"><span id="sonoValue">5</span></div>
-                                <div class="form-field full-width"><label>📝 Observações:</label><textarea id="observacoes" rows="3"></textarea></div>
+                                <div class="form-field">
+                                    <label>📅 Data</label>
+                                    <input type="date" id="evaluationDate" required>
+                                </div>
+                                <div class="form-field">
+                                    <label>😰 Ansiedade (0-10)</label>
+                                    <input type="range" id="ansiedade" min="0" max="10" value="5">
+                                    <span id="ansiedadeValue">5</span>
+                                </div>
+                                <div class="form-field">
+                                    <label>😔 Depressão (0-10)</label>
+                                    <input type="range" id="depressao" min="0" max="10" value="5">
+                                    <span id="depressaoValue">5</span>
+                                </div>
+                                <div class="form-field">
+                                    <label>😫 Estresse (0-10)</label>
+                                    <input type="range" id="estresse" min="0" max="10" value="5">
+                                    <span id="estresseValue">5</span>
+                                </div>
+                                <div class="form-field">
+                                    <label>💤 Qualidade do Sono (0-10)</label>
+                                    <input type="range" id="sono" min="0" max="10" value="5">
+                                    <span id="sonoValue">5</span>
+                                </div>
+                                <div class="form-field full-width">
+                                    <label>📝 Observações</label>
+                                    <textarea id="observacoes" rows="3" class="form-control"></textarea>
+                                </div>
                             </div>
-                            <button type="submit" class="submit-btn">💾 Salvar</button>
+                            <button type="submit" class="btn-primary">💾 Salvar Avaliação</button>
                         </form>
                     </div>
                     
                     <div id="avaliacoesList" class="client-evaluations" style="display: none;">
-                        <h3>📊 Histórico</h3>
+                        <h3>📊 Histórico de Avaliações</h3>
                         <div id="evaluationsList"></div>
                     </div>
                     
                     <div id="graficosSection" class="charts-section" style="display: none;">
-                        <div class="chart-container"><canvas id="psicologiaChart"></canvas></div>
+                        <div class="chart-card">
+                            <h4>📈 Evolução Psicológica</h4>
+                            <canvas id="psicologiaChart"></canvas>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- MODAL CADASTRO -->
+            <div id="registerModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>📝 Cadastrar Novo Paciente</h3>
+                    <form id="registerPacienteForm">
+                        <div class="form-field">
+                            <label>👤 Nome Completo:</label>
+                            <input type="text" id="regNome" class="form-control" required>
+                        </div>
+                        <div class="form-field">
+                            <label>⚥ Sexo:</label>
+                            <select id="regSexo" class="form-control" required>
+                                <option value="">Selecione</option>
+                                <option value="feminino">Feminino</option>
+                                <option value="masculino">Masculino</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>🔑 Login:</label>
+                            <input type="text" id="regLogin" class="form-control" required>
+                            <small>⚠️ Login único</small>
+                        </div>
+                        <div class="form-field">
+                            <label>📅 Data Nascimento:</label>
+                            <input type="date" id="regDataNascimento" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn-primary w-100 mt-3">Cadastrar</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- MODAL LISTA PACIENTES -->
+            <div id="listaPacientesModal" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 800px;">
+                    <span class="close">&times;</span>
+                    <h3>📋 Lista de Pacientes</h3>
+                    <div id="listaPacientesContainer"></div>
                 </div>
             </div>
         `;
     }
 
     attachEvents() {
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) logoutBtn.addEventListener('click', () => this.funcoes.logout());
-
+        // Botões da interface
         const registerBtn = document.getElementById('registerPacienteBtn');
         if (registerBtn) {
             registerBtn.addEventListener('click', () => {
@@ -142,13 +180,6 @@ export class HomePsicologo {
                 await this.registerPaciente();
             });
         }
-
-        const superviseBtn = document.getElementById('superviseTeamBtn');
-        if (superviseBtn) superviseBtn.addEventListener('click', () => this.superviseTeam());
-
-        document.querySelectorAll('.nav-btn[data-module]').forEach(btn => {
-            btn.addEventListener('click', () => alert('🚧 Em desenvolvimento'));
-        });
 
         const select = document.getElementById('pacienteSelect');
         if (select) {
@@ -172,9 +203,15 @@ export class HomePsicologo {
             });
         }
 
+        // Sliders
         ['ansiedade', 'depressao', 'estresse', 'sono'].forEach(id => {
             const slider = document.getElementById(id);
-            if (slider) slider.addEventListener('input', (e) => document.getElementById(`${id}Value`).textContent = e.target.value);
+            if (slider) {
+                slider.addEventListener('input', (e) => {
+                    const span = document.getElementById(`${id}Value`);
+                    if (span) span.textContent = e.target.value;
+                });
+            }
         });
 
         const form = document.getElementById('psicologiaForm');
@@ -195,6 +232,24 @@ export class HomePsicologo {
         window.onclick = (event) => { if (event.target === modal) this.funcoes.closeModal('listaPacientesModal'); };
     }
 
+    async navigateTo(module) {
+        switch(module) {
+            case 'home':
+                this.render();
+                break;
+            case 'cadastro_cliente':
+                const { CadastroCliente } = await import('./cadastro_cliente.js');
+                const cadastroCliente = new CadastroCliente(this.userInfo);
+                cadastroCliente.render();
+                break;
+            case 'logout':
+                this.funcoes.logout();
+                break;
+            default:
+                alert(`🚧 Módulo "${module}" em desenvolvimento`);
+        }
+    }
+
     async abrirListaPacientes() {
         await this.carregarListaPacientes();
         this.funcoes.showModal('listaPacientesModal');
@@ -207,10 +262,9 @@ export class HomePsicologo {
         container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading"></div> Carregando...</div>';
         await this.loadPacientesList();
         
-        const tabelaHtml = this.funcoes.gerarTabelaPacientes(this.pacientesList);
+        const tabelaHtml = this.gerarTabelaPacientes(this.pacientesList);
         container.innerHTML = tabelaHtml;
         
-        // Event listeners para códigos (primeiro acesso)
         document.querySelectorAll('.btn-ver-codigo').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 await this.visualizarCodigo(btn.getAttribute('data-login'));
@@ -223,7 +277,6 @@ export class HomePsicologo {
             });
         });
         
-        // Event listeners para reset de senha
         document.querySelectorAll('.btn-reset-senha').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 await this.resetarSenhaPaciente(btn.getAttribute('data-login'));
@@ -235,6 +288,55 @@ export class HomePsicologo {
                 await this.visualizarTokenReset(btn.getAttribute('data-login'));
             });
         });
+    }
+
+    gerarTabelaPacientes(pacientesList) {
+        if (pacientesList.length === 0) {
+            return '<p style="text-align: center; padding: 40px;">Nenhum paciente cadastrado.</p>';
+        }
+        
+        let html = `<div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #1a237e; color: white;">
+                        <th style="padding: 12px; text-align: left;">Paciente</th>
+                        <th style="padding: 12px; text-align: left;">Login</th>
+                        <th style="padding: 12px; text-align: center;">Status</th>
+                        <th style="padding: 12px; text-align: center;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
+        for (const paciente of pacientesList) {
+            const hasPrimeiroAcesso = paciente.hasUltimoLogin;
+            const statusBadge = hasPrimeiroAcesso 
+                ? '<span style="background: #10b981; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px;">✅ Já acessou</span>'
+                : '<span style="background: #f59e0b; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px;">⏳ Aguardando 1º acesso</span>';
+            
+            html += `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 12px;"><strong>${paciente.nome}</strong></td>
+                    <td style="padding: 12px;"><code>${paciente.login}</code></td>
+                    <td style="padding: 12px; text-align: center;">${statusBadge}</td>
+                    <td style="padding: 12px; text-align: center;">`;
+            
+            if (!hasPrimeiroAcesso) {
+                html += `
+                    <button class="btn-ver-codigo" data-login="${paciente.login}" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; margin-right: 8px; cursor: pointer;">👁️ Ver Código</button>
+                    <button class="btn-regerar-codigo" data-login="${paciente.login}" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;">🔄 Gerar Código</button>
+                `;
+            } else {
+                html += `
+                    <button class="btn-reset-senha" data-login="${paciente.login}" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; margin-right: 8px; cursor: pointer;">🔑 Reset Senha</button>
+                    <button class="btn-ver-token" data-login="${paciente.login}" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;">👁️ Ver Token</button>
+                `;
+            }
+            
+            html += `</td></tr>`;
+        }
+        
+        html += `</tbody></table></div>`;
+        return html;
     }
 
     async visualizarCodigo(login) {
@@ -305,7 +407,7 @@ export class HomePsicologo {
         this.pacientesList = await this.funcoes.loadPacientesList();
         const select = document.getElementById('pacienteSelect');
         if (select) {
-            select.innerHTML = '<option value="">-- Selecione --</option>';
+            select.innerHTML = '<option value="">-- Selecione um paciente --</option>';
             this.pacientesList.forEach(p => {
                 select.appendChild(new Option(`${p.nome} (${p.login})`, p.login));
             });
@@ -332,14 +434,14 @@ export class HomePsicologo {
         const container = document.getElementById('evaluationsList');
         if (!container) return;
         if (this.currentEvaluations.length === 0) {
-            container.innerHTML = '<p>Nenhuma avaliação</p>';
+            container.innerHTML = '<p style="text-align: center; padding: 40px;">Nenhuma avaliação encontrada.</p>';
             return;
         }
         container.innerHTML = this.currentEvaluations.map(e => `
             <div class="evaluation-card">
-                <div>📅 ${e.data_avaliacao}</div>
+                <div class="evaluation-date">📅 ${e.data_avaliacao}</div>
                 <div>😰 Ansiedade: ${e.escalas?.ansiedade}/10 | 😔 Depressão: ${e.escalas?.depressao}/10 | 😫 Estresse: ${e.escalas?.estresse}/10 | 💤 Sono: ${e.escalas?.qualidade_sono}/10</div>
-                ${e.observacoes ? `<div>📝 ${e.observacoes}</div>` : ''}
+                ${e.observacoes ? `<div class="mt-2">📝 ${e.observacoes}</div>` : ''}
             </div>
         `).join('');
     }
@@ -350,6 +452,7 @@ export class HomePsicologo {
                 paciente_login: this.selectedPaciente.login,
                 paciente_nome: this.selectedPaciente.nome,
                 profissional: this.userInfo.nome,
+                profissional_login: this.userInfo.login,
                 cargo: 'psicologo',
                 tipo: 'psicologica',
                 data_avaliacao: document.getElementById('evaluationDate').value,
@@ -370,12 +473,18 @@ export class HomePsicologo {
                 if (span) span.textContent = '5';
             });
             document.getElementById('observacoes').value = '';
-        } catch(e) { alert('Erro: ' + e.message); }
+        } catch(e) { 
+            alert('Erro: ' + e.message); 
+        }
     }
 
     renderChart() {
         if (this.currentEvaluations.length === 0) return;
-        if (typeof Chart === 'undefined') { setTimeout(() => this.renderChart(), 500); return; }
+        if (typeof Chart === 'undefined') { 
+            setTimeout(() => this.renderChart(), 500); 
+            return; 
+        }
+        
         const sorted = [...this.currentEvaluations].sort((a,b) => new Date(a.data_avaliacao) - new Date(b.data_avaliacao));
         const labels = sorted.map(e => e.data_avaliacao);
         const data = {
@@ -384,23 +493,33 @@ export class HomePsicologo {
             estresse: sorted.map(e => e.escalas?.estresse || 0),
             sono: sorted.map(e => e.escalas?.qualidade_sono || 0)
         };
+        
         const ctx = document.getElementById('psicologiaChart')?.getContext('2d');
         if (!ctx) return;
+        
         if (this.psicologiaChart) this.psicologiaChart.destroy();
+        
         this.psicologiaChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels,
                 datasets: [
-                    { label: 'Ansiedade', data: data.ansiedade, borderColor: '#ef4444', tension: 0.4 },
-                    { label: 'Depressão', data: data.depressao, borderColor: '#3b82f6', tension: 0.4 },
-                    { label: 'Estresse', data: data.estresse, borderColor: '#f59e0b', tension: 0.4 },
-                    { label: 'Sono', data: data.sono, borderColor: '#10b981', tension: 0.4 }
+                    { label: 'Ansiedade', data: data.ansiedade, borderColor: '#ef4444', tension: 0.4, fill: false },
+                    { label: 'Depressão', data: data.depressao, borderColor: '#3b82f6', tension: 0.4, fill: false },
+                    { label: 'Estresse', data: data.estresse, borderColor: '#f59e0b', tension: 0.4, fill: false },
+                    { label: 'Sono', data: data.sono, borderColor: '#10b981', tension: 0.4, fill: false }
                 ]
             },
-            options: { responsive: true, scales: { y: { beginAtZero: true, max: 10 } } }
+            options: { 
+                responsive: true, 
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        max: 10,
+                        title: { display: true, text: 'Nível (0-10)' }
+                    } 
+                } 
+            }
         });
     }
-
-    superviseTeam() { alert('👥 Supervisão de Equipe'); }
 }
