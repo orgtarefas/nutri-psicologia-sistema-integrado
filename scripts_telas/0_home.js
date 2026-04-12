@@ -83,26 +83,34 @@ export class FuncoesCompartilhadas {
         return idade;
     }
     
-    // ==================== VALIDAÇÕES DE CARGO E PERFIL ====================
+    // ==================== FUNÇÕES DE EXIBIÇÃO (SIMPLES) ====================
     
-    // Verifica se o cargo é de cliente
+    // Apenas primeira letra maiúscula do cargo
+    static formatarCargo(cargo) {
+        if (!cargo) return '';
+        return cargo.charAt(0).toUpperCase() + cargo.slice(1);
+    }
+    
+    // Retorna o perfil exatamente como está no banco
+    static getPerfil(perfil) {
+        return perfil || '';
+    }
+    
+    // ==================== VALIDAÇÕES ====================
+    
     static isCliente(cargo) {
         return cargo === 'paciente';
     }
     
-    // Verifica se o cargo é de profissional (qualquer um que não seja paciente)
     static isProfissional(cargo) {
         return cargo !== 'paciente';
     }
     
-    // VALIDA se a combinação (cargo, perfil) é válida
     static isCombinacaoValida(cargo, perfil) {
-        // Cliente só pode ter perfil operador ou operador_membro
         if (this.isCliente(cargo)) {
             return perfil === 'operador' || perfil === 'operador_membro';
         }
         
-        // Profissional só pode ter perfil supervisor ou gerente
         if (this.isProfissional(cargo)) {
             return perfil === 'supervisor' || perfil === 'gerente';
         }
@@ -110,39 +118,6 @@ export class FuncoesCompartilhadas {
         return false;
     }
     
-    // Nome para exibição do PERFIL
-    static getPerfilDisplayName(perfil) {
-        const nomes = {
-            'operador': 'Paciente',
-            'operador_membro': 'Membro Premium',
-            'supervisor': 'Profissional',
-            'gerente': 'Gerente'
-        };
-        return nomes[perfil] || perfil;
-    }
-    
-    // Classe CSS para badge do PERFIL
-    static getPerfilBadgeClass(perfil) {
-        const classes = {
-            'operador': 'perfil-operador',
-            'operador_membro': 'perfil-operador-membro',
-            'supervisor': 'perfil-supervisor',
-            'gerente': 'perfil-gerente'
-        };
-        return classes[perfil] || 'perfil-operador';
-    }
-    
-    // Nome para exibição do CARGO
-    static getCargoDisplayName(cargo) {
-        const nomes = {
-            'paciente': 'Paciente',
-            'nutricionista': 'Nutrição',
-            'psicologo': 'Psicologia'
-        };
-        return nomes[cargo] || cargo.charAt(0).toUpperCase() + cargo.slice(1);
-    }
-    
-    // Verifica se o usuário pode criar novos pacientes (apenas gerente)
     static podeCriarPaciente(perfil) {
         return perfil === 'gerente';
     }
@@ -622,8 +597,7 @@ export class HomeManager {
                 this.currentHome = new HomePsicologo(this.userInfo);
                 break;
             default:
-                // Se for um profissional novo (fisioterapeuta, etc), carrega tela genérica ou nutricionista
-                console.warn(`Cargo não mapeado: ${cargo}, usando tela padrão de profissional`);
+                // Para novos profissionais, usa tela padrão de profissional
                 this.currentHome = new HomeNutricionista(this.userInfo);
         }
         
