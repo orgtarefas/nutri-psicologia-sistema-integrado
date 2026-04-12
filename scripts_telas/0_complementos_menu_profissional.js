@@ -1,20 +1,21 @@
-// components/MenuProfissional.js
+// Componente de Menu Profissional - usado por TODAS as telas de profissionais
 export class MenuProfissional {
-    constructor(userInfo, onNavigate) {
+    constructor(userInfo, onNavigate, currentModule = 'home') {
         this.userInfo = userInfo;
         this.onNavigate = onNavigate;
+        this.currentModule = currentModule;
         this.isMenuOpen = false;
     }
 
     render() {
-        const perfilBadgeClass = this.userInfo.funcoes?.getPerfilBadgeClass(this.userInfo.perfil) || 'perfil-supervisor';
-        const perfilDisplayName = this.userInfo.funcoes?.getPerfilDisplayName(this.userInfo.perfil) || 'Profissional';
+        const perfilBadgeClass = this.userInfo.perfil === 'supervisor_nutricionista' ? 'perfil-supervisor' : 'perfil-supervisor';
+        const perfilDisplayName = this.userInfo.cargo === 'nutricionista' ? 'Nutricionista' : 'Psicólogo';
         
         return `
             <div class="top-bar">
                 <div class="logo-area">
                     <img src="./imagens/logo.png" alt="TratamentoWeb" class="logo">
-                    <h2>${this.getTitle()}</h2>
+                    <h2>${this.userInfo.cargo === 'nutricionista' ? 'Sistema Nutricional' : 'Sistema Psicológico'}</h2>
                 </div>
                 <div class="top-bar-actions">
                     <div class="user-greeting">
@@ -45,49 +46,48 @@ export class MenuProfissional {
         `;
     }
 
-    getTitle() {
-        if (this.userInfo.cargo === 'nutricionista') return 'Sistema Nutricional';
-        if (this.userInfo.cargo === 'psicologo') return 'Sistema Psicológico';
-        return 'TratamentoWeb';
-    }
-
     renderMenuItems() {
-        return `
-            <button class="menu-item ${this.userInfo.currentModule === 'home' ? 'active' : ''}" data-module="home">
-                <span class="menu-icon">🏠</span>
-                <span>Home</span>
-            </button>
-            ${this.userInfo.cargo === 'nutricionista' ? `
-                <button class="menu-item ${this.userInfo.currentModule === 'plano_alimentar' ? 'active' : ''}" data-module="plano_alimentar">
-                    <span class="menu-icon">🍽️</span>
-                    <span>Plano Alimentar</span>
+        // Itens comuns para NUTRICIONISTA e PSICÓLOGO
+        const commonItems = [
+            { module: 'home', icon: '🏠', label: 'Home' },
+            { module: 'cadastro_cliente', icon: '👥', label: 'Clientes' },
+            { module: 'atendimento_grupo', icon: '👥', label: 'Atendimento em Grupo' },
+            { module: 'gestao_agendamentos', icon: '📅', label: 'Gestão de Agendamentos' },
+            { module: 'acompanhar_jornadas', icon: '🌟', label: 'Acompanhar Jornadas' },
+            { module: 'palestras_videos', icon: '🎥', label: 'Palestras e Vídeos' },
+            { module: 'chat', icon: '💬', label: 'Chat' }
+        ];
+
+        // Item específico para NUTRICIONISTA
+        const nutricionistaItems = [
+            { module: 'plano_alimentar', icon: '🍽️', label: 'Plano Alimentar' }
+        ];
+
+        let itemsHtml = '';
+
+        // Adiciona itens comuns
+        commonItems.forEach(item => {
+            itemsHtml += `
+                <button class="menu-item ${this.currentModule === item.module ? 'active' : ''}" data-module="${item.module}">
+                    <span class="menu-icon">${item.icon}</span>
+                    <span>${item.label}</span>
                 </button>
-            ` : ''}
-            <button class="menu-item ${this.userInfo.currentModule === 'cadastro_cliente' ? 'active' : ''}" data-module="cadastro_cliente">
-                <span class="menu-icon">👥</span>
-                <span>Clientes</span>
-            </button>
-            <button class="menu-item ${this.userInfo.currentModule === 'atendimento_grupo' ? 'active' : ''}" data-module="atendimento_grupo">
-                <span class="menu-icon">👥</span>
-                <span>Atendimento em Grupo</span>
-            </button>
-            <button class="menu-item ${this.userInfo.currentModule === 'gestao_agendamentos' ? 'active' : ''}" data-module="gestao_agendamentos">
-                <span class="menu-icon">📅</span>
-                <span>Gestão de Agendamentos</span>
-            </button>
-            <button class="menu-item ${this.userInfo.currentModule === 'acompanhar_jornadas' ? 'active' : ''}" data-module="acompanhar_jornadas">
-                <span class="menu-icon">🌟</span>
-                <span>Acompanhar Jornadas</span>
-            </button>
-            <button class="menu-item ${this.userInfo.currentModule === 'palestras_videos' ? 'active' : ''}" data-module="palestras_videos">
-                <span class="menu-icon">🎥</span>
-                <span>Palestras e Vídeos</span>
-            </button>
-            <button class="menu-item ${this.userInfo.currentModule === 'chat' ? 'active' : ''}" data-module="chat">
-                <span class="menu-icon">💬</span>
-                <span>Chat</span>
-            </button>
-        `;
+            `;
+        });
+
+        // Adiciona itens específicos do nutricionista
+        if (this.userInfo.cargo === 'nutricionista') {
+            nutricionistaItems.forEach(item => {
+                itemsHtml += `
+                    <button class="menu-item ${this.currentModule === item.module ? 'active' : ''}" data-module="${item.module}">
+                        <span class="menu-icon">${item.icon}</span>
+                        <span>${item.label}</span>
+                    </button>
+                `;
+            });
+        }
+
+        return itemsHtml;
     }
 
     attachEvents() {
