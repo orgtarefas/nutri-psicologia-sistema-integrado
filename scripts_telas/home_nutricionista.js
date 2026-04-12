@@ -1,6 +1,5 @@
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
-import { doc, updateDoc, getDoc } from '../0_firebase_api_config.js';
 
 export class HomeNutricionista {
     constructor(userInfo) {
@@ -8,18 +7,24 @@ export class HomeNutricionista {
         this.funcoes = FuncoesCompartilhadas;
         this.currentEvaluations = [];
         this.pacientesList = [];
+        this.selectedPaciente = null;
+        this.menu = null;
+        
+        // Gráficos
         this.weightChart = null;
         this.imcChart = null;
         this.muscleChart = null;
-        this.selectedPaciente = null;
-        this.menu = null;
+        
+        // Período
+        this.dataInicial = null;
+        this.dataFinal = null;
     }
 
     render() {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         
-        // Inicializa o menu e insere no container
+        // Inicializa o menu
         this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'home');
         const menuHtml = this.menu.render();
         const menuContainer = document.getElementById('menuContainer');
@@ -33,69 +38,30 @@ export class HomeNutricionista {
     }
 
     renderHTML() {
+        const cargoFormatado = this.funcoes.formatarCargo(this.userInfo.cargo);
+        const perfil = this.userInfo.perfil || '';
+        
         return `
-            <div class="dashboard-container">
-                <!-- O MENU SERÁ INSERIDO AQUI PELO COMPONENTE -->
+            <div class="dashboard-container" style="height: 100vh; display: flex; flex-direction: column;">
                 <div id="menuContainer"></div>
 
-                <!-- CONTEÚDO PRINCIPAL -->
-                <div class="main-content">
-                    <!-- FORMULÁRIO DE AVALIAÇÃO -->
-                    <div class="evaluation-section">
-                        <div class="section-header">
-                            <h3>📊 Nova Avaliação Nutricional</h3>
+                <div class="main-content" style="flex: 1; overflow-y: auto; padding: 20px 32px;">
+                    <!-- TOPO: Seletor de Paciente + Informações do Profissional -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <label style="font-weight: 600; color: #1a237e;">👤 Paciente:</label>
+                            <select id="pacienteSelect" style="min-width: 250px; padding: 10px 14px; border-radius: 10px; border: 2px solid #e2e8f0; background: white;">
+                                <option value="">-- Selecione um paciente --</option>
+                            </select>
                         </div>
-                        <form id="nutritionalForm">
-                            <div class="form-grid">
-                                <div class="form-field">
-                                    <label>👤 Paciente</label>
-                                    <select id="pacienteSelect" required>
-                                        <option value="">-- Selecione um paciente --</option>
-                                    </select>
-                                </div>
-                                <div class="form-field">
-                                    <label>📅 Data</label>
-                                    <input type="date" id="evaluationDate" required>
-                                </div>
-                                <div class="form-field">
-                                    <label>📏 Peso (kg)</label>
-                                    <input type="number" id="weight" step="0.1" required>
-                                </div>
-                                <div class="form-field">
-                                    <label>📐 Altura (m)</label>
-                                    <input type="number" id="height" step="0.01" required>
-                                </div>
-                                <div class="form-field">
-                                    <label>📊 IMC</label>
-                                    <input type="text" id="imc" readonly>
-                                </div>
-                                <div class="form-field">
-                                    <label>📋 Classificação</label>
-                                    <input type="text" id="imcClassification" readonly>
-                                </div>
-                                <div class="form-field">
-                                    <label>💪 Massa Muscular (kg)</label>
-                                    <input type="number" id="muscleMass" step="0.1">
-                                </div>
-                                <div class="form-field">
-                                    <label>🧈 Gordura (%)</label>
-                                    <input type="number" id="bodyFat" step="0.1">
-                                </div>
-                                <div class="form-field">
-                                    <label>🩸 Glicemia (mg/dL)</label>
-                                    <input type="number" id="glucose">
-                                </div>
-                                <div class="form-field">
-                                    <label>🩸 Colesterol (mg/dL)</label>
-                                    <input type="number" id="cholesterol">
-                                </div>
-                            </div>
-                            <button type="submit" class="btn-primary">💾 Salvar Avaliação</button>
-                        </form>
+                        <div style="display: flex; align-items: center; gap: 16px; background: #f1f5f9; padding: 8px 20px; border-radius: 40px;">
+                            <span>👨‍⚕️ <strong>${cargoFormatado}</strong></span>
+                            <span class="role-badge" style="background: #1a237e; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">${perfil}</span>
+                        </div>
                     </div>
 
                     <!-- INFORMAÇÕES DO PACIENTE -->
-                    <div id="pacienteInfo" class="info-section" style="display: none;">
+                    <div id="pacienteInfo" class="info-section" style="display: none; margin-bottom: 24px;">
                         <div class="section-header">
                             <h3>📋 Informações do Paciente</h3>
                         </div>
@@ -123,51 +89,108 @@ export class HomeNutricionista {
                         </div>
                     </div>
 
+                    <!-- SELEÇÃO DE PERÍODO -->
+                    <div id="periodoSection" class="evaluation-section" style="display: none; margin-bottom: 24px;">
+                        <div class="section-header">
+                            <h3>📅 Período de Análise</h3>
+                        </div>
+                        <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                            <div class="form-field">
+                                <label>📅 Data Inicial</label>
+                                <input type="date" id="dataInicial" class="form-control" style="padding: 10px 14px;">
+                            </div>
+                            <div class="form-field">
+                                <label>📅 Data Final</label>
+                                <input type="date" id="dataFinal" class="form-control" style="padding: 10px 14px;">
+                            </div>
+                            <button id="aplicarPeriodoBtn" class="btn-secondary" style="padding: 10px 20px;">📊 Aplicar Período</button>
+                            <button id="resetPeriodoBtn" class="btn-secondary" style="padding: 10px 20px;">🔄 Reset</button>
+                        </div>
+                    </div>
+
                     <!-- GRÁFICOS -->
-                    <div class="charts-section">
+                    <div id="chartsSection" class="charts-section" style="display: none;">
                         <div class="chart-card">
                             <h4>📈 Evolução do Peso</h4>
-                            <canvas id="weightChart"></canvas>
+                            <canvas id="weightChart" style="max-height: 300px; width: 100%;"></canvas>
                         </div>
                         <div class="chart-card">
                             <h4>📊 Evolução do IMC</h4>
-                            <canvas id="imcChart"></canvas>
+                            <canvas id="imcChart" style="max-height: 300px; width: 100%;"></canvas>
                         </div>
                         <div class="chart-card">
                             <h4>💪 Evolução da Massa Muscular</h4>
-                            <canvas id="muscleChart"></canvas>
+                            <canvas id="muscleChart" style="max-height: 300px; width: 100%;"></canvas>
                         </div>
                     </div>
+
+                    <!-- BOTÃO NOVA AVALIAÇÃO -->
+                    <div style="position: fixed; bottom: 30px; right: 30px; z-index: 100;">
+                        <button id="novaAvaliacaoBtn" class="btn-primary" style="padding: 14px 28px; font-size: 16px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                            ➕ Nova Avaliação Nutricional
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL NOVA AVALIAÇÃO -->
+            <div id="avaliacaoModal" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">📝 Nova Avaliação Nutricional</h3>
+                        <button class="close-modal" style="background: none; border: none; font-size: 28px; cursor: pointer;">&times;</button>
+                    </div>
+                    <form id="nutritionalForm">
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label>👤 Paciente</label>
+                                <input type="text" id="modalPacienteNome" readonly style="background: #f1f5f9; padding: 12px 14px; border-radius: 10px; border: 2px solid #e2e8f0;">
+                            </div>
+                            <div class="form-field">
+                                <label>📏 Peso (kg)</label>
+                                <input type="number" id="weight" step="0.1" required placeholder="Ex: 70.5">
+                            </div>
+                            <div class="form-field">
+                                <label>📐 Altura (m)</label>
+                                <input type="number" id="height" step="0.01" required placeholder="Ex: 1.65">
+                            </div>
+                            <div class="form-field">
+                                <label>📊 IMC</label>
+                                <input type="text" id="imc" readonly>
+                            </div>
+                            <div class="form-field">
+                                <label>📋 Classificação</label>
+                                <input type="text" id="imcClassification" readonly>
+                            </div>
+                            <div class="form-field">
+                                <label>💪 Massa Muscular (kg)</label>
+                                <input type="number" id="muscleMass" step="0.1" placeholder="Opcional">
+                            </div>
+                            <div class="form-field">
+                                <label>🧈 Gordura (%)</label>
+                                <input type="number" id="bodyFat" step="0.1" placeholder="Opcional">
+                            </div>
+                            <div class="form-field">
+                                <label>🩸 Glicemia (mg/dL)</label>
+                                <input type="number" id="glucose" placeholder="Opcional">
+                            </div>
+                            <div class="form-field">
+                                <label>🩸 Colesterol (mg/dL)</label>
+                                <input type="number" id="cholesterol" placeholder="Opcional">
+                            </div>
+                        </div>
+                        <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                            <button type="button" class="btn-secondary" id="cancelarModalBtn">Cancelar</button>
+                            <button type="submit" class="btn-primary">💾 Salvar Avaliação</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         `;
     }
 
     attachEvents() {
-        // Form events
-        const form = document.getElementById('nutritionalForm');
-        if (form) {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!this.selectedPaciente) {
-                    alert('❌ Selecione um paciente primeiro!');
-                    return;
-                }
-                await this.saveNutritionalEvaluation();
-            });
-        }
-
-        const weightInput = document.getElementById('weight');
-        const heightInput = document.getElementById('height');
-        const calculateFields = () => { if (this.selectedPaciente) this.calculateNutritionalParameters(); };
-        if (weightInput && heightInput) {
-            weightInput.addEventListener('input', calculateFields);
-            heightInput.addEventListener('input', calculateFields);
-        }
-
-        const dateInput = document.getElementById('evaluationDate');
-        if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
-
+        // Seletor de paciente
         const pacienteSelect = document.getElementById('pacienteSelect');
         if (pacienteSelect) {
             pacienteSelect.addEventListener('change', async (e) => {
@@ -176,14 +199,138 @@ export class HomeNutricionista {
                     this.selectedPaciente = this.pacientesList.find(p => p.login === login);
                     this.displayPacienteInfo();
                     await this.loadEvaluationData();
+                    document.getElementById('periodoSection').style.display = 'block';
+                    document.getElementById('chartsSection').style.display = 'grid';
                 } else {
                     this.selectedPaciente = null;
                     document.getElementById('pacienteInfo').style.display = 'none';
+                    document.getElementById('periodoSection').style.display = 'none';
+                    document.getElementById('chartsSection').style.display = 'none';
                     this.currentEvaluations = [];
                     this.renderCharts();
                 }
             });
         }
+
+        // Botão Nova Avaliação
+        const novaAvaliacaoBtn = document.getElementById('novaAvaliacaoBtn');
+        const modal = document.getElementById('avaliacaoModal');
+        const closeModal = document.querySelector('.close-modal');
+        const cancelarBtn = document.getElementById('cancelarModalBtn');
+
+        if (novaAvaliacaoBtn) {
+            novaAvaliacaoBtn.addEventListener('click', () => {
+                if (!this.selectedPaciente) {
+                    alert('❌ Selecione um paciente primeiro!');
+                    return;
+                }
+                document.getElementById('modalPacienteNome').value = this.selectedPaciente.nome;
+                this.limparFormularioAvaliacao();
+                modal.style.display = 'flex';
+            });
+        }
+
+        if (closeModal) closeModal.onclick = () => modal.style.display = 'none';
+        if (cancelarBtn) cancelarBtn.onclick = () => modal.style.display = 'none';
+        
+        window.onclick = (event) => {
+            if (event.target === modal) modal.style.display = 'none';
+        };
+
+        // Form de avaliação
+        const form = document.getElementById('nutritionalForm');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.saveNutritionalEvaluation();
+                modal.style.display = 'none';
+            });
+        }
+
+        // Cálculo automático de IMC
+        const weightInput = document.getElementById('weight');
+        const heightInput = document.getElementById('height');
+        const calculateFields = () => { if (this.selectedPaciente) this.calculateNutritionalParameters(); };
+        if (weightInput && heightInput) {
+            weightInput.addEventListener('input', calculateFields);
+            heightInput.addEventListener('input', calculateFields);
+        }
+
+        // Período
+        const aplicarPeriodoBtn = document.getElementById('aplicarPeriodoBtn');
+        const resetPeriodoBtn = document.getElementById('resetPeriodoBtn');
+        const dataInicialInput = document.getElementById('dataInicial');
+        const dataFinalInput = document.getElementById('dataFinal');
+
+        if (aplicarPeriodoBtn) {
+            aplicarPeriodoBtn.addEventListener('click', () => {
+                this.dataInicial = dataInicialInput?.value;
+                this.dataFinal = dataFinalInput?.value;
+                this.filtrarEvolucaoPorPeriodo();
+            });
+        }
+
+        if (resetPeriodoBtn) {
+            resetPeriodoBtn.addEventListener('click', () => {
+                if (dataInicialInput) dataInicialInput.value = '';
+                if (dataFinalInput) dataFinalInput.value = '';
+                this.dataInicial = null;
+                this.dataFinal = null;
+                this.renderCharts();
+            });
+        }
+    }
+
+    limparFormularioAvaliacao() {
+        const ids = ['weight', 'height', 'muscleMass', 'bodyFat', 'glucose', 'cholesterol', 'imc', 'imcClassification'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+    }
+
+    filtrarEvolucaoPorPeriodo() {
+        if (!this.dataInicial && !this.dataFinal) {
+            this.renderCharts();
+            return;
+        }
+
+        let filtered = [...this.currentEvaluations];
+        
+        if (this.dataInicial) {
+            filtered = filtered.filter(e => e.data_avaliacao >= this.dataInicial);
+        }
+        if (this.dataFinal) {
+            filtered = filtered.filter(e => e.data_avaliacao <= this.dataFinal);
+        }
+
+        this.renderChartsWithData(filtered);
+    }
+
+    renderChartsWithData(evaluations) {
+        if (!evaluations || evaluations.length === 0) {
+            this.mostrarMensagemSemDados();
+            return;
+        }
+        if (typeof Chart === 'undefined') { 
+            setTimeout(() => this.renderChartsWithData(evaluations), 500); 
+            return; 
+        }
+        this.createChartsWithData(evaluations);
+    }
+
+    mostrarMensagemSemDados() {
+        const mensagem = 'Nenhuma avaliação encontrada no período selecionado';
+        ['weightChart', 'imcChart', 'muscleChart'].forEach(id => {
+            const ctx = document.getElementById(id)?.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#999';
+                ctx.textAlign = 'center';
+                ctx.fillText(mensagem, ctx.canvas.width / 2, ctx.canvas.height / 2);
+            }
+        });
     }
 
     async navigateTo(module) {
@@ -231,6 +378,28 @@ export class HomeNutricionista {
         document.getElementById('infoDataNasc').textContent = this.funcoes.formatDateToDisplay(this.selectedPaciente.dataNascimento) || 'Não informado';
         document.getElementById('infoSexo').textContent = this.selectedPaciente.sexo || 'Não informado';
         document.getElementById('infoIdade').textContent = this.funcoes.calcularIdade(this.selectedPaciente.dataNascimento) || 'Não informado';
+
+        // Definir período inicial e final baseado nas avaliações
+        this.definirPeriodoPadrao();
+    }
+
+    definirPeriodoPadrao() {
+        const dataInicialInput = document.getElementById('dataInicial');
+        const dataFinalInput = document.getElementById('dataFinal');
+        
+        if (this.currentEvaluations.length > 0) {
+            const primeiraData = this.currentEvaluations[0]?.data_avaliacao;
+            const ultimaData = this.currentEvaluations[this.currentEvaluations.length - 1]?.data_avaliacao;
+            
+            if (dataInicialInput && primeiraData) dataInicialInput.value = primeiraData;
+            if (dataFinalInput && ultimaData) dataFinalInput.value = ultimaData;
+            
+            this.dataInicial = primeiraData || null;
+            this.dataFinal = ultimaData || null;
+        } else {
+            if (dataInicialInput) dataInicialInput.value = '';
+            if (dataFinalInput) dataFinalInput.value = '';
+        }
     }
 
     calculateNutritionalParameters() {
@@ -253,7 +422,7 @@ export class HomeNutricionista {
                 profissional: this.userInfo.nome || '',
                 profissional_login: this.userInfo.login || '',
                 cargo: 'nutricionista',
-                data_avaliacao: document.getElementById('evaluationDate').value,
+                data_avaliacao: new Date().toISOString().split('T')[0],
                 dados_antropometricos: {
                     peso: parseFloat(document.getElementById('weight').value) || 0,
                     altura: parseFloat(document.getElementById('height').value) || 0,
@@ -269,12 +438,9 @@ export class HomeNutricionista {
                     colesterol_total: parseFloat(document.getElementById('cholesterol').value) || null
                 }
             });
-            alert('✅ Avaliação salva!');
-            ['weight', 'height', 'muscleMass', 'bodyFat', 'glucose', 'cholesterol', 'imc', 'imcClassification'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
+            alert('✅ Avaliação salva com sucesso!');
             await this.loadEvaluationData();
+            this.definirPeriodoPadrao();
         } catch (error) {
             alert('❌ Erro: ' + error.message);
         }
@@ -288,27 +454,21 @@ export class HomeNutricionista {
 
     renderCharts() {
         if (this.currentEvaluations.length === 0) {
-            ['weightChart', 'imcChart', 'muscleChart'].forEach(id => {
-                const ctx = document.getElementById(id)?.getContext('2d');
-                if (ctx) {
-                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                    ctx.font = '14px Arial';
-                    ctx.fillStyle = '#999';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Nenhuma avaliação encontrada', ctx.canvas.width / 2, ctx.canvas.height / 2);
-                }
-            });
+            this.mostrarMensagemSemDados();
             return;
         }
-        if (typeof Chart === 'undefined') { setTimeout(() => this.renderCharts(), 500); return; }
-        this.createCharts();
+        if (typeof Chart === 'undefined') { 
+            setTimeout(() => this.renderCharts(), 500); 
+            return; 
+        }
+        this.createChartsWithData(this.currentEvaluations);
     }
 
-    createCharts() {
-        const labels = this.currentEvaluations.map(e => e.data_avaliacao);
-        const weights = this.currentEvaluations.map(e => e.dados_antropometricos?.peso || 0);
-        const imcs = this.currentEvaluations.map(e => e.dados_antropometricos?.imc || 0);
-        const muscles = this.currentEvaluations.map(e => e.bioimpedancia?.massa_muscular || 0);
+    createChartsWithData(evaluations) {
+        const labels = evaluations.map(e => e.data_avaliacao);
+        const weights = evaluations.map(e => e.dados_antropometricos?.peso || 0);
+        const imcs = evaluations.map(e => e.dados_antropometricos?.imc || 0);
+        const muscles = evaluations.map(e => e.bioimpedancia?.massa_muscular || 0);
         
         if (this.weightChart) this.weightChart.destroy();
         if (this.imcChart) this.imcChart.destroy();
@@ -324,10 +484,27 @@ export class HomeNutricionista {
                         label: 'Peso (kg)', 
                         data: weights, 
                         borderColor: '#f97316', 
+                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
                         borderWidth: 3, 
-                        tension: 0.4, 
-                        fill: true 
+                        tension: 0.3, 
+                        fill: true,
+                        pointBackgroundColor: '#f97316',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
                     }] 
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${context.raw} kg`
+                            }
+                        }
+                    }
                 }
             });
         }
@@ -342,30 +519,72 @@ export class HomeNutricionista {
                         label: 'IMC', 
                         data: imcs, 
                         borderColor: '#3b82f6', 
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         borderWidth: 3, 
-                        tension: 0.4, 
-                        fill: true 
+                        tension: 0.3, 
+                        fill: true,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
                     }] 
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: 'IMC' }
+                        }
+                    }
                 }
             });
         }
         
         const muscleCtx = document.getElementById('muscleChart')?.getContext('2d');
-        if (muscleCtx && muscles.some(m => m > 0)) {
-            this.muscleChart = new Chart(muscleCtx, {
-                type: 'line', 
-                data: { 
-                    labels, 
-                    datasets: [{ 
-                        label: 'Massa Muscular (kg)', 
-                        data: muscles, 
-                        borderColor: '#10b981', 
-                        borderWidth: 3, 
-                        tension: 0.4, 
-                        fill: true 
-                    }] 
-                }
-            });
+        if (muscleCtx) {
+            const hasMuscleData = muscles.some(m => m > 0);
+            if (hasMuscleData) {
+                this.muscleChart = new Chart(muscleCtx, {
+                    type: 'line', 
+                    data: { 
+                        labels, 
+                        datasets: [{ 
+                            label: 'Massa Muscular (kg)', 
+                            data: muscles, 
+                            borderColor: '#10b981', 
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 3, 
+                            tension: 0.3, 
+                            fill: true,
+                            pointBackgroundColor: '#10b981',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }] 
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `${context.dataset.label}: ${context.raw} kg`
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                muscleCtx.clearRect(0, 0, muscleCtx.canvas.width, muscleCtx.canvas.height);
+                muscleCtx.font = '14px Arial';
+                muscleCtx.fillStyle = '#999';
+                muscleCtx.textAlign = 'center';
+                muscleCtx.fillText('Dados de massa muscular não disponíveis', muscleCtx.canvas.width / 2, muscleCtx.canvas.height / 2);
+            }
         }
     }
 }
