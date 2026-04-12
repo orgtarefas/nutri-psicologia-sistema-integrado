@@ -83,43 +83,68 @@ export class FuncoesCompartilhadas {
         return idade;
     }
     
-    static getPerfilPadrao(cargo) {
-        const mapaPerfis = {
-            'paciente': 'operador',
-            'cliente': 'operador',
-            'nutricionista': 'supervisor_nutricionista',
-            'psicologo': 'supervisor_psicologo'
-        };
-        return mapaPerfis[cargo] || 'operador';
+    // ==================== VALIDAÇÕES DE CARGO E PERFIL ====================
+    
+    // Verifica se o cargo é de cliente
+    static isCliente(cargo) {
+        return cargo === 'paciente';
     }
     
+    // Verifica se o cargo é de profissional (qualquer um que não seja paciente)
+    static isProfissional(cargo) {
+        return cargo !== 'paciente';
+    }
+    
+    // VALIDA se a combinação (cargo, perfil) é válida
+    static isCombinacaoValida(cargo, perfil) {
+        // Cliente só pode ter perfil operador ou operador_membro
+        if (this.isCliente(cargo)) {
+            return perfil === 'operador' || perfil === 'operador_membro';
+        }
+        
+        // Profissional só pode ter perfil supervisor ou gerente
+        if (this.isProfissional(cargo)) {
+            return perfil === 'supervisor' || perfil === 'gerente';
+        }
+        
+        return false;
+    }
+    
+    // Nome para exibição do PERFIL
     static getPerfilDisplayName(perfil) {
         const nomes = {
             'operador': 'Paciente',
             'operador_membro': 'Membro Premium',
-            'supervisor_nutricionista': 'Nutricionista',
-            'supervisor_psicologo': 'Psicólogo'
+            'supervisor': 'Profissional',
+            'gerente': 'Gerente'
         };
         return nomes[perfil] || perfil;
     }
     
+    // Classe CSS para badge do PERFIL
     static getPerfilBadgeClass(perfil) {
         const classes = {
             'operador': 'perfil-operador',
             'operador_membro': 'perfil-operador-membro',
-            'supervisor_nutricionista': 'perfil-supervisor',
-            'supervisor_psicologo': 'perfil-supervisor'
+            'supervisor': 'perfil-supervisor',
+            'gerente': 'perfil-gerente'
         };
         return classes[perfil] || 'perfil-operador';
     }
     
+    // Nome para exibição do CARGO
     static getCargoDisplayName(cargo) {
         const nomes = {
             'paciente': 'Paciente',
-            'nutricionista': 'Nutricionista',
-            'psicologo': 'Psicólogo'
+            'nutricionista': 'Nutrição',
+            'psicologo': 'Psicologia'
         };
-        return nomes[cargo] || cargo;
+        return nomes[cargo] || cargo.charAt(0).toUpperCase() + cargo.slice(1);
+    }
+    
+    // Verifica se o usuário pode criar novos pacientes (apenas gerente)
+    static podeCriarPaciente(perfil) {
+        return perfil === 'gerente';
     }
     
     // ==================== FUNÇÕES DE PACIENTE ====================
@@ -597,7 +622,9 @@ export class HomeManager {
                 this.currentHome = new HomePsicologo(this.userInfo);
                 break;
             default:
-                this.currentHome = new HomeCliente(this.userInfo);
+                // Se for um profissional novo (fisioterapeuta, etc), carrega tela genérica ou nutricionista
+                console.warn(`Cargo não mapeado: ${cargo}, usando tela padrão de profissional`);
+                this.currentHome = new HomeNutricionista(this.userInfo);
         }
         
         this.currentHome.render();
