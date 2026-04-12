@@ -1,4 +1,5 @@
 import { FuncoesCompartilhadas } from './0_home.js';
+import { MenuProfissional } from './0_complementos_menu_profissional.js';
 import { doc, updateDoc, getDoc } from '../0_firebase_api_config.js';
 
 export class HomeNutricionista {
@@ -11,98 +12,27 @@ export class HomeNutricionista {
         this.imcChart = null;
         this.muscleChart = null;
         this.selectedPaciente = null;
-        this.isMenuOpen = false;
+        this.menu = null;
     }
 
     render() {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
+        
+        // Inicializa o menu (componente centralizado)
+        this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'home');
+        this.menu.render();
+        this.menu.attachEvents();
+        
         this.attachEvents();
         this.loadPacientesList();
     }
 
     renderHTML() {
-        const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
-        const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
-        const isGerente = this.userInfo.perfil === 'gerente_nutricionista' && !this.userInfo.isAdminView;
-        
         return `
             <div class="dashboard-container">
-                <!-- TOP BAR -->
-                <div class="top-bar">
-                    <div class="logo-area">
-                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="logo">
-                        <h2>Sistema Nutricional</h2>
-                    </div>
-                    <div class="top-bar-actions">
-                        <div class="user-greeting">
-                            <span>👋 ${this.userInfo.nome}</span>
-                            <span class="role-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        </div>
-                        <button class="menu-toggle" id="menuToggle">
-                            <span class="menu-icon">☰</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- MENU LATERAL -->
-                <div class="side-menu" id="sideMenu">
-                    <div class="menu-header">
-                        <h3>Menu</h3>
-                        <button class="close-menu" id="closeMenu">×</button>
-                    </div>
-                    <nav class="menu-nav">
-                        <button class="menu-item active" data-module="home">
-                            <span class="menu-icon">🏠</span>
-                            <span>Home</span>
-                        </button>
-                        <button class="menu-item" data-module="plano_alimentar">
-                            <span class="menu-icon">🍽️</span>
-                            <span>Plano Alimentar</span>
-                        </button>
-                        <button class="menu-item" data-module="cadastro_cliente">
-                            <span class="menu-icon">👥</span>
-                            <span>Clientes</span>
-                        </button>
-                        <button class="menu-item" data-module="atendimento_grupo">
-                            <span class="menu-icon">👥</span>
-                            <span>Atendimento em Grupo</span>
-                        </button>
-                        <button class="menu-item" data-module="gestao_agendamentos">
-                            <span class="menu-icon">📅</span>
-                            <span>Gestão de Agendamentos</span>
-                        </button>
-                        <button class="menu-item" data-module="acompanhar_jornadas">
-                            <span class="menu-icon">🌟</span>
-                            <span>Acompanhar Jornadas</span>
-                        </button>
-                        <button class="menu-item" data-module="palestras_videos">
-                            <span class="menu-icon">🎥</span>
-                            <span>Palestras e Vídeos</span>
-                        </button>
-                        <button class="menu-item" data-module="chat">
-                            <span class="menu-icon">💬</span>
-                            <span>Chat</span>
-                        </button>
-                        ${isGerente ? `
-                            <button class="menu-item" data-module="gerenciar_equipe">
-                                <span class="menu-icon">👥</span>
-                                <span>Gerenciar Equipe</span>
-                            </button>
-                            <button class="menu-item" data-module="relatorios">
-                                <span class="menu-icon">📊</span>
-                                <span>Relatórios</span>
-                            </button>
-                        ` : ''}
-                        <button class="menu-item logout" id="logoutMenuItem">
-                            <span class="menu-icon">🚪</span>
-                            <span>Sair</span>
-                        </button>
-                    </nav>
-                </div>
-
-                <!-- OVERLAY -->
-                <div class="menu-overlay" id="menuOverlay"></div>
+                <!-- O MENU SERÁ INSERIDO AQUI PELO COMPONENTE -->
+                <div id="menuContainer"></div>
 
                 <!-- CONTEÚDO PRINCIPAL -->
                 <div class="main-content">
@@ -210,41 +140,6 @@ export class HomeNutricionista {
     }
 
     attachEvents() {
-        // Menu toggle
-        const menuToggle = document.getElementById('menuToggle');
-        const sideMenu = document.getElementById('sideMenu');
-        const menuOverlay = document.getElementById('menuOverlay');
-        const closeMenu = document.getElementById('closeMenu');
-
-        const openMenu = () => {
-            sideMenu.classList.add('open');
-            menuOverlay.classList.add('open');
-            this.isMenuOpen = true;
-        };
-
-        const closeMenuFunc = () => {
-            sideMenu.classList.remove('open');
-            menuOverlay.classList.remove('open');
-            this.isMenuOpen = false;
-        };
-
-        if (menuToggle) menuToggle.addEventListener('click', openMenu);
-        if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
-        if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
-
-        // Logout
-        const logoutMenuItem = document.getElementById('logoutMenuItem');
-        if (logoutMenuItem) logoutMenuItem.addEventListener('click', () => this.funcoes.logout());
-
-        // Menu items navigation
-        document.querySelectorAll('.menu-item[data-module]').forEach(item => {
-            item.addEventListener('click', async (e) => {
-                const module = item.getAttribute('data-module');
-                closeMenuFunc();
-                await this.navigateTo(module);
-            });
-        });
-
         // Form events
         const form = document.getElementById('nutritionalForm');
         if (form) {
@@ -317,11 +212,8 @@ export class HomeNutricionista {
             case 'chat':
                 alert('🚧 Módulo Chat em desenvolvimento');
                 break;
-            case 'gerenciar_equipe':
-                alert('👥 Gerenciar Equipe');
-                break;
-            case 'relatorios':
-                alert('📊 Relatórios Gerenciais');
+            case 'logout':
+                this.funcoes.logout();
                 break;
         }
     }
@@ -434,19 +326,54 @@ export class HomeNutricionista {
         const weightCtx = document.getElementById('weightChart')?.getContext('2d');
         if (weightCtx) {
             this.weightChart = new Chart(weightCtx, {
-                type: 'line', data: { labels, datasets: [{ label: 'Peso (kg)', data: weights, borderColor: '#f97316', borderWidth: 3, tension: 0.4, fill: true }] }
+                type: 'line', 
+                data: { 
+                    labels, 
+                    datasets: [{ 
+                        label: 'Peso (kg)', 
+                        data: weights, 
+                        borderColor: '#f97316', 
+                        borderWidth: 3, 
+                        tension: 0.4, 
+                        fill: true 
+                    }] 
+                }
             });
         }
+        
         const imcCtx = document.getElementById('imcChart')?.getContext('2d');
         if (imcCtx) {
             this.imcChart = new Chart(imcCtx, {
-                type: 'line', data: { labels, datasets: [{ label: 'IMC', data: imcs, borderColor: '#3b82f6', borderWidth: 3, tension: 0.4, fill: true }] }
+                type: 'line', 
+                data: { 
+                    labels, 
+                    datasets: [{ 
+                        label: 'IMC', 
+                        data: imcs, 
+                        borderColor: '#3b82f6', 
+                        borderWidth: 3, 
+                        tension: 0.4, 
+                        fill: true 
+                    }] 
+                }
             });
         }
+        
         const muscleCtx = document.getElementById('muscleChart')?.getContext('2d');
         if (muscleCtx && muscles.some(m => m > 0)) {
             this.muscleChart = new Chart(muscleCtx, {
-                type: 'line', data: { labels, datasets: [{ label: 'Massa Muscular (kg)', data: muscles, borderColor: '#10b981', borderWidth: 3, tension: 0.4, fill: true }] }
+                type: 'line', 
+                data: { 
+                    labels, 
+                    datasets: [{ 
+                        label: 'Massa Muscular (kg)', 
+                        data: muscles, 
+                        borderColor: '#10b981', 
+                        borderWidth: 3, 
+                        tension: 0.4, 
+                        fill: true 
+                    }] 
+                }
             });
         }
     }
