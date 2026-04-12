@@ -1,4 +1,4 @@
-import { 
+'import { 
     db, 
     auth, 
     getDoc, 
@@ -181,7 +181,7 @@ export class LoginManager {
     }
 
     getMensagemCargoInvalido(cargo) {
-        return `❌ Acesso negado! O perfil "${cargo}" não é válido neste sistema.\n\nPerfis permitidos: paciente, nutricionista, psicologo.`;
+        return `❌ Cargo inválido: ${cargo}`;
     }
 
     // ==================== LOGIN PRINCIPAL ====================
@@ -213,7 +213,6 @@ export class LoginManager {
             const userData = userDoc.data();
             
             // ==================== VALIDAÇÃO ESTRITA DE CARGO ====================
-            // Verifica se o cargo existe e é válido
             if (!userData.cargo) {
                 this.showError('❌ Usuário sem cargo definido! Contate o administrador.');
                 return;
@@ -221,6 +220,13 @@ export class LoginManager {
             
             if (!this.isCargoValido(userData.cargo)) {
                 this.showError(this.getMensagemCargoInvalido(userData.cargo));
+                return;
+            }
+            
+            // ==================== VALIDAÇÃO DA COMBINAÇÃO CARGO + PERFIL ====================
+            // Verifica se o perfil do banco é compatível com o cargo
+            if (userData.perfil && !FuncoesCompartilhadas.isCombinacaoValida(userData.cargo, userData.perfil)) {
+                this.showError(`❌ Combinação inválida: cargo "${userData.cargo}" com perfil "${userData.perfil}"`);
                 return;
             }
             // ====================================================================
@@ -255,6 +261,7 @@ export class LoginManager {
                     email: userData.email,
                     nome: userData.nome,
                     cargo: userData.cargo,
+                    perfil: userData.perfil, // mantém o perfil do banco
                     userRef: userRef
                 };
                 
@@ -272,8 +279,15 @@ export class LoginManager {
                 
                 userData.login = loginInput;
                 
+                // O PERFIL JÁ VEM DO BANCO - não cria padrão
+                // Se por algum motivo não tiver perfil, só então usa o padrão
                 if (!userData.perfil) {
-                    userData.perfil = FuncoesCompartilhadas.getPerfilPadrao(userData.cargo);
+                    console.warn(`Usuário ${loginInput} sem perfil definido, usando padrão`);
+                    if (userData.cargo === 'paciente') {
+                        userData.perfil = 'operador';
+                    } else {
+                        userData.perfil = 'supervisor';
+                    }
                 }
                 
                 if (rememberCheckbox && rememberCheckbox.checked) {
@@ -427,8 +441,13 @@ export class LoginManager {
                 const userData = updatedDoc.data();
                 userData.login = this.tempData.login;
                 
+                // Mantém o perfil que já estava no banco
                 if (!userData.perfil) {
-                    userData.perfil = FuncoesCompartilhadas.getPerfilPadrao(userData.cargo);
+                    if (userData.cargo === 'paciente') {
+                        userData.perfil = 'operador';
+                    } else {
+                        userData.perfil = 'supervisor';
+                    }
                 }
                 
                 localStorage.setItem('currentUser', JSON.stringify(userData));
