@@ -19,9 +19,13 @@ export class HomeNutricionista {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         
-        // Inicializa o menu (componente centralizado)
+        // Inicializa o menu e insere no container
         this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'home');
-        this.menu.render();
+        const menuHtml = this.menu.render();
+        const menuContainer = document.getElementById('menuContainer');
+        if (menuContainer) {
+            menuContainer.innerHTML = menuHtml;
+        }
         this.menu.attachEvents();
         
         this.attachEvents();
@@ -197,24 +201,11 @@ export class HomeNutricionista {
                 const cadastroCliente = new CadastroCliente(this.userInfo);
                 cadastroCliente.render();
                 break;
-            case 'atendimento_grupo':
-                alert('🚧 Módulo Atendimento em Grupo em desenvolvimento');
-                break;
-            case 'gestao_agendamentos':
-                alert('🚧 Módulo Gestão de Agendamentos em desenvolvimento');
-                break;
-            case 'acompanhar_jornadas':
-                alert('🚧 Módulo Acompanhar Jornadas em desenvolvimento');
-                break;
-            case 'palestras_videos':
-                alert('🚧 Módulo Palestras e Vídeos em desenvolvimento');
-                break;
-            case 'chat':
-                alert('🚧 Módulo Chat em desenvolvimento');
-                break;
             case 'logout':
                 this.funcoes.logout();
                 break;
+            default:
+                alert(`🚧 Módulo "${module}" em desenvolvimento`);
         }
     }
 
