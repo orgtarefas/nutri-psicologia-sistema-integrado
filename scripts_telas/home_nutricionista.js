@@ -46,54 +46,44 @@ export class HomeNutricionista {
                 <div id="menuContainer"></div>
 
                 <div class="main-content" style="flex: 1; overflow-y: auto; padding: 20px 32px;">
-                    <!-- TOPO: Seletor de Paciente + Informações do Profissional -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
-                        <div style="display: flex; align-items: center; gap: 16px;">
-                            <label style="font-weight: 600; color: #1a237e;">👤 Paciente:</label>
-                            <select id="pacienteSelect" style="min-width: 250px; padding: 10px 14px; border-radius: 10px; border: 2px solid #e2e8f0; background: white;">
-                                <option value="">-- Selecione um paciente --</option>
-                            </select>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 16px; background: #f1f5f9; padding: 8px 20px; border-radius: 40px;">
-                            <span>👨‍⚕️ <strong>${cargoFormatado}</strong></span>
-                            <span class="role-badge" style="background: #1a237e; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">${perfil}</span>
-                        </div>
+                    <!-- SELETOR DE PACIENTE (simplificado) -->
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 24px;">
+                        <select id="pacienteSelect" style="min-width: 280px; padding: 10px 14px; border-radius: 10px; border: 2px solid #e2e8f0; background: white;">
+                            <option value="">-- Selecione um paciente --</option>
+                        </select>
                     </div>
 
-                    <!-- INFORMAÇÕES DO PACIENTE -->
-                    <div id="pacienteInfo" class="info-section" style="display: none; margin-bottom: 24px;">
+                    <!-- INFORMAÇÕES DO PACIENTE (sempre visível, mas vazio até selecionar) -->
+                    <div id="pacienteInfo" class="info-section" style="margin-bottom: 24px;">
                         <div class="section-header">
                             <h3>📋 Informações do Paciente</h3>
                         </div>
                         <div class="info-grid">
                             <div class="info-card">
                                 <span class="info-label">Nome</span>
-                                <span class="info-value" id="infoNome"></span>
+                                <span class="info-value" id="infoNome">--</span>
                             </div>
                             <div class="info-card">
                                 <span class="info-label">Login</span>
-                                <span class="info-value" id="infoLogin"></span>
+                                <span class="info-value" id="infoLogin">--</span>
                             </div>
                             <div class="info-card">
                                 <span class="info-label">Data Nasc.</span>
-                                <span class="info-value" id="infoDataNasc"></span>
+                                <span class="info-value" id="infoDataNasc">--</span>
                             </div>
                             <div class="info-card">
                                 <span class="info-label">Idade</span>
-                                <span class="info-value" id="infoIdade"></span>
+                                <span class="info-value" id="infoIdade">--</span>
                             </div>
                             <div class="info-card">
                                 <span class="info-label">Sexo</span>
-                                <span class="info-value" id="infoSexo"></span>
+                                <span class="info-value" id="infoSexo">--</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SELEÇÃO DE PERÍODO -->
+                    <!-- SELEÇÃO DE PERÍODO (sem botões) -->
                     <div id="periodoSection" class="evaluation-section" style="display: none; margin-bottom: 24px;">
-                        <div class="section-header">
-                            <h3>📅 Período de Análise</h3>
-                        </div>
                         <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
                             <div class="form-field">
                                 <label>📅 Data Inicial</label>
@@ -103,8 +93,6 @@ export class HomeNutricionista {
                                 <label>📅 Data Final</label>
                                 <input type="date" id="dataFinal" class="form-control" style="padding: 10px 14px;">
                             </div>
-                            <button id="aplicarPeriodoBtn" class="btn-secondary" style="padding: 10px 20px;">📊 Aplicar Período</button>
-                            <button id="resetPeriodoBtn" class="btn-secondary" style="padding: 10px 20px;">🔄 Reset</button>
                         </div>
                     </div>
 
@@ -203,12 +191,30 @@ export class HomeNutricionista {
                     document.getElementById('chartsSection').style.display = 'grid';
                 } else {
                     this.selectedPaciente = null;
-                    document.getElementById('pacienteInfo').style.display = 'none';
+                    this.limparInfoPaciente();
                     document.getElementById('periodoSection').style.display = 'none';
                     document.getElementById('chartsSection').style.display = 'none';
                     this.currentEvaluations = [];
-                    this.renderCharts();
+                    this.limparGraficos();
                 }
+            });
+        }
+
+        // Datas - ao mudar, atualiza automaticamente
+        const dataInicialInput = document.getElementById('dataInicial');
+        const dataFinalInput = document.getElementById('dataFinal');
+
+        if (dataInicialInput) {
+            dataInicialInput.addEventListener('change', () => {
+                this.dataInicial = dataInicialInput.value;
+                this.filtrarEvolucaoPorPeriodo();
+            });
+        }
+
+        if (dataFinalInput) {
+            dataFinalInput.addEventListener('change', () => {
+                this.dataFinal = dataFinalInput.value;
+                this.filtrarEvolucaoPorPeriodo();
             });
         }
 
@@ -255,30 +261,27 @@ export class HomeNutricionista {
             weightInput.addEventListener('input', calculateFields);
             heightInput.addEventListener('input', calculateFields);
         }
+    }
 
-        // Período
-        const aplicarPeriodoBtn = document.getElementById('aplicarPeriodoBtn');
-        const resetPeriodoBtn = document.getElementById('resetPeriodoBtn');
-        const dataInicialInput = document.getElementById('dataInicial');
-        const dataFinalInput = document.getElementById('dataFinal');
+    limparInfoPaciente() {
+        document.getElementById('infoNome').textContent = '--';
+        document.getElementById('infoLogin').textContent = '--';
+        document.getElementById('infoDataNasc').textContent = '--';
+        document.getElementById('infoIdade').textContent = '--';
+        document.getElementById('infoSexo').textContent = '--';
+    }
 
-        if (aplicarPeriodoBtn) {
-            aplicarPeriodoBtn.addEventListener('click', () => {
-                this.dataInicial = dataInicialInput?.value;
-                this.dataFinal = dataFinalInput?.value;
-                this.filtrarEvolucaoPorPeriodo();
-            });
-        }
-
-        if (resetPeriodoBtn) {
-            resetPeriodoBtn.addEventListener('click', () => {
-                if (dataInicialInput) dataInicialInput.value = '';
-                if (dataFinalInput) dataFinalInput.value = '';
-                this.dataInicial = null;
-                this.dataFinal = null;
-                this.renderCharts();
-            });
-        }
+    limparGraficos() {
+        ['weightChart', 'imcChart', 'muscleChart'].forEach(id => {
+            const ctx = document.getElementById(id)?.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#999';
+                ctx.textAlign = 'center';
+                ctx.fillText('Nenhum paciente selecionado', ctx.canvas.width / 2, ctx.canvas.height / 2);
+            }
+        });
     }
 
     limparFormularioAvaliacao() {
@@ -290,8 +293,8 @@ export class HomeNutricionista {
     }
 
     filtrarEvolucaoPorPeriodo() {
-        if (!this.dataInicial && !this.dataFinal) {
-            this.renderCharts();
+        if (!this.currentEvaluations || this.currentEvaluations.length === 0) {
+            this.mostrarMensagemSemDados();
             return;
         }
 
@@ -304,23 +307,30 @@ export class HomeNutricionista {
             filtered = filtered.filter(e => e.data_avaliacao <= this.dataFinal);
         }
 
+        if (filtered.length === 0) {
+            this.mostrarMensagemSemDadosPeriodo();
+            return;
+        }
+
         this.renderChartsWithData(filtered);
     }
 
-    renderChartsWithData(evaluations) {
-        if (!evaluations || evaluations.length === 0) {
-            this.mostrarMensagemSemDados();
-            return;
-        }
-        if (typeof Chart === 'undefined') { 
-            setTimeout(() => this.renderChartsWithData(evaluations), 500); 
-            return; 
-        }
-        this.createChartsWithData(evaluations);
+    mostrarMensagemSemDadosPeriodo() {
+        const mensagem = 'Nenhuma avaliação encontrada no período selecionado';
+        ['weightChart', 'imcChart', 'muscleChart'].forEach(id => {
+            const ctx = document.getElementById(id)?.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#999';
+                ctx.textAlign = 'center';
+                ctx.fillText(mensagem, ctx.canvas.width / 2, ctx.canvas.height / 2);
+            }
+        });
     }
 
     mostrarMensagemSemDados() {
-        const mensagem = 'Nenhuma avaliação encontrada no período selecionado';
+        const mensagem = 'Nenhuma avaliação encontrada';
         ['weightChart', 'imcChart', 'muscleChart'].forEach(id => {
             const ctx = document.getElementById(id)?.getContext('2d');
             if (ctx) {
@@ -372,12 +382,11 @@ export class HomeNutricionista {
 
     displayPacienteInfo() {
         if (!this.selectedPaciente) return;
-        document.getElementById('pacienteInfo').style.display = 'block';
-        document.getElementById('infoNome').textContent = this.selectedPaciente.nome || 'Não informado';
-        document.getElementById('infoLogin').textContent = this.selectedPaciente.login || 'Não informado';
-        document.getElementById('infoDataNasc').textContent = this.funcoes.formatDateToDisplay(this.selectedPaciente.dataNascimento) || 'Não informado';
-        document.getElementById('infoSexo').textContent = this.selectedPaciente.sexo || 'Não informado';
-        document.getElementById('infoIdade').textContent = this.funcoes.calcularIdade(this.selectedPaciente.dataNascimento) || 'Não informado';
+        document.getElementById('infoNome').textContent = this.selectedPaciente.nome || '--';
+        document.getElementById('infoLogin').textContent = this.selectedPaciente.login || '--';
+        document.getElementById('infoDataNasc').textContent = this.funcoes.formatDateToDisplay(this.selectedPaciente.dataNascimento) || '--';
+        document.getElementById('infoSexo').textContent = this.selectedPaciente.sexo || '--';
+        document.getElementById('infoIdade').textContent = this.funcoes.calcularIdade(this.selectedPaciente.dataNascimento) || '--';
 
         // Definir período inicial e final baseado nas avaliações
         this.definirPeriodoPadrao();
@@ -399,6 +408,8 @@ export class HomeNutricionista {
         } else {
             if (dataInicialInput) dataInicialInput.value = '';
             if (dataFinalInput) dataFinalInput.value = '';
+            this.dataInicial = null;
+            this.dataFinal = null;
         }
     }
 
@@ -449,6 +460,12 @@ export class HomeNutricionista {
     async loadEvaluationData() {
         if (!this.selectedPaciente) return;
         this.currentEvaluations = await this.funcoes.loadEvaluationsByPatient(this.selectedPaciente.login);
+        
+        if (this.currentEvaluations.length === 0) {
+            this.mostrarMensagemSemDados();
+            return;
+        }
+        
         this.renderCharts();
     }
 
