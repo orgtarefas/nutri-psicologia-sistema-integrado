@@ -1,5 +1,6 @@
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
+import { criarNavegador } from './0_complementos_menu_navegacao.js';
 import { collection, addDoc, getDocs, query, where, doc, updateDoc } from '../0_firebase_api_config.js';
 
 export class PlanoAlimentarNutricionista {
@@ -10,14 +11,18 @@ export class PlanoAlimentarNutricionista {
         this.selectedPaciente = null;
         this.currentMealPlan = null;
         this.menu = null;
+        this.navegador = criarNavegador(userInfo, this.pacientesList);
     }
 
     render() {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         
+        // Atualiza a lista de pacientes no navegador
+        this.navegador.pacientesList = this.pacientesList;
+        
         // Inicializa o menu e insere no container
-        this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'plano_alimentar');
+        this.menu = new MenuProfissional(this.userInfo, (module) => this.navegador.navegarPara(module), 'plano_alimentar');
         const menuHtml = this.menu.render();
         const menuContainer = document.getElementById('menuContainer');
         if (menuContainer) {
@@ -155,30 +160,9 @@ export class PlanoAlimentarNutricionista {
         if (savePlanBtn) savePlanBtn.addEventListener('click', () => this.saveMealPlan());
     }
 
-    async navigateTo(module) {
-        switch(module) {
-            case 'home':
-                const { HomeNutricionista } = await import('./home_nutricionista.js');
-                const homeScreen = new HomeNutricionista(this.userInfo);
-                homeScreen.render();
-                break;
-            case 'cadastro_cliente':
-                const { CadastroCliente } = await import('./cadastro_cliente.js');
-                const cadastroScreen = new CadastroCliente(this.userInfo);
-                cadastroScreen.render();
-                break;
-            case 'plano_alimentar':
-                this.render();
-                break;
-            case 'logout':
-                this.funcoes.logout();
-                break;
-            default:
-                alert(`🚧 Módulo "${module}" em desenvolvimento`);
-        }
-    }
-
     async loadMealPlan() {
+        if (!this.selectedPaciente) return;
+        
         try {
             const plansRef = collection(window.db, 'planos_alimentares');
             const q = query(plansRef, where('paciente_login', '==', this.selectedPaciente.login));
