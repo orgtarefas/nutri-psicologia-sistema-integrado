@@ -1,5 +1,6 @@
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
+import { criarNavegador } from './0_complementos_menu_navegacao.js';
 
 export class CadastroCliente {
     constructor(userInfo) {
@@ -11,14 +12,18 @@ export class CadastroCliente {
         this.isEditing = false;
         this.editingLogin = null;
         this.menu = null;
+        this.navegador = criarNavegador(userInfo, this.clientesList);
     }
 
     async render() {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         
+        // Atualiza a lista de pacientes no navegador
+        this.navegador.pacientesList = this.clientesList;
+        
         // Inicializa o menu e insere no container
-        this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'cadastro_cliente');
+        this.menu = new MenuProfissional(this.userInfo, (module) => this.navegador.navegarPara(module), 'cadastro_cliente');
         const menuHtml = this.menu.render();
         const menuContainer = document.getElementById('menuContainer');
         if (menuContainer) {
@@ -222,14 +227,14 @@ export class CadastroCliente {
                     ${c.telefone ? `<div class="contact-info">📱 ${c.telefone}</div>` : ''}
                     ${c.whatsapp ? `<div class="contact-info">💬 ${c.whatsapp}</div>` : ''}
                     ${c.email ? `<div class="contact-info">📧 ${c.email}</div>` : ''}
-                </td>
+                 </td>
                 <td>${this.funcoes.formatDateToDisplay(c.dataNascimento) || 'N/I'}</td>
                 <td>${this.funcoes.calcularIdade(c.dataNascimento)} anos</td>
                 <td>
                     <span class="status-badge ${c.status_ativo !== false ? 'active' : 'inactive'}">
                         ${c.status_ativo !== false ? 'Ativo' : 'Inativo'}
                     </span>
-                </td>
+                 </td>
                 <td class="actions">
                     <button class="btn-icon view-cliente" data-login="${c.login}" title="Ver Detalhes">👁️</button>
                     <button class="btn-icon edit-cliente" data-login="${c.login}" title="Editar">✏️</button>
@@ -242,7 +247,7 @@ export class CadastroCliente {
                         `<button class="btn-icon activate-cliente" data-login="${c.login}" title="Ativar">▶️</button>`
                     }
                 </td>
-            </tr>
+             </tr>
         `).join('');
     }
 
@@ -338,29 +343,10 @@ export class CadastroCliente {
         }
     }
 
-    async navigateTo(module) {
-        switch(module) {
-            case 'home':
-                const { HomeNutricionista } = await import('./home_nutricionista.js');
-                const homeScreen = new HomeNutricionista(this.userInfo);
-                homeScreen.render();
-                break;
-            case 'plano_alimentar':
-                const { PlanoAlimentarNutricionista } = await import('./plano_alimentar_nutricionista.js');
-                const planoScreen = new PlanoAlimentarNutricionista(this.userInfo, this.clientesList);
-                planoScreen.render();
-                break;
-            case 'cadastro_cliente':
-                this.render();
-                break;
-            case 'logout':
-                this.funcoes.logout();
-                break;
-        }
-    }
-
     async loadClientes() {
         this.clientesList = await this.funcoes.loadPacientesList();
+        // Atualiza a lista no navegador
+        this.navegador.pacientesList = this.clientesList;
         this.refreshTable();
     }
 
