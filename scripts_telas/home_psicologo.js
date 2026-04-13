@@ -1,5 +1,6 @@
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
+import { criarNavegador } from './0_complementos_menu_navegacao.js';
 
 export class HomePsicologo {
     constructor(userInfo) {
@@ -10,14 +11,18 @@ export class HomePsicologo {
         this.selectedPaciente = null;
         this.psicologiaChart = null;
         this.menu = null;
+        this.navegador = criarNavegador(userInfo, this.pacientesList);
     }
 
     render() {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         
+        // Atualiza a lista de pacientes no navegador
+        this.navegador.pacientesList = this.pacientesList;
+        
         // Inicializa o menu e insere no container
-        this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'home');
+        this.menu = new MenuProfissional(this.userInfo, (module) => this.navegador.navegarPara(module), 'home');
         const menuHtml = this.menu.render();
         const menuContainer = document.getElementById('menuContainer');
         if (menuContainer) {
@@ -232,24 +237,6 @@ export class HomePsicologo {
         window.onclick = (event) => { if (event.target === modal) this.funcoes.closeModal('listaPacientesModal'); };
     }
 
-    async navigateTo(module) {
-        switch(module) {
-            case 'home':
-                this.render();
-                break;
-            case 'cadastro_cliente':
-                const { CadastroCliente } = await import('./cadastro_cliente.js');
-                const cadastroCliente = new CadastroCliente(this.userInfo);
-                cadastroCliente.render();
-                break;
-            case 'logout':
-                this.funcoes.logout();
-                break;
-            default:
-                alert(`🚧 Módulo "${module}" em desenvolvimento`);
-        }
-    }
-
     async abrirListaPacientes() {
         await this.carregarListaPacientes();
         this.funcoes.showModal('listaPacientesModal');
@@ -405,6 +392,8 @@ export class HomePsicologo {
 
     async loadPacientesList() {
         this.pacientesList = await this.funcoes.loadPacientesList();
+        // Atualiza a lista no navegador
+        this.navegador.pacientesList = this.pacientesList;
         const select = document.getElementById('pacienteSelect');
         if (select) {
             select.innerHTML = '<option value="">-- Selecione um paciente --</option>';
