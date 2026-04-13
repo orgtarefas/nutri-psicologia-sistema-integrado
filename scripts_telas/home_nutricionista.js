@@ -349,6 +349,11 @@ export class HomeNutricionista {
                 const planoAlimentar = new PlanoAlimentarNutricionista(this.userInfo, this.pacientesList);
                 planoAlimentar.render();
                 break;
+            case 'anamnese':
+                const { AnamneseNutricionista } = await import('./anamnese_nutricionista.js');
+                const anamnese = new AnamneseNutricionista(this.userInfo, this.pacientesList);
+                anamnese.render();
+                break;
             case 'cadastro_cliente':
                 const { CadastroCliente } = await import('./cadastro_cliente.js');
                 const cadastroCliente = new CadastroCliente(this.userInfo);
