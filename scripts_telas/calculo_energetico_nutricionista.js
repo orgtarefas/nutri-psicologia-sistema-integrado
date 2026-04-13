@@ -1,5 +1,6 @@
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
+import { criarNavegador } from './0_complementos_menu_navegacao.js';
 import { collection, addDoc, getDocs, query, where, doc, updateDoc } from '../0_firebase_api_config.js';
 
 export class CalculoEnergeticoNutricionista {
@@ -10,13 +11,17 @@ export class CalculoEnergeticoNutricionista {
         this.selectedPaciente = null;
         this.currentCalculo = null;
         this.menu = null;
+        this.navegador = criarNavegador(userInfo, this.pacientesList);
     }
 
     render() {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         
-        this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'calculo_energetico');
+        // Atualiza a lista de pacientes no navegador
+        this.navegador.pacientesList = this.pacientesList;
+        
+        this.menu = new MenuProfissional(this.userInfo, (module) => this.navegador.navegarPara(module), 'calculo_energetico');
         const menuHtml = this.menu.render();
         const menuContainer = document.getElementById('menuContainer');
         if (menuContainer) {
@@ -389,7 +394,6 @@ export class CalculoEnergeticoNutricionista {
                 if (massaMagra > 0) {
                     geb = 500 + (22 * massaMagra);
                 } else {
-                    // Estimativa aproximada de massa magra
                     const estimativaMassaMagra = sexo === 'masculino' ? peso * 0.8 : peso * 0.7;
                     geb = 500 + (22 * estimativaMassaMagra);
                 }
@@ -438,13 +442,13 @@ export class CalculoEnergeticoNutricionista {
         
         switch(objetivo) {
             case 'hipertrofia':
-                ajuste = adicional > 0 ? adicional : 300; // Padrão +300kcal para hipertrofia
+                ajuste = adicional > 0 ? adicional : 300;
                 break;
             case 'emagrecimento':
-                ajuste = deficit > 0 ? -deficit : -500; // Padrão -500kcal para emagrecimento
+                ajuste = deficit > 0 ? -deficit : -500;
                 break;
             case 'ganho_peso':
-                ajuste = adicional > 0 ? adicional : 500; // Padrão +500kcal para ganho de peso
+                ajuste = adicional > 0 ? adicional : 500;
                 break;
             default:
                 ajuste = 0;
@@ -467,7 +471,6 @@ export class CalculoEnergeticoNutricionista {
         let choGramas = 0, choKcal = 0, choPercentual = 0;
         let lipGramas = 0, lipKcal = 0, lipPercentual = 0;
         
-        // Cálculo das Proteínas
         if (ptnMetodo === 'g_kg' && peso > 0) {
             ptnGramas = ptnGkg * peso;
             ptnKcal = ptnGramas * 4;
@@ -477,7 +480,6 @@ export class CalculoEnergeticoNutricionista {
             ptnGramas = ptnKcal / 4;
         }
         
-        // Cálculo dos Carboidratos
         if (choMetodo === 'g_kg' && peso > 0) {
             choGramas = choGkg * peso;
             choKcal = choGramas * 4;
@@ -487,7 +489,6 @@ export class CalculoEnergeticoNutricionista {
             choGramas = choKcal / 4;
         }
         
-        // Cálculo dos Lipídios
         if (lipMetodo === 'g_kg' && peso > 0) {
             lipGramas = lipGkg * peso;
             lipKcal = lipGramas * 9;
@@ -497,14 +498,12 @@ export class CalculoEnergeticoNutricionista {
             lipGramas = lipKcal / 9;
         }
         
-        // Se usou métodos mistos, calcular percentuais baseado no VET
         const totalKcal = ptnKcal + choKcal + lipKcal;
         if (totalKcal > 0) {
             ptnPercentual = Math.round((ptnKcal / vetAjustado) * 100);
             choPercentual = Math.round((choKcal / vetAjustado) * 100);
             lipPercentual = Math.round((lipKcal / vetAjustado) * 100);
             
-            // Ajuste para soma dar 100%
             const soma = ptnPercentual + choPercentual + lipPercentual;
             if (soma !== 100 && soma > 0) {
                 choPercentual += (100 - soma);
@@ -530,7 +529,6 @@ export class CalculoEnergeticoNutricionista {
         const vetAjustado = this.calcularVETAjustado();
         const macros = this.calcularMacros();
         
-        // Atualizar campos
         const gebInput = document.getElementById('geb_calculado');
         const getInput = document.getElementById('get_calculado');
         const vetInput = document.getElementById('vet_ajustado');
@@ -539,7 +537,6 @@ export class CalculoEnergeticoNutricionista {
         if (getInput) getInput.value = get + ' kcal';
         if (vetInput) vetInput.value = vetAjustado + ' kcal';
         
-        // Atualizar campos de macros
         const ptnGramas = document.getElementById('ptn_gramas');
         const ptnKcal = document.getElementById('ptn_kcal');
         const ptnPercentual = document.getElementById('ptn_percentual');
@@ -564,7 +561,6 @@ export class CalculoEnergeticoNutricionista {
         if (lipKcal) lipKcal.value = macros.lip.kcal + ' kcal';
         if (lipPercentual) lipPercentual.value = macros.lip.percentual + '%';
         
-        // Atualizar resumo
         const resumoVet = document.getElementById('resumo_vet');
         const resumoPtnG = document.getElementById('resumo_ptn_g');
         const resumoPtnPerc = document.getElementById('resumo_ptn_perc');
@@ -580,39 +576,6 @@ export class CalculoEnergeticoNutricionista {
         if (resumoChoPerc) resumoChoPerc.textContent = macros.cho.percentual;
         if (resumoLipG) resumoLipG.textContent = macros.lip.gramas;
         if (resumoLipPerc) resumoLipPerc.textContent = macros.lip.percentual;
-    }
-
-    async navigateTo(module) {
-        switch(module) {
-            case 'home':
-                const { HomeNutricionista } = await import('./home_nutricionista.js');
-                const homeScreen = new HomeNutricionista(this.userInfo);
-                homeScreen.render();
-                break;
-            case 'cadastro_cliente':
-                const { CadastroCliente } = await import('./cadastro_cliente.js');
-                const cadastroScreen = new CadastroCliente(this.userInfo);
-                cadastroScreen.render();
-                break;
-            case 'plano_alimentar':
-                const { PlanoAlimentarNutricionista } = await import('./plano_alimentar_nutricionista.js');
-                const planoScreen = new PlanoAlimentarNutricionista(this.userInfo, this.pacientesList);
-                planoScreen.render();
-                break;
-            case 'anamnese':
-                const { AnamneseNutricionista } = await import('./anamnese_nutricionista.js');
-                const anamnese = new AnamneseNutricionista(this.userInfo, this.pacientesList);
-                anamnese.render();
-                break;
-            case 'calculo_energetico':
-                this.render();
-                break;
-            case 'logout':
-                this.funcoes.logout();
-                break;
-            default:
-                alert(`🚧 Módulo "${module}" em desenvolvimento`);
-        }
     }
 
     async loadCalculo() {
@@ -657,26 +620,22 @@ export class CalculoEnergeticoNutricionista {
                 data_calculo: new Date().toISOString().split('T')[0],
                 data_atualizacao: new Date().toISOString(),
                 
-                // Dados antropométricos
                 peso: parseFloat(document.getElementById('peso')?.value) || null,
                 altura: parseFloat(document.getElementById('altura')?.value) || null,
                 idade: parseInt(document.getElementById('idade')?.value) || null,
                 sexo: document.getElementById('sexo')?.value,
                 fator_atividade: parseFloat(document.getElementById('fator_atividade')?.value) || 1.2,
                 
-                // Fórmula e resultados
                 formula: document.getElementById('formula')?.value,
                 massa_magra: parseFloat(document.getElementById('massa_magra')?.value) || null,
                 geb: this.calcularGEB(),
                 get: this.calcularGET(),
                 
-                // Objetivo e ajustes
                 objetivo: document.getElementById('objetivo')?.value,
                 adicional_energetico: parseFloat(document.getElementById('adicional_energetico')?.value) || 0,
                 deficit_energetico: parseFloat(document.getElementById('deficit_energetico')?.value) || 0,
                 vet_ajustado: macros.vet,
                 
-                // Macronutrientes
                 proteinas: {
                     metodo: document.getElementById('ptn_metodo')?.value,
                     g_kg: parseFloat(document.getElementById('ptn_g_kg')?.value) || 1.6,
