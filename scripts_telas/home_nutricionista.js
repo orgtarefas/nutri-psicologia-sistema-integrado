@@ -354,6 +354,11 @@ export class HomeNutricionista {
                 const anamnese = new AnamneseNutricionista(this.userInfo, this.pacientesList);
                 anamnese.render();
                 break;
+            case 'calculo_energetico':
+                const { CalculoEnergeticoNutricionista } = await import('./calculo_energetico_nutricionista.js');
+                const calculoEnergetico = new CalculoEnergeticoNutricionista(this.userInfo, this.pacientesList);
+                calculoEnergetico.render();
+                break;
             case 'cadastro_cliente':
                 const { CadastroCliente } = await import('./cadastro_cliente.js');
                 const cadastroCliente = new CadastroCliente(this.userInfo);
