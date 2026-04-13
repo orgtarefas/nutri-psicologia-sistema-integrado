@@ -68,6 +68,10 @@ export class MenuProfissional {
                     <span class="menu-icon">🍽️</span>
                     <span>Plano Alimentar</span>
                 </button>
+                <button class="menu-item ${this.currentModule === 'calculo_energetico' ? 'active' : ''}" data-module="calculo_energetico">
+                    <span class="menu-icon">🧮</span>
+                    <span>Cálculo Energético</span>
+                </button>   
             ` : ''}
             <button class="menu-item ${this.currentModule === 'cadastro_cliente' ? 'active' : ''}" data-module="cadastro_cliente">
                 <span class="menu-icon">👥</span>
