@@ -1,5 +1,6 @@
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
+import { criarNavegador } from './0_complementos_menu_navegacao.js';
 import { collection, addDoc, getDocs, query, where, doc, updateDoc } from '../0_firebase_api_config.js';
 
 export class AnamneseNutricionista {
@@ -10,6 +11,7 @@ export class AnamneseNutricionista {
         this.selectedPaciente = null;
         this.currentAnamnese = null;
         this.menu = null;
+        this.navegador = criarNavegador(userInfo, this.pacientesList);
     }
 
     render() {
@@ -17,7 +19,7 @@ export class AnamneseNutricionista {
         app.innerHTML = this.renderHTML();
         
         // Inicializa o menu e insere no container
-        this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'anamnese');
+        this.menu = new MenuProfissional(this.userInfo, (module) => this.navegador.navegarPara(module), 'anamnese');
         const menuHtml = this.menu.render();
         const menuContainer = document.getElementById('menuContainer');
         if (menuContainer) {
@@ -26,8 +28,13 @@ export class AnamneseNutricionista {
         this.menu.attachEvents();
         
         this.attachEvents();
+        
+        // Atualiza a lista de pacientes no navegador
+        this.navegador.pacientesList = this.pacientesList;
+        
         if (this.selectedPaciente) {
             this.loadAnamnese();
+            this.carregarDadosAntropometricos();
         }
     }
 
@@ -372,31 +379,22 @@ export class AnamneseNutricionista {
         }
     }
 
-    async navigateTo(module) {
-        switch(module) {
-            case 'home':
-                const { HomeNutricionista } = await import('./home_nutricionista.js');
-                const homeScreen = new HomeNutricionista(this.userInfo);
-                homeScreen.render();
-                break;
-            case 'cadastro_cliente':
-                const { CadastroCliente } = await import('./cadastro_cliente.js');
-                const cadastroScreen = new CadastroCliente(this.userInfo);
-                cadastroScreen.render();
-                break;
-            case 'plano_alimentar':
-                const { PlanoAlimentarNutricionista } = await import('./plano_alimentar_nutricionista.js');
-                const planoScreen = new PlanoAlimentarNutricionista(this.userInfo, this.pacientesList);
-                planoScreen.render();
-                break;
-            case 'anamnese':
-                this.render();
-                break;
-            case 'logout':
-                this.funcoes.logout();
-                break;
-            default:
-                alert(`🚧 Módulo "${module}" em desenvolvimento`);
+    carregarDadosAntropometricos() {
+        // Carrega dados da última avaliação se disponível
+        if (this.currentAnamnese?.antropometria) {
+            const { peso_atual, altura } = this.currentAnamnese.antropometria;
+            if (peso_atual && document.getElementById('peso_atual')) {
+                document.getElementById('peso_atual').value = peso_atual;
+            }
+            if (altura && document.getElementById('altura')) {
+                document.getElementById('altura').value = altura;
+            }
+            // Dispara cálculo do IMC
+            if (peso_atual && altura) {
+                const event = new Event('input');
+                document.getElementById('peso_atual')?.dispatchEvent(event);
+                document.getElementById('altura')?.dispatchEvent(event);
+            }
         }
     }
 
