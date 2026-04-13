@@ -1,5 +1,6 @@
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
+import { criarNavegador } from './0_complementos_menu_navegacao.js';
 
 export class HomeNutricionista {
     constructor(userInfo) {
@@ -9,6 +10,7 @@ export class HomeNutricionista {
         this.pacientesList = [];
         this.selectedPaciente = null;
         this.menu = null;
+        this.navegador = criarNavegador(userInfo, this.pacientesList);
         
         // Gráficos
         this.weightChart = null;
@@ -24,8 +26,11 @@ export class HomeNutricionista {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         
+        // Atualiza a lista de pacientes no navegador
+        this.navegador.pacientesList = this.pacientesList;
+        
         // Inicializa o menu
-        this.menu = new MenuProfissional(this.userInfo, (module) => this.navigateTo(module), 'home');
+        this.menu = new MenuProfissional(this.userInfo, (module) => this.navegador.navegarPara(module), 'home');
         const menuHtml = this.menu.render();
         const menuContainer = document.getElementById('menuContainer');
         if (menuContainer) {
@@ -339,41 +344,10 @@ export class HomeNutricionista {
         });
     }
 
-    async navigateTo(module) {
-        switch(module) {
-            case 'home':
-                this.render();
-                break;
-            case 'plano_alimentar':
-                const { PlanoAlimentarNutricionista } = await import('./plano_alimentar_nutricionista.js');
-                const planoAlimentar = new PlanoAlimentarNutricionista(this.userInfo, this.pacientesList);
-                planoAlimentar.render();
-                break;
-            case 'anamnese':
-                const { AnamneseNutricionista } = await import('./anamnese_nutricionista.js');
-                const anamnese = new AnamneseNutricionista(this.userInfo, this.pacientesList);
-                anamnese.render();
-                break;
-            case 'calculo_energetico':
-                const { CalculoEnergeticoNutricionista } = await import('./calculo_energetico_nutricionista.js');
-                const calculoEnergetico = new CalculoEnergeticoNutricionista(this.userInfo, this.pacientesList);
-                calculoEnergetico.render();
-                break;
-            case 'cadastro_cliente':
-                const { CadastroCliente } = await import('./cadastro_cliente.js');
-                const cadastroCliente = new CadastroCliente(this.userInfo);
-                cadastroCliente.render();
-                break;
-            case 'logout':
-                this.funcoes.logout();
-                break;
-            default:
-                alert(`🚧 Módulo "${module}" em desenvolvimento`);
-        }
-    }
-
     async loadPacientesList() {
         this.pacientesList = await this.funcoes.loadPacientesList();
+        // Atualiza a lista no navegador
+        this.navegador.pacientesList = this.pacientesList;
         this.populatePacienteSelect();
     }
 
