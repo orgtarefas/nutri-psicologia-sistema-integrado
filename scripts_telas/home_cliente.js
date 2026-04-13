@@ -1,10 +1,17 @@
 import { FuncoesCompartilhadas } from './0_home.js';
+import { criarNavegador } from './0_complementos_menu_navegacao.js';
 
 export class HomeCliente {
     constructor(userInfo) {
         this.userInfo = userInfo;
         this.funcoes = FuncoesCompartilhadas;
         this.currentEvaluations = [];
+        this.navegador = criarNavegador(userInfo);
+        
+        // Gráficos
+        this.weightChart = null;
+        this.imcChart = null;
+        this.muscleChart = null;
     }
 
     render() {
@@ -15,8 +22,8 @@ export class HomeCliente {
     }
 
     renderHTML() {
-        const perfilBadgeClass = this.funcoes.getPerfilBadgeClass(this.userInfo.perfil);
-        const perfilDisplayName = this.funcoes.getPerfilDisplayName(this.userInfo.perfil);
+        const perfilDisplayName = this.getPerfilDisplayName(this.userInfo.perfil);
+        const perfilBadgeClass = this.getPerfilBadgeClass(this.userInfo.perfil);
         
         // SÓ mostra botão de conteúdo exclusivo se for membro E NÃO for admin view
         const isMembro = this.userInfo.perfil === 'operador_membro' && !this.userInfo.isAdminView;
@@ -47,6 +54,7 @@ export class HomeCliente {
                         <button class="nav-btn" data-module="schedule">📅 Agendamentos</button>
                         <button class="nav-btn" data-module="messages">💬 Mensagens</button>
                         <button class="nav-btn" id="minhaJornadaBtn" style="background: #8b5cf6; color: white;">🌟 Minha Jornada</button>
+                        <button class="nav-btn" id="meuPlanoAlimentarBtn" style="background: #10b981; color: white;">🍽️ Meu Plano Alimentar</button>
                         ${isMembro ? `
                             <button class="nav-btn" id="membroExclusiveBtn" style="background: #ed8936; color: white;">⭐ Conteúdo Exclusivo Membro</button>
                         ` : ''}
@@ -102,11 +110,31 @@ export class HomeCliente {
         return nomes[cargo] || cargo;
     }
 
+    getPerfilDisplayName(perfil) {
+        const perfis = {
+            'operador': 'Operador',
+            'operador_membro': 'Membro VIP',
+            'supervisor': 'Supervisor',
+            'gerente': 'Gerente'
+        };
+        return perfis[perfil] || perfil || 'Usuário';
+    }
+
+    getPerfilBadgeClass(perfil) {
+        const classes = {
+            'operador': 'perfil-operador',
+            'operador_membro': 'perfil-operador-membro',
+            'supervisor': 'perfil-supervisor',
+            'gerente': 'perfil-gerente'
+        };
+        return classes[perfil] || '';
+    }
+
     attachEvents() {
         // Botão de logout
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => this.funcoes.logout());
+            logoutBtn.addEventListener('click', () => this.navegador.navegarPara('logout'));
         }
 
         // Botão Minha Jornada
@@ -114,6 +142,14 @@ export class HomeCliente {
         if (minhaJornadaBtn) {
             minhaJornadaBtn.addEventListener('click', () => {
                 this.showMinhaJornada();
+            });
+        }
+
+        // Botão Meu Plano Alimentar
+        const meuPlanoAlimentarBtn = document.getElementById('meuPlanoAlimentarBtn');
+        if (meuPlanoAlimentarBtn) {
+            meuPlanoAlimentarBtn.addEventListener('click', () => {
+                this.navegador.navegarPara('meu_plano_alimentar');
             });
         }
 
@@ -126,7 +162,7 @@ export class HomeCliente {
         }
 
         // Botões de navegação
-        document.querySelectorAll('.nav-btn').forEach(btn => {
+        document.querySelectorAll('.nav-btn[data-module]').forEach(btn => {
             const module = btn.getAttribute('data-module');
             if (module && !btn.id) {
                 btn.addEventListener('click', () => this.showModuleMessage(module));
@@ -135,7 +171,6 @@ export class HomeCliente {
     }
 
     showMinhaJornada() {
-        // Buscar todas as avaliações do paciente
         const evaluations = this.currentEvaluations;
         
         if (evaluations.length === 0) {
@@ -143,12 +178,10 @@ export class HomeCliente {
             return;
         }
         
-        // Calcular estatísticas da jornada
         const totalAvaliacoes = evaluations.length;
         const primeiraAvaliacao = evaluations[0]?.data_avaliacao;
         const ultimaAvaliacao = evaluations[evaluations.length - 1]?.data_avaliacao;
         
-        // Calcular evolução do peso (se houver)
         const primeiroPeso = evaluations[0]?.dados_antropometricos?.peso;
         const ultimoPeso = evaluations[evaluations.length - 1]?.dados_antropometricos?.peso;
         let evolucaoPeso = '';
@@ -158,7 +191,6 @@ export class HomeCliente {
                            (diferenca > 0 ? `📈 Ganhou ${diferenca.toFixed(1)} kg` : '⚖️ Peso estável');
         }
         
-        // Calcular evolução do IMC
         const primeiroImc = evaluations[0]?.dados_antropometricos?.imc;
         const ultimoImc = evaluations[evaluations.length - 1]?.dados_antropometricos?.imc;
         let evolucaoImc = '';
