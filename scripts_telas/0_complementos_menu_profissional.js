@@ -60,13 +60,13 @@ export class MenuProfissional {
                 <span>Home</span>
             </button>
             ${this.userInfo.cargo === 'nutricionista' ? `
-                <button class="menu-item ${this.currentModule === 'plano_alimentar' ? 'active' : ''}" data-module="plano_alimentar">
-                    <span class="menu-icon">🍽️</span>
-                    <span>Plano Alimentar</span>
-                </button>
                 <button class="menu-item ${this.currentModule === 'anamnese' ? 'active' : ''}" data-module="anamnese">
                     <span class="menu-icon">📋</span>
                     <span>Anamnese</span>
+                </button>
+                <button class="menu-item ${this.currentModule === 'plano_alimentar' ? 'active' : ''}" data-module="plano_alimentar">
+                    <span class="menu-icon">🍽️</span>
+                    <span>Plano Alimentar</span>
                 </button>
             ` : ''}
             <button class="menu-item ${this.currentModule === 'cadastro_cliente' ? 'active' : ''}" data-module="cadastro_cliente">
