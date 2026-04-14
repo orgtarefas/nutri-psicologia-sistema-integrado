@@ -70,10 +70,6 @@ export class MenuProfissional {
         // Menu específico para nutricionista
         if (this.userInfo.cargo === 'nutricionista') {
             items.push(`
-                <button class="menu-item ${this.currentModule === 'avaliacao_nutricional' ? 'active' : ''}" data-module="avaliacao_nutricional">
-                    <span class="menu-icon">📊</span>
-                    <span>Avaliação Nutricional</span>
-                </button>
                 <button class="menu-item ${this.currentModule === 'anamnese' ? 'active' : ''}" data-module="anamnese">
                     <span class="menu-icon">📋</span>
                     <span>Anamnese</span>
