@@ -1,7 +1,7 @@
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
 import { criarNavegador } from './0_complementos_menu_navegacao.js';
-import { collection, addDoc, getDocs, query, where, doc, updateDoc } from '../0_firebase_api_config.js';
+import { db, collection, addDoc, getDocs, query, where, doc, updateDoc } from '../0_firebase_api_config.js';
 
 export class AnamneseNutricionista {
     constructor(userInfo, pacientesList) {
@@ -402,7 +402,8 @@ export class AnamneseNutricionista {
         if (!this.selectedPaciente) return;
         
         try {
-            const anamneseRef = collection(window.db, 'anamneses_nutricionais');
+            // CORRIGIDO: usar 'db' em vez de 'window.db'
+            const anamneseRef = collection(db, 'anamneses_nutricionais');
             const q = query(anamneseRef, where('paciente_login', '==', this.selectedPaciente.login));
             const querySnapshot = await getDocs(q);
             
@@ -493,10 +494,11 @@ export class AnamneseNutricionista {
                 observacoes: document.getElementById('observacoes')?.value || ''
             };
 
-            const anamneseRef = collection(window.db, 'anamneses_nutricionais');
+            // CORRIGIDO: usar 'db' em vez de 'window.db'
+            const anamneseRef = collection(db, 'anamneses_nutricionais');
             
             if (this.currentAnamnese?.id) {
-                const anamneseDoc = doc(window.db, 'anamneses_nutricionais', this.currentAnamnese.id);
+                const anamneseDoc = doc(db, 'anamneses_nutricionais', this.currentAnamnese.id);
                 await updateDoc(anamneseDoc, anamneseData);
                 alert('✅ Anamnese atualizada com sucesso!');
             } else {
