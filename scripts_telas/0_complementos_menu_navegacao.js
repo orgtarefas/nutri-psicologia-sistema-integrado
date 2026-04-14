@@ -66,9 +66,6 @@ export class NavegadorNutricionista extends NavegadorBase {
             case 'calculo_energetico':
                 await this.irParaCalculoEnergetico();
                 return true;
-            case 'avaliacao_nutricional':
-                await this.irParaAvaliacaoNutricional();
-                return true;
             case 'evolucao_paciente':
                 await this.irParaEvolucaoPaciente();
                 return true;
@@ -106,11 +103,6 @@ export class NavegadorNutricionista extends NavegadorBase {
         const { CalculoEnergeticoNutricionista } = await import('./calculo_energetico_nutricionista.js');
         const calculoScreen = new CalculoEnergeticoNutricionista(this.userInfo, this.pacientesList);
         calculoScreen.render();
-    }
-
-    async irParaAvaliacaoNutricional() {
-        // Para futura implementação
-        this.showMensagemDesenvolvimento('avaliacao_nutricional');
     }
 
     async irParaEvolucaoPaciente() {
