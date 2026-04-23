@@ -2,7 +2,7 @@ import { FuncoesCompartilhadas } from './0_home.js';
 import { criarNavegador } from './0_complementos_menu_navegacao.js';
 import { 
     db, collection, addDoc, getDocs, query, where, 
-    doc, updateDoc, getDoc, serverTimestamp 
+    doc, updateDoc, getDoc, setDoc, serverTimestamp 
 } from '../0_firebase_api_config.js';
 
 export class ShoppingNutriCliente {
@@ -257,7 +257,7 @@ export class ShoppingNutriCliente {
                 ultima_roleta: null,
                 data_criacao: new Date().toISOString()
             };
-            await this.funcoes.setDoc(userRef, dadosIniciais);
+            await setDoc(userRef, dadosIniciais);
             this.userPontos = 0;
             this.userNivel = 1;
             this.userExperiencia = 0;
@@ -336,9 +336,12 @@ export class ShoppingNutriCliente {
                 } else {
                     this.roletaDisponivel = true;
                 }
+            } else {
+                this.roletaDisponivel = true;
             }
         } catch (error) {
             console.error("Erro ao verificar roleta:", error);
+            this.roletaDisponivel = true;
         }
     }
 
@@ -385,6 +388,13 @@ export class ShoppingNutriCliente {
     async adicionarPontos(pontos, descricao, tipo = 'ganho') {
         try {
             const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
+            
+            // Primeiro verifica se o documento existe
+            const userDoc = await getDoc(userRef);
+            if (!userDoc.exists()) {
+                await this.criarDocumentoUsuario();
+            }
+            
             this.userPontos += pontos;
             this.userExperiencia += pontos;
             
@@ -475,10 +485,16 @@ export class ShoppingNutriCliente {
 
     async girarRoleta() {
         try {
+            // Verifica se o documento existe
+            const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
+            const userDoc = await getDoc(userRef);
+            if (!userDoc.exists()) {
+                await this.criarDocumentoUsuario();
+            }
+            
             const premios = this.configGamificacao?.roleta_premios || [5, 10, 15, 20, 25, 50, 100];
             const premio = premios[Math.floor(Math.random() * premios.length)];
             
-            const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
             await updateDoc(userRef, {
                 ultima_roleta: new Date().toISOString()
             });
@@ -591,14 +607,19 @@ export class ShoppingNutriCliente {
     async registrarAcessoDiario() {
         try {
             const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
-            const userDoc = await getDoc(userRef);
-            const hoje = new Date().toISOString().split('T')[0];
             
-            if (userDoc.exists()) {
-                const ultimoAcesso = userDoc.data().ultimo_acesso_diario;
-                if (ultimoAcesso && ultimoAcesso.split('T')[0] === hoje) {
-                    return;
-                }
+            // Verifica se o documento existe
+            let userDoc = await getDoc(userRef);
+            if (!userDoc.exists()) {
+                await this.criarDocumentoUsuario();
+                userDoc = await getDoc(userRef);
+            }
+            
+            const hoje = new Date().toISOString().split('T')[0];
+            const ultimoAcesso = userDoc.data()?.ultimo_acesso_diario;
+            
+            if (ultimoAcesso && ultimoAcesso.split('T')[0] === hoje) {
+                return;
             }
             
             await updateDoc(userRef, {
