@@ -55,6 +55,7 @@ export class HomeCliente {
                         <button class="nav-btn" data-module="messages">💬 Mensagens</button>
                         <button class="nav-btn" id="minhaJornadaBtn" style="background: #8b5cf6; color: white;">🌟 Minha Jornada</button>
                         <button class="nav-btn" id="meuPlanoAlimentarBtn" style="background: #10b981; color: white;">🍽️ Meu Plano Alimentar</button>
+                        <button class="nav-btn" id="shoppingNutriBtn" style="background: #f97316; color: white;">🛍️ Shopping Nutri</button>
                         ${isMembro ? `
                             <button class="nav-btn" id="membroExclusiveBtn" style="background: #ed8936; color: white;">⭐ Conteúdo Exclusivo Membro</button>
                         ` : ''}
@@ -150,6 +151,14 @@ export class HomeCliente {
         if (meuPlanoAlimentarBtn) {
             meuPlanoAlimentarBtn.addEventListener('click', () => {
                 this.navegador.navegarPara('meu_plano_alimentar');
+            });
+        }
+
+        // Botão Meu Shopping da Nutri
+        const shoppingNutriBtn = document.getElementById('shoppingNutriBtn');
+        if (shoppingNutriBtn) {
+            shoppingNutriBtn.addEventListener('click', () => {
+                this.navegador.navegarPara('shopping_nutri');
             });
         }
 
