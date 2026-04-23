@@ -491,7 +491,7 @@ export class ShoppingNutriCliente {
 
     processarAnaliseIA(predictions, desafio, analise) {
         const palavrasChave = {
-            'refeicao': ['sandwich', 'pizza', 'cake', 'donut', 'carrot', 'broccoli', 'apple', 'orange', 'banana', 'hot dog', 'pizza', 'bowl'],
+            'refeicao': ['sandwich', 'pizza', 'cake', 'donut', 'carrot', 'broccoli', 'apple', 'orange', 'banana', 'hot dog', 'bowl'],
             'exercicio': ['person', 'sports ball', 'skateboard', 'surfboard', 'snowboard', 'frisbee', 'baseball bat', 'baseball glove', 'tennis racket'],
             'selfie': ['person', 'face', 'head', 'hair'],
             'prato_feito': ['sandwich', 'pizza', 'bowl', 'cake', 'donut', 'hot dog', 'carrot', 'broccoli'],
@@ -503,6 +503,15 @@ export class ShoppingNutriCliente {
         const categoriasEsperadas = desafio?.categoria ? [desafio.categoria] : ['refeicao', 'exercicio', 'selfie'];
         
         let melhorMatch = { categoria: null, confianca: 0, objetos: [] };
+        let totalPessoas = 0;
+        
+        // Primeiro, contar quantas pessoas tem na foto (para categoria amigo)
+        if (desafio?.categoria === 'amigo') {
+            totalPessoas = predictions.filter(pred => 
+                pred.class.toLowerCase().includes('person') || 
+                pred.class.toLowerCase().includes('face')
+            ).length;
+        }
         
         for (const categoria of categoriasEsperadas) {
             const palavras = palavrasChave[categoria] || palavrasChave['refeicao'];
@@ -517,19 +526,17 @@ export class ShoppingNutriCliente {
                 }
             }
             
-            // Para categoria "amigo", verifica se tem pelo menos duas pessoas
+            // Para categoria "amigo", a pontuação depende do número de pessoas
             if (categoria === 'amigo') {
-                const totalPessoas = predictions.filter(pred => 
-                    pred.class.toLowerCase().includes('person') || 
-                    pred.class.toLowerCase().includes('face')
-                ).length;
-                
                 if (totalPessoas >= 2) {
                     pontuacao += 0.9;
-                    objetosMatch.push(`${totalPessoas} pessoas`);
+                    objetosMatch.push(`${totalPessoas} pessoas (amigo detectado!)`);
                 } else if (totalPessoas === 1) {
-                    pontuacao += 0.3; // Confiança baixa para 1 pessoa
-                    objetosMatch.push(`1 pessoa`);
+                    pontuacao += 0.2; // Pontuação baixa para não aprovar
+                    objetosMatch.push(`1 pessoa (sozinho)`);
+                } else {
+                    pontuacao += 0;
+                    objetosMatch.push(`0 pessoas`);
                 }
             }
             
@@ -540,6 +547,28 @@ export class ShoppingNutriCliente {
         
         analise.objetosEncontrados = melhorMatch.objetos.slice(0, 5);
         
+        // ==================== LÓGICA ESPECIAL PARA CATEGORIA AMIGO ====================
+        if (desafio?.categoria === 'amigo') {
+            if (totalPessoas >= 2) {
+                // Aprovado! Tem 2 ou mais pessoas
+                analise.aprovado = true;
+                analise.confianca = 0.9;
+                analise.mensagem = `🎉 Legal! Foto com amigo identificada! Pontos creditados!`;
+            } else if (totalPessoas === 1) {
+                // Reprovado! Apenas 1 pessoa
+                analise.aprovado = false;
+                analise.confianca = 0.3;
+                analise.mensagem = `👤 Só tem 1 pessoa na imagem, para valer chame um amigo!`;
+            } else {
+                // Reprovado! Nenhuma pessoa
+                analise.aprovado = false;
+                analise.confianca = 0;
+                analise.mensagem = `👥 Nenhuma pessoa identificada na foto. Lembre-se: o desafio é tirar foto com um amigo!`;
+            }
+            return; // Sai do método pois já tratou o caso amigo
+        }
+        
+        // ==================== LÓGICA PARA DEMAIS CATEGORIAS ====================
         if (melhorMatch.confianca >= 0.9) {
             analise.aprovado = true;
             analise.confianca = 0.9;
@@ -560,27 +589,6 @@ export class ShoppingNutriCliente {
             analise.aprovado = false;
             analise.confianca = melhorMatch.confianca;
             analise.mensagem = `Conteúdo não identificado como relacionado ao desafio.`;
-        }
-        
-        // Mensagem personalizada para desafio de amigo
-        if (desafio?.categoria === 'amigo') {
-            if (analise.aprovado && analise.confianca >= 0.7) {
-                analise.mensagem = `🎉 Legal! Foto com amigo identificada! Pontos creditados!`;
-            } else {
-                // Verificar quantas pessoas foram identificadas
-                const temDuasPessoas = analise.objetosEncontrados.some(obj => obj.includes('pessoas') && parseInt(obj) >= 2);
-                const temUmaPessoa = analise.objetosEncontrados.some(obj => obj === '1 pessoa');
-                
-                if (temUmaPessoa) {
-                    analise.mensagem = `👤 Só tem 1 pessoa na imagem, para valer chame um amigo!`;
-                } else if (temDuasPessoas) {
-                    analise.mensagem = `🎉 Legal! Foto com amigo identificada! Pontos creditados!`;
-                    analise.aprovado = true;
-                    analise.confianca = 0.8;
-                } else {
-                    analise.mensagem = `👥 Nenhuma pessoa identificada na foto. Lembre-se: o desafio é tirar foto com um amigo!`;
-                }
-            }
         }
     }
 
