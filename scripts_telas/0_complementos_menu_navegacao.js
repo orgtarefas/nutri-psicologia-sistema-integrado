@@ -72,6 +72,9 @@ export class NavegadorNutricionista extends NavegadorBase {
             case 'relatorios_nutricionais':
                 await this.irParaRelatoriosNutricionais();
                 return true;
+            case 'shopping_nutri':
+                await this.irParaShoppingNutri();
+                return true;
         }
         
         // Se não encontrou, tenta navegar pelos módulos base
@@ -114,6 +117,12 @@ export class NavegadorNutricionista extends NavegadorBase {
         // Para futura implementação
         this.showMensagemDesenvolvimento('relatorios_nutricionais');
     }
+
+    async irParaShoppingNutri() {
+        const { ShoppingNutriNutricionista } = await import('./shopping_nutri_nutricionista.js');
+        const shoppingScreen = new ShoppingNutriNutricionista(this.userInfo, this.pacientesList);
+        shoppingScreen.render();
+    }
 }
 
 // ==================== NAVEGADOR DO PSICÓLOGO ====================
@@ -142,6 +151,9 @@ export class NavegadorPsicologo extends NavegadorBase {
                 return true;
             case 'relatorios_psicologicos':
                 await this.irParaRelatoriosPsicologicos();
+                return true;
+            case 'shopping_nutri':
+                await this.irParaShoppingNutri();
                 return true;
         }
         
@@ -179,6 +191,12 @@ export class NavegadorPsicologo extends NavegadorBase {
     async irParaRelatoriosPsicologicos() {
         this.showMensagemDesenvolvimento('relatorios_psicologicos');
     }
+
+    async irParaShoppingNutri() {
+        const { ShoppingNutriNutricionista } = await import('./shopping_nutri_nutricionista.js');
+        const shoppingScreen = new ShoppingNutriNutricionista(this.userInfo, this.pacientesList);
+        shoppingScreen.render();
+    }
 }
 
 // ==================== NAVEGADOR DO PACIENTE ====================
@@ -213,6 +231,9 @@ export class NavegadorPaciente extends NavegadorBase {
                 return true;
             case 'minha_jornada':
                 await this.irParaMinhaJornada();
+                return true;
+            case 'shopping_nutri':
+                await this.irParaShoppingNutri();
                 return true;
         }
         
@@ -265,6 +286,12 @@ export class NavegadorPaciente extends NavegadorBase {
         } else {
             this.showMensagemDesenvolvimento('minha_jornada');
         }
+    }
+
+    async irParaShoppingNutri() {
+        const { ShoppingNutriCliente } = await import('./shopping_nutri_cliente.js');
+        const shoppingScreen = new ShoppingNutriCliente(this.userInfo);
+        shoppingScreen.render();
     }
 }
 
