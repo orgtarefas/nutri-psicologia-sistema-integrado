@@ -5,6 +5,9 @@ import {
     doc, updateDoc, getDoc, setDoc 
 } from '../0_firebase_api_config.js';
 
+// Carregar TensorFlow.js e modelo COCO-SSD
+let modeloIA = null;
+
 export class ShoppingNutriCliente {
     constructor(userInfo) {
         this.userInfo = userInfo;
@@ -29,6 +32,12 @@ export class ShoppingNutriCliente {
         // Desafios diários
         this.desafiosDiarios = [];
         
+        // Desafio com foto ativo
+        this.desafioFotoAtual = null;
+        this.streamCamera = null;
+        this.modeloCarregado = false;
+        this.fotoTemp = null;
+        
         // Conteúdo gamificado
         this.configGamificacao = null;
         
@@ -47,25 +56,112 @@ export class ShoppingNutriCliente {
 
     async render() {
         const app = document.getElementById('app');
+        
+        // Carregar modelo de IA se ainda não carregou
+        if (!modeloIA && !this.modeloCarregado) {
+            this.mostrarLoadingIA();
+            await this.carregarModeloIA();
+        }
+        
         await this.carregarDadosUsuario();
         await this.carregarItensDisponiveis();
         await this.carregarHistorico();
         await this.carregarConfigGamificacao();
         await this.verificarRoletaDiaria();
         await this.carregarDesafiosDiarios();
+        await this.carregarDesafioFotoAtivo();
         
         app.innerHTML = this.renderHTML();
         this.attachEvents();
         this.inicializarRoleta();
     }
 
+    mostrarLoadingIA() {
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="home-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+                <div style="text-align: center; background: white; padding: 40px; border-radius: 24px;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🧠</div>
+                    <h3>Carregando Inteligência Artificial...</h3>
+                    <p style="margin-top: 10px; color: #666;">Preparando o sistema de validação de fotos</p>
+                    <div style="width: 200px; height: 4px; background: #e2e8f0; border-radius: 4px; margin: 20px auto; overflow: hidden;">
+                        <div style="width: 60%; height: 100%; background: #f97316; border-radius: 4px; animation: loading 1s infinite;"></div>
+                    </div>
+                </div>
+            </div>
+            <style>
+                @keyframes loading {
+                    0% { transform: translateX(-100%); width: 30%; }
+                    50% { transform: translateX(0%); width: 70%; }
+                    100% { transform: translateX(100%); width: 30%; }
+                }
+            </style>
+        `;
+    }
+
+    async carregarModeloIA() {
+        try {
+            // Carregar scripts do TensorFlow.js
+            await this.carregarScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js');
+            await this.carregarScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js');
+            
+            // Aguardar um pouco para os scripts serem processados
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Carregar o modelo COCO-SSD
+            modeloIA = await cocoSsd.load();
+            this.modeloCarregado = true;
+            console.log('✅ Modelo de IA carregado com sucesso!');
+            
+        } catch (error) {
+            console.error('Erro ao carregar modelo de IA:', error);
+            this.modeloCarregado = false;
+        }
+    }
+
+    carregarScript(src) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
     renderHTML() {
         const experienciaParaProxNivel = this.userNivel * 100;
         const progressoExp = (this.userExperiencia / experienciaParaProxNivel) * 100;
         
-        // Configurar prêmios da roleta
         this.roletaPremios = this.configGamificacao?.roleta_premios || [5, 10, 15, 20, 25, 50, 100];
+        const desafioDisponivel = this.verificarDisponibilidadeDesafioFoto();
         
+        let desafioHtml = '';
+        if (this.desafioFotoAtual && this.desafioFotoAtual.ativo) {
+            desafioHtml = `
+                <div class="desafio-foto-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 20px; padding: 24px; margin-bottom: 24px; color: white;">
+                    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                        <div style="font-size: 48px;">📸</div>
+                        <div style="flex: 1;">
+                            <h3 style="margin-bottom: 8px;">${this.desafioFotoAtual.titulo || 'Desafio Especial'}</h3>
+                            <p style="margin-bottom: 8px; opacity: 0.9;">${this.desafioFotoAtual.descricao || 'Participe deste desafio e ganhe pontos extras!'}</p>
+                            <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;">
+                                <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px;">
+                                    ⭐ Pontos: +${this.desafioFotoAtual.pontos || 50}
+                                </span>
+                                <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px;">
+                                    ⏰ ${this.formatarHorarioDesafio(this.desafioFotoAtual)}
+                                </span>
+                            </div>
+                        </div>
+                        <button id="participarDesafioBtn" class="btn-primary" style="background: white; color: #7c3aed; ${!desafioDisponivel ? 'opacity:0.5; cursor:not-allowed;' : ''}" ${!desafioDisponivel ? 'disabled' : ''}>
+                            ${desafioDisponivel ? '📷 Participar Agora' : '🔒 Aguarde o horário'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
         return `
             <div class="home-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
                 <div class="header" style="background: rgba(0,0,0,0.2);">
@@ -85,11 +181,11 @@ export class ShoppingNutriCliente {
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                             <div>
                                 <div style="font-size: 14px; opacity: 0.9;">⭐ SEUS PONTOS</div>
-                                <div style="font-size: 48px; font-weight: bold;">${this.userPontos}</div>
+                                <div style="font-size: 48px; font-weight: bold;" id="userPontosDisplay">${this.userPontos}</div>
                             </div>
                             <div style="text-align: center;">
                                 <div style="font-size: 14px; opacity: 0.9;">🏆 NÍVEL</div>
-                                <div style="font-size: 36px; font-weight: bold;">${this.userNivel}</div>
+                                <div style="font-size: 36px; font-weight: bold;" id="userNivelDisplay">${this.userNivel}</div>
                             </div>
                             <div style="flex: 1; max-width: 200px;">
                                 <div style="font-size: 12px; margin-bottom: 8px;">📈 Progresso para Nível ${this.userNivel + 1}</div>
@@ -99,7 +195,11 @@ export class ShoppingNutriCliente {
                                 <div style="font-size: 12px; margin-top: 5px;">${this.userExperiencia}/${experienciaParaProxNivel} XP</div>
                             </div>
                         </div>
+                        ${this.modeloCarregado ? '<div style="margin-top: 12px; font-size: 11px; opacity: 0.7;">🤖 IA ativa para validação de fotos</div>' : '<div style="margin-top: 12px; font-size: 11px; opacity: 0.7;">⚠️ IA não disponível - fotos serão enviadas para análise</div>'}
                     </div>
+
+                    <!-- DESAFIO COM FOTO (se ativo) -->
+                    ${desafioHtml}
 
                     <!-- ROLETA ANIMADA -->
                     <div class="roleta-container" style="background: white; border-radius: 24px; padding: 24px; margin-bottom: 24px; text-align: center;">
@@ -109,11 +209,9 @@ export class ShoppingNutriCliente {
                         <div style="position: relative; display: inline-block;">
                             <canvas id="roletaCanvas" width="400" height="400" style="max-width: 100%; height: auto; border-radius: 50%; box-shadow: 0 10px 30px rgba(0,0,0,0.2);"></canvas>
                             
-                            <!-- Ponteiro fixo -->
                             <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #f97316; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); z-index: 10;">
                             </div>
                             
-                            <!-- Botão girar central -->
                             <button id="girarRoletaBtn" class="roleta-girar-btn" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #f97316, #ea580c); color: white; border: none; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 20; transition: all 0.3s;" ${!this.roletaDisponivel ? 'disabled style="opacity:0.5;"' : ''}>
                                 ${this.roletaDisponivel ? 'GIRAR' : '✓'}
                             </button>
@@ -122,7 +220,7 @@ export class ShoppingNutriCliente {
                         ${!this.roletaDisponivel ? '<p style="margin-top: 20px; color: #10b981;">✅ Você já girou a roleta hoje! Volte amanhã para mais pontos!</p>' : ''}
                     </div>
 
-                    <!-- DESAFIOS DIÁRIOS -->
+                    <!-- DESAFIOS DIÁRIOS SIMPLES -->
                     <div class="desafios-section" style="background: white; border-radius: 20px; padding: 20px; margin-bottom: 24px;">
                         <h3 style="margin-bottom: 16px;">⭐ Desafios Diários</h3>
                         <div id="desafiosList">
@@ -148,6 +246,45 @@ export class ShoppingNutriCliente {
                 </div>
             </div>
 
+            <!-- MODAL CÂMERA PARA DESAFIO -->
+            <div id="cameraModal" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 600px;">
+                    <span class="close">&times;</span>
+                    <h3 id="cameraModalTitulo">📸 Desafio: ${this.desafioFotoAtual?.titulo || 'Foto'}</h3>
+                    <p id="cameraModalDescricao">${this.desafioFotoAtual?.descricao || ''}</p>
+                    
+                    <div style="position: relative; margin: 20px 0;">
+                        <video id="videoCamera" autoplay playsinline style="width: 100%; border-radius: 16px; background: #000;"></video>
+                        <canvas id="canvasFoto" style="display: none;"></canvas>
+                    </div>
+                    
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button id="tirarFotoBtn" class="btn-primary" style="background: #f97316;">📷 Tirar Foto</button>
+                        <button id="cancelarCameraBtn" class="btn-secondary">Cancelar</button>
+                    </div>
+                    
+                    <div id="iaAnaliseResultado" style="margin-top: 20px; padding: 16px; border-radius: 12px; display: none;">
+                        <div id="iaAnaliseIcone" style="font-size: 32px; text-align: center;">🤖</div>
+                        <p id="iaAnaliseMensagem" style="text-align: center; margin-top: 8px;"></p>
+                        <div id="iaAnaliseDetalhes" style="font-size: 12px; color: #666; margin-top: 8px; text-align: center;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL PRÉ-VISUALIZAÇÃO -->
+            <div id="previewModal" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 500px;">
+                    <span class="close">&times;</span>
+                    <h3>📸 Pré-visualização da Foto</h3>
+                    <img id="previewImagem" style="width: 100%; border-radius: 16px; margin: 20px 0;">
+                    <p id="previewResultadoIA" style="padding: 12px; border-radius: 12px; margin: 10px 0;"></p>
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button id="refazerFotoBtn" class="btn-secondary">📷 Refazer Foto</button>
+                        <button id="confirmarEnvioBtn" class="btn-primary" style="background: #10b981;">✅ Confirmar Envio</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- MODAL RESULTADO DA ROLETA -->
             <div id="resultadoRoletaModal" class="modal" style="display: none;">
                 <div class="modal-content" style="max-width: 400px; text-align: center;">
@@ -156,25 +293,6 @@ export class ShoppingNutriCliente {
                     <h3 id="resultadoTitulo" style="color: #f97316;">Parabéns!</h3>
                     <p id="resultadoMensagem" style="font-size: 18px; margin: 20px 0;"></p>
                     <button id="fecharResultadoBtn" class="btn-primary" style="margin-top: 20px;">Continuar</button>
-                </div>
-            </div>
-
-            <!-- MODAL ENVIO DE FOTO -->
-            <div id="fotoModal" class="modal" style="display: none;">
-                <div class="modal-content" style="max-width: 500px;">
-                    <span class="close">&times;</span>
-                    <h3>📸 Enviar Foto de Progresso</h3>
-                    <form id="fotoForm">
-                        <div class="form-field" style="margin-bottom: 16px;">
-                            <label>📝 Descrição da Foto</label>
-                            <textarea id="fotoDescricao" class="form-control" rows="2" placeholder="Ex: Minha evolução do mês..." style="padding: 12px; border-radius: 12px;"></textarea>
-                        </div>
-                        <div class="form-field" style="margin-bottom: 16px;">
-                            <label>🖼️ Selecione a Foto</label>
-                            <input type="file" id="fotoArquivo" accept="image/*" class="form-control" style="padding: 10px;">
-                        </div>
-                        <button type="submit" class="btn-primary" style="width: 100%;">📤 Enviar e Ganhar Pontos</button>
-                    </form>
                 </div>
             </div>
 
@@ -193,6 +311,314 @@ export class ShoppingNutriCliente {
         `;
     }
 
+    formatarHorarioDesafio(desafio) {
+        if (!desafio.horario_inicio || !desafio.horario_fim) return 'Horário flexível';
+        
+        const inicio = new Date(desafio.horario_inicio);
+        const fim = new Date(desafio.horario_fim);
+        
+        const mesmoDia = inicio.toDateString() === fim.toDateString();
+        
+        if (mesmoDia) {
+            return `${inicio.toLocaleDateString('pt-BR')} das ${inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às ${fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+        
+        return `${inicio.toLocaleDateString('pt-BR')} ${inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} até ${fim.toLocaleDateString('pt-BR')} ${fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    verificarDisponibilidadeDesafioFoto() {
+        if (!this.desafioFotoAtual || !this.desafioFotoAtual.ativo) return false;
+        
+        const agora = new Date();
+        const horarioInicio = this.desafioFotoAtual.horario_inicio ? new Date(this.desafioFotoAtual.horario_inicio) : null;
+        const horarioFim = this.desafioFotoAtual.horario_fim ? new Date(this.desafioFotoAtual.horario_fim) : null;
+        
+        if (!horarioInicio || !horarioFim) return true;
+        
+        return agora >= horarioInicio && agora <= horarioFim;
+    }
+
+    async abrirCamera() {
+        try {
+            if (this.streamCamera) {
+                this.streamCamera.getTracks().forEach(track => track.stop());
+            }
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'user' } 
+            });
+            
+            this.streamCamera = stream;
+            const video = document.getElementById('videoCamera');
+            if (video) {
+                video.srcObject = stream;
+            }
+            
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'flex';
+            
+            const tirarFotoBtn = document.getElementById('tirarFotoBtn');
+            const cancelarBtn = document.getElementById('cancelarCameraBtn');
+            
+            const novoTirarFoto = () => this.tirarFoto();
+            const novoCancelar = () => this.fecharCamera();
+            
+            tirarFotoBtn.onclick = novoTirarFoto;
+            cancelarBtn.onclick = novoCancelar;
+            
+        } catch (error) {
+            console.error('Erro ao acessar câmera:', error);
+            alert('❌ Não foi possível acessar a câmera. Verifique as permissões.');
+        }
+    }
+
+    async tirarFoto() {
+        const video = document.getElementById('videoCamera');
+        const canvas = document.getElementById('canvasFoto');
+        const context = canvas.getContext('2d');
+        
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const imagemDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        
+        this.fecharCamera();
+        
+        // Analisar com IA
+        await this.analisarComIA(imagemDataUrl);
+    }
+
+    async analisarComIA(imagemDataUrl) {
+        const iaResultado = document.getElementById('iaAnaliseResultado');
+        const iaIcone = document.getElementById('iaAnaliseIcone');
+        const iaMensagem = document.getElementById('iaAnaliseMensagem');
+        const iaDetalhes = document.getElementById('iaAnaliseDetalhes');
+        
+        iaResultado.style.display = 'block';
+        iaIcone.innerHTML = '🔍';
+        iaMensagem.innerHTML = 'Analisando imagem com Inteligência Artificial...';
+        iaDetalhes.innerHTML = '';
+        
+        let analise = {
+            aprovado: false,
+            confianca: 0,
+            objetosEncontrados: [],
+            mensagem: ''
+        };
+        
+        if (modeloIA && this.modeloCarregado) {
+            try {
+                // Converter base64 para blob
+                const blob = await this.dataURLtoBlob(imagemDataUrl);
+                const imagemUrl = URL.createObjectURL(blob);
+                
+                const img = new Image();
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                    img.src = imagemUrl;
+                });
+                
+                // Detectar objetos na imagem
+                const predictions = await modeloIA.detect(img);
+                URL.revokeObjectURL(imagemUrl);
+                
+                this.processarAnaliseIA(predictions, this.desafioFotoAtual, analise);
+                
+            } catch (error) {
+                console.error('Erro na análise de IA:', error);
+                analise.aprovado = false;
+                analise.confianca = 0;
+                analise.mensagem = 'Erro na análise automática. Foto será enviada para avaliação manual.';
+            }
+        } else {
+            analise.aprovado = false;
+            analise.confianca = 0;
+            analise.mensagem = 'IA não disponível. Foto será enviada para avaliação manual.';
+        }
+        
+        // Atualizar UI da análise
+        if (analise.aprovado && analise.confianca >= 0.7) {
+            iaIcone.innerHTML = '✅';
+            iaMensagem.innerHTML = `✔️ Imagem validada pela IA! ${analise.mensagem}`;
+            iaDetalhes.innerHTML = `Objetos identificados: ${analise.objetosEncontrados.join(', ')}`;
+            iaDetalhes.style.color = '#10b981';
+            iaMensagem.style.color = '#10b981';
+        } else if (analise.aprovado && analise.confianca < 0.7) {
+            iaIcone.innerHTML = '⚠️';
+            iaMensagem.innerHTML = `🤔 Análise em dúvida. Foto será enviada para avaliação manual.`;
+            iaDetalhes.innerHTML = `Motivo: ${analise.mensagem}`;
+            iaDetalhes.style.color = '#f59e0b';
+            iaMensagem.style.color = '#f59e0b';
+        } else {
+            iaIcone.innerHTML = '👩‍⚕️';
+            iaMensagem.innerHTML = `📋 Foto será enviada para avaliação do nutricionista.`;
+            iaDetalhes.innerHTML = `Motivo: ${analise.mensagem || 'IA não reconheceu o conteúdo esperado'}`;
+            iaDetalhes.style.color = '#f97316';
+            iaMensagem.style.color = '#f97316';
+        }
+        
+        // Mostrar pré-visualização
+        const previewModal = document.getElementById('previewModal');
+        const previewImg = document.getElementById('previewImagem');
+        const previewResultado = document.getElementById('previewResultadoIA');
+        
+        previewImg.src = imagemDataUrl;
+        previewResultado.innerHTML = `
+            <strong>${analise.aprovado ? '🟢 Aprovado pela IA' : '🟡 Pendente de análise manual'}</strong><br>
+            ${analise.mensagem}
+            ${analise.objetosEncontrados.length > 0 ? `<br><small>🔍 Identificado: ${analise.objetosEncontrados.join(', ')}</small>` : ''}
+        `;
+        previewResultado.style.background = analise.aprovado && analise.confianca >= 0.7 ? '#d1fae5' : '#fed7aa';
+        
+        previewModal.style.display = 'flex';
+        
+        // Armazenar dados para envio
+        this.fotoTemp = {
+            dataUrl: imagemDataUrl,
+            analise: analise
+        };
+        
+        const confirmarBtn = document.getElementById('confirmarEnvioBtn');
+        const refazerBtn = document.getElementById('refazerFotoBtn');
+        
+        confirmarBtn.onclick = () => this.confirmarEnvioFoto();
+        refazerBtn.onclick = () => {
+            previewModal.style.display = 'none';
+            this.abrirCamera();
+        };
+    }
+
+    processarAnaliseIA(predictions, desafio, analise) {
+        const palavrasChave = {
+            'refeicao': ['sandwich', 'pizza', 'cake', 'donut', 'carrot', 'broccoli', 'apple', 'orange', 'banana', 'hot dog', 'pizza', 'bowl'],
+            'exercicio': ['person', 'sports ball', 'skateboard', 'surfboard', 'snowboard', 'frisbee', 'baseball bat', 'baseball glove', 'tennis racket'],
+            'selfie': ['person', 'face', 'head', 'hair'],
+            'prato_feito': ['sandwich', 'pizza', 'bowl', 'cake', 'donut', 'hot dog', 'carrot', 'broccoli'],
+            'agua': ['bottle', 'cup', 'glass', 'water'],
+            'fruta': ['apple', 'orange', 'banana', 'carrot']
+        };
+        
+        const categoriasEsperadas = desafio?.categoria ? [desafio.categoria] : ['refeicao', 'exercicio', 'selfie'];
+        
+        let melhorMatch = { categoria: null, confianca: 0, objetos: [] };
+        
+        for (const categoria of categoriasEsperadas) {
+            const palavras = palavrasChave[categoria] || palavrasChave['refeicao'];
+            let pontuacao = 0;
+            const objetosMatch = [];
+            
+            for (const pred of predictions) {
+                const classe = pred.class.toLowerCase();
+                if (palavras.some(p => classe.includes(p.toLowerCase()))) {
+                    pontuacao += pred.score;
+                    objetosMatch.push(pred.class);
+                }
+            }
+            
+            if (pontuacao > melhorMatch.confianca) {
+                melhorMatch = { categoria, confianca: pontuacao, objetos: objetosMatch };
+            }
+        }
+        
+        analise.objetosEncontrados = melhorMatch.objetos.slice(0, 5);
+        
+        if (melhorMatch.confianca >= 0.9) {
+            analise.aprovado = true;
+            analise.confianca = 0.9;
+            analise.mensagem = `Excelente! Foto corresponde perfeitamente ao desafio.`;
+        } else if (melhorMatch.confianca >= 0.7) {
+            analise.aprovado = true;
+            analise.confianca = 0.7;
+            analise.mensagem = `Boa! Foto reconhecida como relacionada ao desafio.`;
+        } else if (melhorMatch.confianca >= 0.4) {
+            analise.aprovado = false;
+            analise.confianca = melhorMatch.confianca;
+            analise.mensagem = `Possível correspondência detectada, mas com baixa confiança. Enviando para análise.`;
+        } else if (predictions.length === 0) {
+            analise.aprovado = false;
+            analise.confianca = 0;
+            analise.mensagem = `Nenhum objeto reconhecido. A foto pode não estar relacionada ao desafio.`;
+        } else {
+            analise.aprovado = false;
+            analise.confianca = melhorMatch.confianca;
+            analise.mensagem = `Conteúdo não identificado como relacionado ao desafio.`;
+        }
+    }
+
+    dataURLtoBlob(dataURL) {
+        const partes = dataURL.split(',');
+        const byteString = atob(partes[1]);
+        const mimeString = partes[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], { type: mimeString });
+    }
+
+    async confirmarEnvioFoto() {
+        if (!this.fotoTemp) return;
+        
+        const modal = document.getElementById('previewModal');
+        modal.style.display = 'none';
+        
+        const pontos = this.desafioFotoAtual?.pontos || 50;
+        const status = (this.fotoTemp.analise.aprovado && this.fotoTemp.analise.confianca >= 0.7) ? 'aprovado_ia' : 'pendente_manual';
+        
+        try {
+            const fotoRef = collection(db, 'fotos_desafio');
+            await addDoc(fotoRef, {
+                usuario_login: this.userInfo.login,
+                usuario_nome: this.userInfo.nome,
+                desafio_id: this.desafioFotoAtual.id,
+                desafio_titulo: this.desafioFotoAtual.titulo,
+                descricao: this.desafioFotoAtual.descricao,
+                foto_base64: this.fotoTemp.dataUrl,
+                status: status,
+                analise_ia: {
+                    aprovado: this.fotoTemp.analise.aprovado,
+                    confianca: this.fotoTemp.analise.confianca,
+                    objetos_encontrados: this.fotoTemp.analise.objetosEncontrados,
+                    mensagem: this.fotoTemp.analise.mensagem
+                },
+                data_envio: new Date().toISOString()
+            });
+            
+            if (status === 'aprovado_ia') {
+                await this.adicionarPontos(pontos, `📸 Desafio: ${this.desafioFotoAtual.titulo} (Validado por IA)`, 'ganho');
+                alert(`✅ Parabéns! Sua foto foi validada pela IA!\n\n+${pontos} pontos adicionados!`);
+            } else {
+                alert(`📸 Foto enviada com sucesso!\n\nSua foto será analisada pelo nutricionista. Você receberá os pontos após a aprovação.`);
+            }
+            
+            this.fotoTemp = null;
+            this.fecharCamera();
+            await this.carregarDesafioFotoAtivo();
+            this.render();
+            
+        } catch (error) {
+            console.error('Erro ao enviar foto:', error);
+            alert('❌ Erro ao enviar foto. Tente novamente.');
+        }
+    }
+
+    fecharCamera() {
+        if (this.streamCamera) {
+            this.streamCamera.getTracks().forEach(track => track.stop());
+            this.streamCamera = null;
+        }
+        
+        const modal = document.getElementById('cameraModal');
+        if (modal) modal.style.display = 'none';
+        
+        const iaResultado = document.getElementById('iaAnaliseResultado');
+        if (iaResultado) iaResultado.style.display = 'none';
+    }
+
+    // ==================== MÉTODOS DA ROLETA (PRESERVADOS) ====================
+
     inicializarRoleta() {
         this.roletaCanvas = document.getElementById('roletaCanvas');
         if (!this.roletaCanvas) return;
@@ -200,7 +626,6 @@ export class ShoppingNutriCliente {
         this.roletaCtx = this.roletaCanvas.getContext('2d');
         this.desenharRoleta();
         
-        // Ajustar tamanho para responsividade
         const resizeRoleta = () => {
             const container = this.roletaCanvas.parentElement;
             const size = Math.min(container.clientWidth, 400);
@@ -231,22 +656,18 @@ export class ShoppingNutriCliente {
             const startAngle = this.roletaAnguloAtual + i * anglePerSegment;
             const endAngle = startAngle + anglePerSegment;
             
-            // Desenhar segmento
             this.roletaCtx.beginPath();
             this.roletaCtx.moveTo(centerX, centerY);
             this.roletaCtx.arc(centerX, centerY, radius, startAngle, endAngle);
             this.roletaCtx.closePath();
             
-            // Cor do segmento
             this.roletaCtx.fillStyle = this.roletaCores[i % this.roletaCores.length];
             this.roletaCtx.fill();
             
-            // Borda branca
             this.roletaCtx.strokeStyle = 'white';
             this.roletaCtx.lineWidth = 2;
             this.roletaCtx.stroke();
             
-            // Desenhar texto do prêmio
             this.roletaCtx.save();
             this.roletaCtx.translate(centerX, centerY);
             this.roletaCtx.rotate(startAngle + anglePerSegment / 2);
@@ -261,7 +682,6 @@ export class ShoppingNutriCliente {
             this.roletaCtx.restore();
         }
         
-        // Desenhar círculo central
         this.roletaCtx.beginPath();
         this.roletaCtx.arc(centerX, centerY, radius * 0.12, 0, Math.PI * 2);
         this.roletaCtx.fillStyle = '#f97316';
@@ -270,7 +690,6 @@ export class ShoppingNutriCliente {
         this.roletaCtx.lineWidth = 3;
         this.roletaCtx.stroke();
         
-        // Desenhar círculo interno decorativo
         this.roletaCtx.beginPath();
         this.roletaCtx.arc(centerX, centerY, radius * 0.08, 0, Math.PI * 2);
         this.roletaCtx.fillStyle = '#ea580c';
@@ -289,24 +708,17 @@ export class ShoppingNutriCliente {
         const girarBtn = document.getElementById('girarRoletaBtn');
         if (girarBtn) girarBtn.disabled = true;
         
-        // Número de rotações completas (5-10 voltas)
         const voltasCompletas = 5 + Math.random() * 5;
-        const anguloFinal = this.roletaAnguloAtual + (Math.PI * 2 * voltasCompletas);
-        const duracao = 3000; // 3 segundos
+        const duracao = 3000;
         const inicio = performance.now();
         const anguloInicial = this.roletaAnguloAtual;
         
-        // Escolher prêmio aleatório
         const premioIndex = Math.floor(Math.random() * this.roletaPremios.length);
         const premioGanho = this.roletaPremios[premioIndex];
         
-        // Calcular ângulo de parada (o ponteiro está no topo = -90 graus)
-        // O segmento que está no topo após a rotação será o prêmio
         const anguloPorSegmento = (Math.PI * 2) / this.roletaPremios.length;
-        // O ponteiro está em -PI/2 (topo). O segmento que deve estar lá é o índice do prêmio
         const anguloAlvo = (-Math.PI / 2) - (premioIndex * anguloPorSegmento) - (anguloPorSegmento / 2);
         
-        // Ajustar para o ângulo alvo dentro do range
         let rotacaoNecessaria = anguloAlvo - (this.roletaAnguloAtual % (Math.PI * 2));
         while (rotacaoNecessaria > Math.PI) rotacaoNecessaria -= Math.PI * 2;
         while (rotacaoNecessaria < -Math.PI) rotacaoNecessaria += Math.PI * 2;
@@ -316,8 +728,6 @@ export class ShoppingNutriCliente {
         const animar = (agora) => {
             const elapsed = agora - inicio;
             const progresso = Math.min(1, elapsed / duracao);
-            
-            // Easing cúbico: desaceleração suave
             const easeOut = 1 - Math.pow(1 - progresso, 3);
             const anguloAtual = anguloInicial + (anguloDestino - anguloInicial) * easeOut;
             
@@ -327,11 +737,8 @@ export class ShoppingNutriCliente {
             if (progresso < 1) {
                 this.roletaAnimacaoId = requestAnimationFrame(animar);
             } else {
-                // Animação concluída
                 this.roletaGirando = false;
                 if (girarBtn) girarBtn.disabled = false;
-                
-                // Registrar o giro e dar os pontos
                 this.finalizarGiroRoleta(premioGanho);
             }
         };
@@ -346,14 +753,12 @@ export class ShoppingNutriCliente {
         try {
             const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
             
-            // Verifica se o documento existe
             let userDoc = await getDoc(userRef);
             if (!userDoc.exists()) {
                 await this.criarDocumentoUsuario();
                 userDoc = await getDoc(userRef);
             }
             
-            // Verifica novamente se já girou hoje (segurança)
             const ultimaRoleta = userDoc.data()?.ultima_roleta;
             if (ultimaRoleta) {
                 const hoje = new Date().toISOString().split('T')[0];
@@ -372,11 +777,8 @@ export class ShoppingNutriCliente {
             await this.adicionarPontos(premioGanho, `🎡 Roleta da Sorte - Ganhou ${premioGanho} pontos`, 'ganho');
             
             this.roletaDisponivel = false;
-            
-            // Mostrar modal com resultado
             this.mostrarResultadoRoleta(premioGanho);
             
-            // Desabilitar botão girar
             const girarBtn = document.getElementById('girarRoletaBtn');
             if (girarBtn) {
                 girarBtn.disabled = true;
@@ -420,8 +822,7 @@ export class ShoppingNutriCliente {
         
         const fecharModal = () => {
             modal.style.display = 'none';
-            // Atualizar o card de pontos
-            const pontosElement = document.querySelector('.points-card div:first-child div:last-child');
+            const pontosElement = document.getElementById('userPontosDisplay');
             if (pontosElement) {
                 pontosElement.textContent = this.userPontos;
             }
@@ -434,6 +835,8 @@ export class ShoppingNutriCliente {
             if (event.target === modal) fecharModal();
         };
     }
+
+    // ==================== MÉTODOS AUXILIARES ====================
 
     renderDesafios() {
         if (this.desafiosDiarios.length === 0) {
@@ -527,9 +930,6 @@ export class ShoppingNutriCliente {
                 data_criacao: new Date().toISOString()
             };
             await setDoc(userRef, dadosIniciais);
-            this.userPontos = 0;
-            this.userNivel = 1;
-            this.userExperiencia = 0;
         } catch (error) {
             console.error("Erro ao criar documento:", error);
         }
@@ -624,7 +1024,7 @@ export class ShoppingNutriCliente {
             this.desafiosDiarios = [];
             querySnapshot.forEach(doc => {
                 const data = doc.data();
-                if (data.ativo && (!data.data_expiracao || data.data_expiracao >= hoje)) {
+                if (data.ativo && data.tipo !== 'foto' && (!data.data_expiracao || data.data_expiracao >= hoje)) {
                     this.desafiosDiarios.push({ id: doc.id, ...data, completado: false });
                 }
             });
@@ -632,6 +1032,24 @@ export class ShoppingNutriCliente {
             await this.verificarDesafiosCompletados();
         } catch (error) {
             console.error("Erro ao carregar desafios:", error);
+        }
+    }
+
+    async carregarDesafioFotoAtivo() {
+        try {
+            const desafiosRef = collection(db, 'desafios_diarios');
+            const q = query(desafiosRef, where('ativo', '==', true), where('tipo', '==', 'foto'));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                const docSnap = querySnapshot.docs[0];
+                this.desafioFotoAtual = { id: docSnap.id, ...docSnap.data() };
+            } else {
+                this.desafioFotoAtual = null;
+            }
+        } catch (error) {
+            console.error("Erro ao carregar desafio foto:", error);
+            this.desafioFotoAtual = null;
         }
     }
 
@@ -658,7 +1076,6 @@ export class ShoppingNutriCliente {
         try {
             const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
             
-            // Verifica se o documento existe
             const userDoc = await getDoc(userRef);
             if (!userDoc.exists()) {
                 await this.criarDocumentoUsuario();
@@ -677,7 +1094,7 @@ export class ShoppingNutriCliente {
                 pontos: this.userPontos,
                 experiencia: this.userExperiencia,
                 nivel: novoNivel,
-                ultima_atualizacao: new Date().toISOString()
+                ultima_atualizacion: new Date().toISOString()
             });
             
             const transacaoRef = collection(db, 'transacoes_pontos');
@@ -692,27 +1109,19 @@ export class ShoppingNutriCliente {
             });
             
             this.userNivel = novoNivel;
-            await this.carregarHistorico();
             
-            // Atualizar UI do nível e pontos
-            this.atualizarUIPontos();
+            const pontosElement = document.getElementById('userPontosDisplay');
+            const nivelElement = document.getElementById('userNivelDisplay');
+            if (pontosElement) pontosElement.textContent = this.userPontos;
+            if (nivelElement) nivelElement.textContent = this.userNivel;
+            
+            await this.carregarHistorico();
             
             return true;
         } catch (error) {
             console.error("Erro ao adicionar pontos:", error);
             return false;
         }
-    }
-
-    atualizarUIPontos() {
-        const pontosElement = document.querySelector('.points-card div:first-child div:last-child');
-        const nivelElement = document.querySelector('.points-card div:nth-child(2) div:last-child');
-        const progressoExp = (this.userExperiencia / (this.userNivel * 100)) * 100;
-        const progressoBar = document.querySelector('.points-card div:last-child div div div');
-        
-        if (pontosElement) pontosElement.textContent = this.userPontos;
-        if (nivelElement) nivelElement.textContent = this.userNivel;
-        if (progressoBar) progressoBar.style.width = `${progressoExp}%`;
     }
 
     async gastarPontos(pontos, descricao, itemId, itemNome) {
@@ -727,7 +1136,7 @@ export class ShoppingNutriCliente {
             
             await updateDoc(userRef, {
                 pontos: this.userPontos,
-                ultima_atualizacao: new Date().toISOString()
+                ultima_atualizacion: new Date().toISOString()
             });
             
             const transacaoRef = collection(db, 'transacoes_pontos');
@@ -755,7 +1164,9 @@ export class ShoppingNutriCliente {
             });
             
             await this.carregarHistorico();
-            this.atualizarUIPontos();
+            
+            const pontosElement = document.getElementById('userPontosDisplay');
+            if (pontosElement) pontosElement.textContent = this.userPontos;
             
             alert(`✅ Resgate realizado com sucesso!\n\nItem: ${itemNome}\nPontos gastos: ${pontos}\n\nO profissional responsável entrará em contato para entregar sua recompensa.`);
             
@@ -775,7 +1186,6 @@ export class ShoppingNutriCliente {
                 return;
             }
             
-            // Verificar se o desafio já foi completado hoje
             const completadosRef = collection(db, 'desafios_completados');
             const q = query(completadosRef, 
                 where('usuario_login', '==', this.userInfo.login),
@@ -809,47 +1219,6 @@ export class ShoppingNutriCliente {
         } catch (error) {
             console.error("Erro ao completar desafio:", error);
             alert('❌ Erro ao completar desafio.');
-        }
-    }
-
-    async enviarFoto(descricao, arquivo) {
-        try {
-            let fotoUrl = '';
-            
-            if (arquivo && arquivo.type.startsWith('image/')) {
-                const reader = new FileReader();
-                fotoUrl = await new Promise((resolve) => {
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(arquivo);
-                });
-            }
-            
-            const pontos = this.configGamificacao?.pontos_por_foto || 30;
-            
-            const fotoRef = collection(db, 'fotos_progresso');
-            await addDoc(fotoRef, {
-                usuario_login: this.userInfo.login,
-                usuario_nome: this.userInfo.nome,
-                descricao: descricao,
-                foto_base64: fotoUrl,
-                pontos_ganhos: pontos,
-                data_envio: new Date().toISOString(),
-                status: 'pendente_aprovacao'
-            });
-            
-            await this.adicionarPontos(pontos, `📸 Envio de foto de progresso - ${descricao.substring(0, 50)}`, 'ganho');
-            
-            alert(`✅ Foto enviada com sucesso!\n\n+${pontos} pontos adicionados!\n\nA foto será analisada pela equipe.`);
-            
-            const modal = document.getElementById('fotoModal');
-            if (modal) modal.style.display = 'none';
-            
-            document.getElementById('fotoDescricao').value = '';
-            document.getElementById('fotoArquivo').value = '';
-            
-        } catch (error) {
-            console.error("Erro ao enviar foto:", error);
-            alert('❌ Erro ao enviar foto. Tente novamente.');
         }
     }
 
@@ -893,12 +1262,9 @@ export class ShoppingNutriCliente {
             girarRoletaBtn.addEventListener('click', () => this.girarRoleta());
         }
         
-        const enviarFotoBtn = document.getElementById('enviarFotoBtn');
-        if (enviarFotoBtn) {
-            enviarFotoBtn.addEventListener('click', () => {
-                const modal = document.getElementById('fotoModal');
-                if (modal) modal.style.display = 'flex';
-            });
+        const participarDesafioBtn = document.getElementById('participarDesafioBtn');
+        if (participarDesafioBtn) {
+            participarDesafioBtn.addEventListener('click', () => this.abrirCamera());
         }
         
         document.querySelectorAll('.completar-desafio-btn').forEach(btn => {
@@ -946,39 +1312,28 @@ export class ShoppingNutriCliente {
             });
         });
         
-        const fotoModal = document.getElementById('fotoModal');
-        const closeFotoModal = fotoModal?.querySelector('.close');
-        if (closeFotoModal) {
-            closeFotoModal.onclick = () => fotoModal.style.display = 'none';
-        }
-        
-        const trocaModal = document.getElementById('trocaModal');
-        const closeTrocaModal = trocaModal?.querySelector('.close');
-        if (closeTrocaModal) {
-            closeTrocaModal.onclick = () => trocaModal.style.display = 'none';
-        }
-        
-        const fotoForm = document.getElementById('fotoForm');
-        if (fotoForm) {
-            fotoForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const descricao = document.getElementById('fotoDescricao').value;
-                const arquivo = document.getElementById('fotoArquivo').files[0];
-                
-                if (!descricao) {
-                    alert('Por favor, descreva sua foto!');
-                    return;
+        const modais = ['cameraModal', 'previewModal', 'trocaModal', 'resultadoRoletaModal'];
+        modais.forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                const closeBtn = modal.querySelector('.close');
+                if (closeBtn) {
+                    closeBtn.onclick = () => {
+                        modal.style.display = 'none';
+                        if (modalId === 'cameraModal') this.fecharCamera();
+                    };
                 }
-                
-                await this.enviarFoto(descricao, arquivo);
-            });
-        }
+            }
+        });
         
         window.onclick = (event) => {
-            if (event.target === fotoModal) fotoModal.style.display = 'none';
-            if (event.target === trocaModal) trocaModal.style.display = 'none';
-            const resultadoModal = document.getElementById('resultadoRoletaModal');
-            if (event.target === resultadoModal) resultadoModal.style.display = 'none';
+            modais.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                    if (modalId === 'cameraModal') this.fecharCamera();
+                }
+            });
         };
         
         this.registrarAcessoDiario();
