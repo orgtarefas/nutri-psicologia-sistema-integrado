@@ -2,7 +2,7 @@ import { FuncoesCompartilhadas } from './0_home.js';
 import { criarNavegador } from './0_complementos_menu_navegacao.js';
 import { 
     db, collection, addDoc, getDocs, query, where, 
-    doc, updateDoc, getDoc, setDoc, serverTimestamp 
+    doc, updateDoc, getDoc, setDoc 
 } from '../0_firebase_api_config.js';
 
 export class ShoppingNutriCliente {
@@ -29,8 +29,20 @@ export class ShoppingNutriCliente {
         // Desafios diários
         this.desafiosDiarios = [];
         
-        // Conteúdo gamificado (configurado pelo nutricionista)
+        // Conteúdo gamificado
         this.configGamificacao = null;
+        
+        // Variáveis da roleta
+        this.roletaCanvas = null;
+        this.roletaCtx = null;
+        this.roletaAnguloAtual = 0;
+        this.roletaGirando = false;
+        this.roletaAnimacaoId = null;
+        this.roletaPremios = [];
+        this.roletaCores = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD',
+            '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8C471', '#A9DFBF'
+        ];
     }
 
     async render() {
@@ -44,11 +56,15 @@ export class ShoppingNutriCliente {
         
         app.innerHTML = this.renderHTML();
         this.attachEvents();
+        this.inicializarRoleta();
     }
 
     renderHTML() {
         const experienciaParaProxNivel = this.userNivel * 100;
         const progressoExp = (this.userExperiencia / experienciaParaProxNivel) * 100;
+        
+        // Configurar prêmios da roleta
+        this.roletaPremios = this.configGamificacao?.roleta_premios || [5, 10, 15, 20, 25, 50, 100];
         
         return `
             <div class="home-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
@@ -85,25 +101,25 @@ export class ShoppingNutriCliente {
                         </div>
                     </div>
 
-                    <!-- SEÇÃO DE GAMIFICAÇÃO (ROLETA E DESAFIOS) -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-                        <!-- ROLETA DIÁRIA -->
-                        <div class="gamification-card" style="background: white; border-radius: 20px; padding: 20px; text-align: center;">
-                            <div style="font-size: 48px; margin-bottom: 12px;">🎡</div>
-                            <h3 style="margin-bottom: 8px;">Roleta da Sorte</h3>
-                            <p style="font-size: 13px; color: #666; margin-bottom: 16px;">Gire a roleta uma vez por dia e ganhe pontos!</p>
-                            <button id="girarRoletaBtn" class="btn-primary" ${!this.roletaDisponivel ? 'disabled style="opacity:0.5;"' : ''}>
-                                ${this.roletaDisponivel ? '🎲 Girar Roleta' : '✅ Roleta já girada hoje!'}
+                    <!-- ROLETA ANIMADA -->
+                    <div class="roleta-container" style="background: white; border-radius: 24px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                        <h3 style="margin-bottom: 20px; color: #1a237e;">🎡 Roleta da Sorte</h3>
+                        <p style="margin-bottom: 20px; color: #666;">Gire a roleta uma vez por dia e ganhe pontos incríveis!</p>
+                        
+                        <div style="position: relative; display: inline-block;">
+                            <canvas id="roletaCanvas" width="400" height="400" style="max-width: 100%; height: auto; border-radius: 50%; box-shadow: 0 10px 30px rgba(0,0,0,0.2);"></canvas>
+                            
+                            <!-- Ponteiro fixo -->
+                            <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #f97316; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); z-index: 10;">
+                            </div>
+                            
+                            <!-- Botão girar central -->
+                            <button id="girarRoletaBtn" class="roleta-girar-btn" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #f97316, #ea580c); color: white; border: none; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 20; transition: all 0.3s;" ${!this.roletaDisponivel ? 'disabled style="opacity:0.5;"' : ''}>
+                                ${this.roletaDisponivel ? 'GIRAR' : '✓'}
                             </button>
                         </div>
-
-                        <!-- ENVIO DE FOTOS (Mini Game) -->
-                        <div class="gamification-card" style="background: white; border-radius: 20px; padding: 20px; text-align: center;">
-                            <div style="font-size: 48px; margin-bottom: 12px;">📸</div>
-                            <h3 style="margin-bottom: 8px;">Desafio do Progresso</h3>
-                            <p style="font-size: 13px; color: #666; margin-bottom: 16px;">Envie uma foto do seu progresso e ganhe pontos extras!</p>
-                            <button id="enviarFotoBtn" class="btn-primary" style="background: #8b5cf6;">📷 Enviar Foto</button>
-                        </div>
+                        
+                        ${!this.roletaDisponivel ? '<p style="margin-top: 20px; color: #10b981;">✅ Você já girou a roleta hoje! Volte amanhã para mais pontos!</p>' : ''}
                     </div>
 
                     <!-- DESAFIOS DIÁRIOS -->
@@ -129,6 +145,17 @@ export class ShoppingNutriCliente {
                             ${this.renderHistorico()}
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- MODAL RESULTADO DA ROLETA -->
+            <div id="resultadoRoletaModal" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 400px; text-align: center;">
+                    <span class="close">&times;</span>
+                    <div id="resultadoIcone" style="font-size: 64px; margin: 20px 0;">🎉</div>
+                    <h3 id="resultadoTitulo" style="color: #f97316;">Parabéns!</h3>
+                    <p id="resultadoMensagem" style="font-size: 18px; margin: 20px 0;"></p>
+                    <button id="fecharResultadoBtn" class="btn-primary" style="margin-top: 20px;">Continuar</button>
                 </div>
             </div>
 
@@ -164,6 +191,248 @@ export class ShoppingNutriCliente {
                 </div>
             </div>
         `;
+    }
+
+    inicializarRoleta() {
+        this.roletaCanvas = document.getElementById('roletaCanvas');
+        if (!this.roletaCanvas) return;
+        
+        this.roletaCtx = this.roletaCanvas.getContext('2d');
+        this.desenharRoleta();
+        
+        // Ajustar tamanho para responsividade
+        const resizeRoleta = () => {
+            const container = this.roletaCanvas.parentElement;
+            const size = Math.min(container.clientWidth, 400);
+            this.roletaCanvas.width = size;
+            this.roletaCanvas.height = size;
+            this.desenharRoleta();
+        };
+        
+        window.addEventListener('resize', resizeRoleta);
+        resizeRoleta();
+    }
+
+    desenharRoleta() {
+        if (!this.roletaCtx || !this.roletaCanvas) return;
+        
+        const width = this.roletaCanvas.width;
+        const height = this.roletaCanvas.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = width / 2 - 10;
+        
+        this.roletaCtx.clearRect(0, 0, width, height);
+        
+        const numSegments = this.roletaPremios.length;
+        const anglePerSegment = (Math.PI * 2) / numSegments;
+        
+        for (let i = 0; i < numSegments; i++) {
+            const startAngle = this.roletaAnguloAtual + i * anglePerSegment;
+            const endAngle = startAngle + anglePerSegment;
+            
+            // Desenhar segmento
+            this.roletaCtx.beginPath();
+            this.roletaCtx.moveTo(centerX, centerY);
+            this.roletaCtx.arc(centerX, centerY, radius, startAngle, endAngle);
+            this.roletaCtx.closePath();
+            
+            // Cor do segmento
+            this.roletaCtx.fillStyle = this.roletaCores[i % this.roletaCores.length];
+            this.roletaCtx.fill();
+            
+            // Borda branca
+            this.roletaCtx.strokeStyle = 'white';
+            this.roletaCtx.lineWidth = 2;
+            this.roletaCtx.stroke();
+            
+            // Desenhar texto do prêmio
+            this.roletaCtx.save();
+            this.roletaCtx.translate(centerX, centerY);
+            this.roletaCtx.rotate(startAngle + anglePerSegment / 2);
+            this.roletaCtx.textAlign = 'center';
+            this.roletaCtx.textBaseline = 'middle';
+            this.roletaCtx.font = `bold ${Math.max(12, radius / 10)}px "Segoe UI"`;
+            this.roletaCtx.fillStyle = '#333';
+            
+            const premio = this.roletaPremios[i];
+            const texto = `${premio} pts`;
+            this.roletaCtx.fillText(texto, radius * 0.65, 0);
+            this.roletaCtx.restore();
+        }
+        
+        // Desenhar círculo central
+        this.roletaCtx.beginPath();
+        this.roletaCtx.arc(centerX, centerY, radius * 0.12, 0, Math.PI * 2);
+        this.roletaCtx.fillStyle = '#f97316';
+        this.roletaCtx.fill();
+        this.roletaCtx.strokeStyle = 'white';
+        this.roletaCtx.lineWidth = 3;
+        this.roletaCtx.stroke();
+        
+        // Desenhar círculo interno decorativo
+        this.roletaCtx.beginPath();
+        this.roletaCtx.arc(centerX, centerY, radius * 0.08, 0, Math.PI * 2);
+        this.roletaCtx.fillStyle = '#ea580c';
+        this.roletaCtx.fill();
+    }
+
+    async girarRoleta() {
+        if (!this.roletaDisponivel) {
+            alert('❌ Você já girou a roleta hoje! Volte amanhã para mais pontos!');
+            return;
+        }
+        
+        if (this.roletaGirando) return;
+        
+        this.roletaGirando = true;
+        const girarBtn = document.getElementById('girarRoletaBtn');
+        if (girarBtn) girarBtn.disabled = true;
+        
+        // Número de rotações completas (5-10 voltas)
+        const voltasCompletas = 5 + Math.random() * 5;
+        const anguloFinal = this.roletaAnguloAtual + (Math.PI * 2 * voltasCompletas);
+        const duracao = 3000; // 3 segundos
+        const inicio = performance.now();
+        const anguloInicial = this.roletaAnguloAtual;
+        
+        // Escolher prêmio aleatório
+        const premioIndex = Math.floor(Math.random() * this.roletaPremios.length);
+        const premioGanho = this.roletaPremios[premioIndex];
+        
+        // Calcular ângulo de parada (o ponteiro está no topo = -90 graus)
+        // O segmento que está no topo após a rotação será o prêmio
+        const anguloPorSegmento = (Math.PI * 2) / this.roletaPremios.length;
+        // O ponteiro está em -PI/2 (topo). O segmento que deve estar lá é o índice do prêmio
+        const anguloAlvo = (-Math.PI / 2) - (premioIndex * anguloPorSegmento) - (anguloPorSegmento / 2);
+        
+        // Ajustar para o ângulo alvo dentro do range
+        let rotacaoNecessaria = anguloAlvo - (this.roletaAnguloAtual % (Math.PI * 2));
+        while (rotacaoNecessaria > Math.PI) rotacaoNecessaria -= Math.PI * 2;
+        while (rotacaoNecessaria < -Math.PI) rotacaoNecessaria += Math.PI * 2;
+        
+        const anguloDestino = this.roletaAnguloAtual + (Math.PI * 2 * voltasCompletas) + rotacaoNecessaria;
+        
+        const animar = (agora) => {
+            const elapsed = agora - inicio;
+            const progresso = Math.min(1, elapsed / duracao);
+            
+            // Easing cúbico: desaceleração suave
+            const easeOut = 1 - Math.pow(1 - progresso, 3);
+            const anguloAtual = anguloInicial + (anguloDestino - anguloInicial) * easeOut;
+            
+            this.roletaAnguloAtual = anguloAtual;
+            this.desenharRoleta();
+            
+            if (progresso < 1) {
+                this.roletaAnimacaoId = requestAnimationFrame(animar);
+            } else {
+                // Animação concluída
+                this.roletaGirando = false;
+                if (girarBtn) girarBtn.disabled = false;
+                
+                // Registrar o giro e dar os pontos
+                this.finalizarGiroRoleta(premioGanho);
+            }
+        };
+        
+        if (this.roletaAnimacaoId) {
+            cancelAnimationFrame(this.roletaAnimacaoId);
+        }
+        this.roletaAnimacaoId = requestAnimationFrame(animar);
+    }
+
+    async finalizarGiroRoleta(premioGanho) {
+        try {
+            const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
+            
+            // Verifica se o documento existe
+            let userDoc = await getDoc(userRef);
+            if (!userDoc.exists()) {
+                await this.criarDocumentoUsuario();
+                userDoc = await getDoc(userRef);
+            }
+            
+            // Verifica novamente se já girou hoje (segurança)
+            const ultimaRoleta = userDoc.data()?.ultima_roleta;
+            if (ultimaRoleta) {
+                const hoje = new Date().toISOString().split('T')[0];
+                const ultimaRoletaData = ultimaRoleta.split('T')[0];
+                if (hoje === ultimaRoletaData) {
+                    alert('Você já girou a roleta hoje!');
+                    this.roletaGirando = false;
+                    return;
+                }
+            }
+            
+            await updateDoc(userRef, {
+                ultima_roleta: new Date().toISOString()
+            });
+            
+            await this.adicionarPontos(premioGanho, `🎡 Roleta da Sorte - Ganhou ${premioGanho} pontos`, 'ganho');
+            
+            this.roletaDisponivel = false;
+            
+            // Mostrar modal com resultado
+            this.mostrarResultadoRoleta(premioGanho);
+            
+            // Desabilitar botão girar
+            const girarBtn = document.getElementById('girarRoletaBtn');
+            if (girarBtn) {
+                girarBtn.disabled = true;
+                girarBtn.textContent = '✓';
+                girarBtn.style.opacity = '0.5';
+            }
+            
+            await this.carregarHistorico();
+            
+        } catch (error) {
+            console.error("Erro ao finalizar giro da roleta:", error);
+            alert('❌ Erro ao processar o giro. Tente novamente.');
+            this.roletaGirando = false;
+        }
+    }
+
+    mostrarResultadoRoleta(premio) {
+        const modal = document.getElementById('resultadoRoletaModal');
+        const icone = document.getElementById('resultadoIcone');
+        const titulo = document.getElementById('resultadoTitulo');
+        const mensagem = document.getElementById('resultadoMensagem');
+        
+        if (premio >= 50) {
+            icone.innerHTML = '🎉🎊🏆';
+            titulo.textContent = '🎉 JACKPOT! 🎉';
+            mensagem.innerHTML = `Parabéns! Você ganhou <strong style="font-size: 24px; color: #f97316;">${premio} pontos</strong> na Roleta da Sorte!<br><br>Continue assim! 🌟`;
+        } else if (premio >= 25) {
+            icone.innerHTML = '🎉✨';
+            titulo.textContent = 'Parabéns!';
+            mensagem.innerHTML = `Você ganhou <strong style="font-size: 24px; color: #f97316;">${premio} pontos</strong> na Roleta da Sorte!<br><br>Boa sorte amanhã! 🍀`;
+        } else {
+            icone.innerHTML = '🎲🍀';
+            titulo.textContent = 'Boa Sorte!';
+            mensagem.innerHTML = `Você ganhou <strong style="font-size: 24px; color: #f97316;">${premio} pontos</strong> na Roleta da Sorte!<br><br>Volte amanhã para mais chances! 🌟`;
+        }
+        
+        modal.style.display = 'flex';
+        
+        const fecharBtn = document.getElementById('fecharResultadoBtn');
+        const closeBtn = modal.querySelector('.close');
+        
+        const fecharModal = () => {
+            modal.style.display = 'none';
+            // Atualizar o card de pontos
+            const pontosElement = document.querySelector('.points-card div:first-child div:last-child');
+            if (pontosElement) {
+                pontosElement.textContent = this.userPontos;
+            }
+        };
+        
+        fecharBtn.onclick = fecharModal;
+        if (closeBtn) closeBtn.onclick = fecharModal;
+        
+        window.onclick = (event) => {
+            if (event.target === modal) fecharModal();
+        };
     }
 
     renderDesafios() {
@@ -212,11 +481,11 @@ export class ShoppingNutriCliente {
             return '<p style="text-align: center; color: #666;">Nenhuma transação realizada.</p>';
         }
         
-        return this.historicoTransacoes.map(transacao => `
+        return this.historicoTransacoes.slice(0, 10).map(transacao => `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee;">
                 <div>
                     <span style="font-size: 20px; margin-right: 12px;">${transacao.tipo === 'ganho' ? '➕' : '➖'}</span>
-                    <strong>${transacao.descricao}</strong>
+                    <strong>${transacao.descricao.substring(0, 50)}</strong>
                     <div style="font-size: 11px; color: #999;">${new Date(transacao.data).toLocaleString('pt-BR')}</div>
                 </div>
                 <div style="font-weight: bold; color: ${transacao.tipo === 'ganho' ? '#10b981' : '#dc2626'}">
@@ -389,7 +658,7 @@ export class ShoppingNutriCliente {
         try {
             const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
             
-            // Primeiro verifica se o documento existe
+            // Verifica se o documento existe
             const userDoc = await getDoc(userRef);
             if (!userDoc.exists()) {
                 await this.criarDocumentoUsuario();
@@ -425,11 +694,25 @@ export class ShoppingNutriCliente {
             this.userNivel = novoNivel;
             await this.carregarHistorico();
             
+            // Atualizar UI do nível e pontos
+            this.atualizarUIPontos();
+            
             return true;
         } catch (error) {
             console.error("Erro ao adicionar pontos:", error);
             return false;
         }
+    }
+
+    atualizarUIPontos() {
+        const pontosElement = document.querySelector('.points-card div:first-child div:last-child');
+        const nivelElement = document.querySelector('.points-card div:nth-child(2) div:last-child');
+        const progressoExp = (this.userExperiencia / (this.userNivel * 100)) * 100;
+        const progressoBar = document.querySelector('.points-card div:last-child div div div');
+        
+        if (pontosElement) pontosElement.textContent = this.userPontos;
+        if (nivelElement) nivelElement.textContent = this.userNivel;
+        if (progressoBar) progressoBar.style.width = `${progressoExp}%`;
     }
 
     async gastarPontos(pontos, descricao, itemId, itemNome) {
@@ -472,6 +755,7 @@ export class ShoppingNutriCliente {
             });
             
             await this.carregarHistorico();
+            this.atualizarUIPontos();
             
             alert(`✅ Resgate realizado com sucesso!\n\nItem: ${itemNome}\nPontos gastos: ${pontos}\n\nO profissional responsável entrará em contato para entregar sua recompensa.`);
             
@@ -480,42 +764,6 @@ export class ShoppingNutriCliente {
             console.error("Erro ao gastar pontos:", error);
             alert('❌ Erro ao realizar resgate.');
             return false;
-        }
-    }
-
-    async girarRoleta() {
-        try {
-            // Verifica se o documento existe
-            const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
-            const userDoc = await getDoc(userRef);
-            if (!userDoc.exists()) {
-                await this.criarDocumentoUsuario();
-            }
-            
-            const premios = this.configGamificacao?.roleta_premios || [5, 10, 15, 20, 25, 50, 100];
-            const premio = premios[Math.floor(Math.random() * premios.length)];
-            
-            await updateDoc(userRef, {
-                ultima_roleta: new Date().toISOString()
-            });
-            
-            await this.adicionarPontos(premio, `🎡 Roleta da Sorte - Ganhou ${premio} pontos`, 'ganho');
-            
-            alert(`🎉 PARABÉNS!\n\nVocê ganhou ${premio} pontos na Roleta da Sorte!\n\nTotal de pontos: ${this.userPontos}`);
-            
-            this.roletaDisponivel = false;
-            const girarBtn = document.getElementById('girarRoletaBtn');
-            if (girarBtn) {
-                girarBtn.disabled = true;
-                girarBtn.textContent = '✅ Roleta já girada hoje!';
-                girarBtn.style.opacity = '0.5';
-            }
-            
-            await this.carregarHistorico();
-            
-        } catch (error) {
-            console.error("Erro ao girar roleta:", error);
-            alert('❌ Erro ao girar roleta. Tente novamente.');
         }
     }
 
@@ -556,6 +804,7 @@ export class ShoppingNutriCliente {
             
             await this.carregarDesafiosDiarios();
             this.render();
+            this.inicializarRoleta();
             
         } catch (error) {
             console.error("Erro ao completar desafio:", error);
@@ -608,7 +857,6 @@ export class ShoppingNutriCliente {
         try {
             const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
             
-            // Verifica se o documento existe
             let userDoc = await getDoc(userRef);
             if (!userDoc.exists()) {
                 await this.criarDocumentoUsuario();
@@ -729,6 +977,8 @@ export class ShoppingNutriCliente {
         window.onclick = (event) => {
             if (event.target === fotoModal) fotoModal.style.display = 'none';
             if (event.target === trocaModal) trocaModal.style.display = 'none';
+            const resultadoModal = document.getElementById('resultadoRoletaModal');
+            if (event.target === resultadoModal) resultadoModal.style.display = 'none';
         };
         
         this.registrarAcessoDiario();
