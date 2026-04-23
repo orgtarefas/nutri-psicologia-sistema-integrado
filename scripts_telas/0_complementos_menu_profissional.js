@@ -78,7 +78,6 @@ export class MenuProfissional {
                     <span class="menu-icon">🍽️</span>
                     <span>Plano Alimentar</span>
                 </button>
-
                 <button class="menu-item ${this.currentModule === 'calculo_energetico' ? 'active' : ''}" data-module="calculo_energetico">
                     <span class="menu-icon">🧮</span>
                     <span>Cálculo Energético</span>
@@ -99,6 +98,14 @@ export class MenuProfissional {
                 </button>
             `);
         }
+        
+        // Shopping Nutri (comum a todos os profissionais)
+        items.push(`
+            <button class="menu-item ${this.currentModule === 'shopping_nutri' ? 'active' : ''}" data-module="shopping_nutri">
+                <span class="menu-icon">🛍️</span>
+                <span>Shopping Nutri</span>
+            </button>
+        `);
         
         // Itens comuns a todos os profissionais
         items.push(`
