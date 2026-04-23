@@ -497,7 +497,7 @@ export class ShoppingNutriCliente {
             'prato_feito': ['sandwich', 'pizza', 'bowl', 'cake', 'donut', 'hot dog', 'carrot', 'broccoli'],
             'agua': ['bottle', 'cup', 'glass', 'water'],
             'fruta': ['apple', 'orange', 'banana', 'carrot'],
-            'amigo': ['person', 'face', 'head', 'hair', 'people', 'group']  // NOVA CATEGORIA
+            'amigo': ['person', 'face', 'head', 'hair', 'people', 'group']
         };
         
         const categoriasEsperadas = desafio?.categoria ? [desafio.categoria] : ['refeicao', 'exercicio', 'selfie'];
@@ -528,8 +528,8 @@ export class ShoppingNutriCliente {
                     pontuacao += 0.9;
                     objetosMatch.push(`${totalPessoas} pessoas`);
                 } else if (totalPessoas === 1) {
-                    pontuacao += 0.5;
-                    objetosMatch.push(`1 pessoa (seria melhor com um amigo!)`);
+                    pontuacao += 0.3; // Confiança baixa para 1 pessoa
+                    objetosMatch.push(`1 pessoa`);
                 }
             }
             
@@ -566,10 +566,20 @@ export class ShoppingNutriCliente {
         if (desafio?.categoria === 'amigo') {
             if (analise.aprovado && analise.confianca >= 0.7) {
                 analise.mensagem = `🎉 Legal! Foto com amigo identificada! Pontos creditados!`;
-            } else if (analise.confianca >= 0.4) {
-                analise.mensagem = `🤔 Não consegui identificar claramente um amigo na foto. Enviando para avaliação do nutricionista.`;
             } else {
-                analise.mensagem = `👥 Nenhuma pessoa identificada na foto. Lembre-se: o desafio é tirar foto com um amigo!`;
+                // Verificar quantas pessoas foram identificadas
+                const temDuasPessoas = analise.objetosEncontrados.some(obj => obj.includes('pessoas') && parseInt(obj) >= 2);
+                const temUmaPessoa = analise.objetosEncontrados.some(obj => obj === '1 pessoa');
+                
+                if (temUmaPessoa) {
+                    analise.mensagem = `👤 Só tem 1 pessoa na imagem, para valer chame um amigo!`;
+                } else if (temDuasPessoas) {
+                    analise.mensagem = `🎉 Legal! Foto com amigo identificada! Pontos creditados!`;
+                    analise.aprovado = true;
+                    analise.confianca = 0.8;
+                } else {
+                    analise.mensagem = `👥 Nenhuma pessoa identificada na foto. Lembre-se: o desafio é tirar foto com um amigo!`;
+                }
             }
         }
     }
