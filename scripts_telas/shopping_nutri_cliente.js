@@ -496,7 +496,8 @@ export class ShoppingNutriCliente {
             'selfie': ['person', 'face', 'head', 'hair'],
             'prato_feito': ['sandwich', 'pizza', 'bowl', 'cake', 'donut', 'hot dog', 'carrot', 'broccoli'],
             'agua': ['bottle', 'cup', 'glass', 'water'],
-            'fruta': ['apple', 'orange', 'banana', 'carrot']
+            'fruta': ['apple', 'orange', 'banana', 'carrot'],
+            'amigo': ['person', 'face', 'head', 'hair', 'people', 'group']  // NOVA CATEGORIA
         };
         
         const categoriasEsperadas = desafio?.categoria ? [desafio.categoria] : ['refeicao', 'exercicio', 'selfie'];
@@ -513,6 +514,22 @@ export class ShoppingNutriCliente {
                 if (palavras.some(p => classe.includes(p.toLowerCase()))) {
                     pontuacao += pred.score;
                     objetosMatch.push(pred.class);
+                }
+            }
+            
+            // Para categoria "amigo", verifica se tem pelo menos duas pessoas
+            if (categoria === 'amigo') {
+                const totalPessoas = predictions.filter(pred => 
+                    pred.class.toLowerCase().includes('person') || 
+                    pred.class.toLowerCase().includes('face')
+                ).length;
+                
+                if (totalPessoas >= 2) {
+                    pontuacao += 0.9;
+                    objetosMatch.push(`${totalPessoas} pessoas`);
+                } else if (totalPessoas === 1) {
+                    pontuacao += 0.5;
+                    objetosMatch.push(`1 pessoa (seria melhor com um amigo!)`);
                 }
             }
             
@@ -543,6 +560,17 @@ export class ShoppingNutriCliente {
             analise.aprovado = false;
             analise.confianca = melhorMatch.confianca;
             analise.mensagem = `Conteúdo não identificado como relacionado ao desafio.`;
+        }
+        
+        // Mensagem personalizada para desafio de amigo
+        if (desafio?.categoria === 'amigo') {
+            if (analise.aprovado && analise.confianca >= 0.7) {
+                analise.mensagem = `🎉 Legal! Foto com amigo identificada! Pontos creditados!`;
+            } else if (analise.confianca >= 0.4) {
+                analise.mensagem = `🤔 Não consegui identificar claramente um amigo na foto. Enviando para avaliação do nutricionista.`;
+            } else {
+                analise.mensagem = `👥 Nenhuma pessoa identificada na foto. Lembre-se: o desafio é tirar foto com um amigo!`;
+            }
         }
     }
 
