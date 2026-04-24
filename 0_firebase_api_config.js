@@ -55,6 +55,70 @@ const auth = getAuth(app);
 // console.log('Firebase inicializado! Project ID:', firebaseConfig.projectId);
 // console.log('App Check ativado com reCAPTCHA v3 - Site Key:', SITE_KEY);
 
+// ==================== IMGBB UPLOAD ====================
+
+let imgbbApiKey = null;
+
+// Carregar a chave da API do ImgBB do Firestore
+export async function getImgbbApiKey() {
+    if (imgbbApiKey) return imgbbApiKey;
+    
+    try {
+        const configRef = doc(db, 'config', 'api');
+        const configDoc = await getDoc(configRef);
+        
+        if (configDoc.exists()) {
+            imgbbApiKey = configDoc.data().imgbb_key_desafio_fotos;
+            return imgbbApiKey;
+        } else {
+            console.error('Configuração da API não encontrada');
+            return null;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar chave do ImgBB:', error);
+        return null;
+    }
+}
+
+// Upload de imagem para o ImgBB
+export async function uploadParaImgbb(imagemBase64) {
+    try {
+        const apiKey = await getImgbbApiKey();
+        if (!apiKey) {
+            throw new Error('API key do ImgBB não configurada');
+        }
+        
+        // Remover o prefixo "data:image/jpeg;base64," se existir
+        const base64Data = imagemBase64.split(',')[1] || imagemBase64;
+        
+        const formData = new FormData();
+        formData.append('key', apiKey);
+        formData.append('image', base64Data);
+        
+        const response = await fetch('https://api.imgbb.com/1/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            return {
+                success: true,
+                url: result.data.url,
+                delete_url: result.data.delete_url,
+                thumb: result.data.thumb
+            };
+        } else {
+            throw new Error(result.error?.message || 'Erro no upload');
+        }
+        
+    } catch (error) {
+        console.error('Erro no upload para ImgBB:', error);
+        throw error;
+    }
+}
+
 // Export all necessary modules
 export { 
     // Firebase instances
