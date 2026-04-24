@@ -22,14 +22,28 @@ export class HomeCliente {
         this.loadEvaluations();
     }
 
+    // Método para formatar nome: apenas primeiro nome, primeira letra maiúscula
+    formatarNome(nomeCompleto) {
+        if (!nomeCompleto) return 'Usuário';
+        
+        // Pega o primeiro nome
+        let primeiroNome = nomeCompleto.trim().split(' ')[0];
+        
+        // Converte para minúsculas e depois capitaliza a primeira letra
+        primeiroNome = primeiroNome.toLowerCase();
+        primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1);
+        
+        return primeiroNome;
+    }
+
     renderHTML() {
         const perfilDisplayName = this.getPerfilDisplayName(this.userInfo.perfil);
         const perfilBadgeClass = this.getPerfilBadgeClass(this.userInfo.perfil);
         
         const isMembro = this.userInfo.perfil === 'operador_membro' && !this.userInfo.isAdminView;
         
-        // Truncar nome muito longo
-        const nomeExibido = this.userInfo.nome?.length > 25 ? this.userInfo.nome.substring(0, 22) + '...' : this.userInfo.nome;
+        // Nome formatado: apenas primeiro nome com primeira letra maiúscula
+        const nomeFormatado = this.formatarNome(this.userInfo.nome);
         
         return `
             <div class="home-container">
@@ -39,8 +53,8 @@ export class HomeCliente {
                         <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img">
                         <h1>Minhas Avaliações</h1>
                     </div>
-                    <div class="user-info">
-                        <span>👋 Olá, ${nomeExibido || 'Usuário'}</span>
+                    <div class="user-info" style="flex: 1; justify-content: flex-end;">
+                        <span>👋 Olá, ${nomeFormatado}</span>
                         <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
                         <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
                     </div>
@@ -218,8 +232,6 @@ export class HomeCliente {
         }
     }
 
-    // ... (restante dos métodos showMinhaJornada, showModuleMessage, showMembroExclusiveContent, loadEvaluations, formatDate, showEmptyCharts, renderCharts, createCharts permanecem iguais)
-    
     showMinhaJornada() {
         const evaluations = this.currentEvaluations;
         
