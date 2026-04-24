@@ -119,7 +119,6 @@ export async function uploadParaImgbb(imagemBase64) {
     }
 }
 
-// Export all necessary modules
 export { 
     // Firebase instances
     db, 
@@ -147,5 +146,9 @@ export {
     signOut,
     sendPasswordResetEmail,
     confirmPasswordReset,
-    verifyPasswordResetCode
+    verifyPasswordResetCode,
+    
+    // ImgBB functions
+    getImgbbApiKey,
+    uploadParaImgbb
 };
