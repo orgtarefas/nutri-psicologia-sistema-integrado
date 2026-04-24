@@ -96,7 +96,6 @@ export class HomeCliente {
                 <div class="header d-flex justify-content-between align-items-center flex-wrap">
                     <div class="d-flex align-items-center gap-2">
                         <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img" style="height: 36px; filter: brightness(0) invert(1);">
-                        <h1 class="m-0 text-white" style="font-size: 16px; font-weight: 600;">Minhas Avaliações</h1>
                     </div>
                     <div class="user-info d-flex align-items-center gap-2">
                         <span class="text-white">👋 Olá, ${nomeFormatado}</span>
@@ -104,7 +103,7 @@ export class HomeCliente {
                         <button class="menu-toggle-btn d-flex align-items-center justify-content-center" id="menuToggleBtn">☰</button>
                     </div>
                 </div>
-
+    
                 <!-- MENU LATERAL -->
                 <div class="side-menu" id="sideMenu">
                     <div class="menu-header">
@@ -146,7 +145,7 @@ export class HomeCliente {
                     </nav>
                 </div>
                 <div class="menu-overlay" id="menuOverlay"></div>
-
+    
                 <div class="content p-3">
                     <!-- DADOS DO CLIENTE -->
                     <div class="client-info mb-3">
@@ -156,9 +155,9 @@ export class HomeCliente {
                             <p><strong>📅 Nascimento:</strong> ${this.funcoes.formatDateToDisplay(this.userInfo.dataNascimento) || 'Não informado'}</p>
                             <p><strong>🎂 Idade:</strong> ${this.funcoes.calcularIdade(this.userInfo.dataNascimento) || 'Não informado'} anos</p>
                             <p><strong>📋 Plano:</strong> ${this.plano}</p>
-                            <p><strong>👨‍⚕️ Profissionais Vinculados:</strong></p>
                             <div class="profissionais-container">
-                                ${profissionaisHtml || 'Nenhum profissional vinculado'}
+                                <p class="mb-2"><strong>👨‍⚕️ Profissionais Vinculados:</strong></p>
+                                ${profissionaisHtml || '<p class="text-white-50 mb-0">Nenhum profissional vinculado</p>'}
                             </div>
                         </div>
                     </div>
