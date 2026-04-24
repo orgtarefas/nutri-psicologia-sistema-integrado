@@ -7,6 +7,7 @@ export class HomeCliente {
         this.funcoes = FuncoesCompartilhadas;
         this.currentEvaluations = [];
         this.navegador = criarNavegador(userInfo);
+        this.isMenuOpen = false;
         
         // Gráficos
         this.weightChart = null;
@@ -25,42 +26,70 @@ export class HomeCliente {
         const perfilDisplayName = this.getPerfilDisplayName(this.userInfo.perfil);
         const perfilBadgeClass = this.getPerfilBadgeClass(this.userInfo.perfil);
         
-        // SÓ mostra botão de conteúdo exclusivo se for membro E NÃO for admin view
         const isMembro = this.userInfo.perfil === 'operador_membro' && !this.userInfo.isAdminView;
         
-        // Texto do cargo para admin view
         const cargoDisplayText = this.userInfo.isAdminView ? 
             `[Admin] Visualizando como ${this.getCargoDisplayName(this.userInfo.cargo)}` : 
             (this.userInfo.cargo === 'paciente' ? 'Paciente' : this.userInfo.cargo);
         
         return `
             <div class="home-container">
-                <div class="header">
+                <!-- HEADER COM MENU HAMBURGUER -->
+                <div class="header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                     <div class="header-logo">
                         <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img">
                         <h1>Minhas Avaliações</h1>
                     </div>
-                    <div class="user-info">
+                    <div class="user-info" style="display: flex; align-items: center; gap: 12px;">
                         <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <span>🏷️ ${cargoDisplayText}</span>
                         <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        <button class="logout-btn" id="logoutBtn">Sair</button>
+                        <button class="menu-toggle-btn" id="menuToggleBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: white;">☰</button>
                     </div>
                 </div>
-                <div class="content">
-                    <div class="nav-buttons">
-                        <button class="nav-btn" data-module="history">📜 Histórico</button>
-                        <button class="nav-btn" data-module="results">📈 Resultados</button>
-                        <button class="nav-btn" data-module="schedule">📅 Agendamentos</button>
-                        <button class="nav-btn" data-module="messages">💬 Mensagens</button>
-                        <button class="nav-btn" id="minhaJornadaBtn" style="background: #8b5cf6; color: white;">🌟 Minha Jornada</button>
-                        <button class="nav-btn" id="meuPlanoAlimentarBtn" style="background: #10b981; color: white;">🍽️ Meu Plano Alimentar</button>
-                        <button class="nav-btn" id="shoppingNutriBtn" style="background: #f97316; color: white;">🛍️ Shopping Nutri</button>
-                        ${isMembro ? `
-                            <button class="nav-btn" id="membroExclusiveBtn" style="background: #ed8936; color: white;">⭐ Conteúdo Exclusivo Membro</button>
-                        ` : ''}
+
+                <!-- MENU LATERAL (3 PONTINHOS) -->
+                <div class="side-menu" id="sideMenu" style="position: fixed; top: 0; right: -280px; width: 280px; height: 100%; background: white; box-shadow: -2px 0 10px rgba(0,0,0,0.1); z-index: 1001; transition: right 0.3s ease; display: flex; flex-direction: column;">
+                    <div class="menu-header" style="background: linear-gradient(135deg, #1a237e 0%, #0f1a5c 100%); padding: 24px 20px; display: flex; justify-content: space-between; align-items: center; color: white;">
+                        <h3 style="margin: 0;">Menu</h3>
+                        <button class="close-menu" id="closeMenu" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 28px; width: 36px; height: 36px; border-radius: 8px; cursor: pointer;">×</button>
                     </div>
-                    
+                    <nav class="menu-nav" style="flex: 1; padding: 16px 0;">
+                        <button class="menu-item" data-module="home" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #475569; text-align: left;">
+                            <span class="menu-icon">🏠</span>
+                            <span>Home</span>
+                        </button>
+                        <button class="menu-item" data-module="meu_plano_alimentar" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #475569; text-align: left;">
+                            <span class="menu-icon">🍽️</span>
+                            <span>Meu Plano Alimentar</span>
+                        </button>
+                        <button class="menu-item" data-module="minha_anamnese" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #475569; text-align: left;">
+                            <span class="menu-icon">📋</span>
+                            <span>Minha Anamnese</span>
+                        </button>
+                        <button class="menu-item" data-module="shopping_nutri" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #475569; text-align: left;">
+                            <span class="menu-icon">🛍️</span>
+                            <span>Shopping Nutri</span>
+                        </button>
+                        <button class="menu-item" id="minhaJornadaMenuItem" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #8b5cf6; text-align: left;">
+                            <span class="menu-icon">🌟</span>
+                            <span>Minha Jornada</span>
+                        </button>
+                        ${isMembro ? `
+                        <button class="menu-item" id="membroExclusiveMenuItem" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #ed8936; text-align: left;">
+                            <span class="menu-icon">⭐</span>
+                            <span>Conteúdo Exclusivo</span>
+                        </button>
+                        ` : ''}
+                        <div style="height: 1px; background: #e2e8f0; margin: 12px 24px;"></div>
+                        <button class="menu-item logout" id="logoutMenuItem" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #dc2626; text-align: left;">
+                            <span class="menu-icon">🚪</span>
+                            <span>Sair</span>
+                        </button>
+                    </nav>
+                </div>
+                <div class="menu-overlay" id="menuOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s;"></div>
+
+                <div class="content">
                     <!-- INFORMAÇÕES DO PACIENTE -->
                     <div class="client-info">
                         <h3>📋 Meus Dados</h3>
@@ -132,51 +161,77 @@ export class HomeCliente {
     }
 
     attachEvents() {
-        // Botão de logout
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => this.navegador.navegarPara('logout'));
-        }
+        // Menu lateral
+        const menuToggle = document.getElementById('menuToggleBtn');
+        const sideMenu = document.getElementById('sideMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const closeMenu = document.getElementById('closeMenu');
 
-        // Botão Minha Jornada
-        const minhaJornadaBtn = document.getElementById('minhaJornadaBtn');
-        if (minhaJornadaBtn) {
-            minhaJornadaBtn.addEventListener('click', () => {
+        const openMenu = () => {
+            if (sideMenu) sideMenu.style.right = '0';
+            if (menuOverlay) {
+                menuOverlay.style.opacity = '1';
+                menuOverlay.style.visibility = 'visible';
+            }
+            this.isMenuOpen = true;
+        };
+
+        const closeMenuFunc = () => {
+            if (sideMenu) sideMenu.style.right = '-280px';
+            if (menuOverlay) {
+                menuOverlay.style.opacity = '0';
+                menuOverlay.style.visibility = 'hidden';
+            }
+            this.isMenuOpen = false;
+        };
+
+        if (menuToggle) menuToggle.addEventListener('click', openMenu);
+        if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
+        if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
+
+        // Botões do menu
+        document.querySelectorAll('.menu-item[data-module]').forEach(item => {
+            item.addEventListener('click', async (e) => {
+                const module = item.getAttribute('data-module');
+                closeMenuFunc();
+                await this.navegador.navegarPara(module);
+            });
+        });
+
+        // Botão Minha Jornada do menu
+        const minhaJornadaMenuItem = document.getElementById('minhaJornadaMenuItem');
+        if (minhaJornadaMenuItem) {
+            minhaJornadaMenuItem.addEventListener('click', () => {
+                closeMenuFunc();
                 this.showMinhaJornada();
             });
         }
 
-        // Botão Meu Plano Alimentar
+        // Botão Conteúdo Exclusivo do menu
+        const membroExclusiveMenuItem = document.getElementById('membroExclusiveMenuItem');
+        if (membroExclusiveMenuItem) {
+            membroExclusiveMenuItem.addEventListener('click', () => {
+                closeMenuFunc();
+                this.showMembroExclusiveContent();
+            });
+        }
+
+        // Botão Sair do menu
+        const logoutMenuItem = document.getElementById('logoutMenuItem');
+        if (logoutMenuItem) {
+            logoutMenuItem.addEventListener('click', () => {
+                closeMenuFunc();
+                this.navegador.navegarPara('logout');
+            });
+        }
+
+        // Botão Meu Plano Alimentar (antigo, manter para compatibilidade)
         const meuPlanoAlimentarBtn = document.getElementById('meuPlanoAlimentarBtn');
         if (meuPlanoAlimentarBtn) {
             meuPlanoAlimentarBtn.addEventListener('click', () => {
                 this.navegador.navegarPara('meu_plano_alimentar');
             });
         }
-
-        // Botão Meu Shopping da Nutri
-        const shoppingNutriBtn = document.getElementById('shoppingNutriBtn');
-        if (shoppingNutriBtn) {
-            shoppingNutriBtn.addEventListener('click', () => {
-                this.navegador.navegarPara('shopping_nutri');
-            });
-        }
-
-        // Botão de conteúdo exclusivo para membros
-        const membroExclusiveBtn = document.getElementById('membroExclusiveBtn');
-        if (membroExclusiveBtn) {
-            membroExclusiveBtn.addEventListener('click', () => {
-                this.showMembroExclusiveContent();
-            });
-        }
-
-        // Botões de navegação
-        document.querySelectorAll('.nav-btn[data-module]').forEach(btn => {
-            const module = btn.getAttribute('data-module');
-            if (module && !btn.id) {
-                btn.addEventListener('click', () => this.showModuleMessage(module));
-            }
-        });
     }
 
     showMinhaJornada() {
