@@ -222,7 +222,7 @@ body {
     75% { transform: translateX(5px); }
 }
 
-/* ==================== LAYOUT PACIENTE (MOBILE) ==================== */
+/* ==================== LAYOUT PACIENTE (MOBILE) - OTIMIZADO COM BOOTSTRAP ==================== */
 
 body.profile-paciente {
     padding: 10px;
@@ -237,34 +237,107 @@ body.profile-paciente .home-container {
     overflow: hidden;
 }
 
+/* HEADER */
 body.profile-paciente .header {
     background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
     padding: 16px 20px;
-    text-align: center;
 }
 
-body.profile-paciente .header-logo-img {
-    height: 40px;
-    margin-bottom: 8px;
-}
-
-body.profile-paciente .header h1 {
-    font-size: 18px;
-    margin: 0;
-}
-
+/* Remove o fundo do user-info - sem retângulo cinza */
 body.profile-paciente .user-info {
+    background: none !important;
+    padding: 0;
+    gap: 12px;
+}
+
+/* Icone do nome mais claro */
+body.profile-paciente .user-info span:first-child i,
+body.profile-paciente .user-info span:first-child .bi {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Cargo badge com fundo */
+body.profile-paciente .cargo-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white;
+}
+
+/* Botão menu */
+body.profile-paciente .menu-toggle-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+body.profile-paciente .menu-toggle-btn:hover {
+    background: var(--primary);
+}
+
+/* Card de informações do cliente */
+body.profile-paciente .client-info {
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    color: white;
+}
+
+body.profile-paciente .client-info h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Info card - itens sem fundo individual, apenas texto */
+body.profile-paciente .info-card {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 12px;
+    flex-direction: column;
+    gap: 12px;
 }
 
-body.profile-paciente .content {
-    padding: 16px;
+body.profile-paciente .info-card p {
+    margin: 0;
+    font-size: 14px;
+    background: transparent;
+    padding: 0;
 }
 
+body.profile-paciente .info-card p strong {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-right: 8px;
+}
+
+/* Profissionais vinculados - efeito de conjunto */
+body.profile-paciente .profissionais-container {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 4px;
+}
+
+body.profile-paciente .profissional-item {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.profile-paciente .profissional-item:last-child {
+    border-bottom: none;
+}
+
+/* Botões de navegação com Bootstrap */
 body.profile-paciente .nav-buttons {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -276,76 +349,174 @@ body.profile-paciente .nav-btn {
     padding: 12px 8px;
     font-size: 13px;
     text-align: center;
-    border-radius: 0.75rem;
+    border-radius: 12px;
     background: white;
-    border: none;
+    border: 1px solid #e2e8f0;
     color: var(--secondary);
     font-weight: 500;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
 }
 
 body.profile-paciente .nav-btn:hover {
     background: var(--primary);
+    border-color: var(--primary);
     color: white;
+    transform: translateY(-2px);
 }
 
-body.profile-paciente .client-info {
-    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
-    padding: 16px;
-    border-radius: 1rem;
-    margin-bottom: 20px;
-    color: white;
-}
-
-body.profile-paciente .client-info h3 {
-    font-size: 16px;
-    margin-bottom: 12px;
-}
-
-body.profile-paciente .info-card {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-}
-
+/* Cards de avaliação */
 body.profile-paciente .evaluation-card {
     background: white;
-    padding: 14px;
-    border-radius: 0.75rem;
+    padding: 16px;
+    border-radius: 16px;
     margin-bottom: 12px;
     border-left: 4px solid var(--primary);
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 body.profile-paciente .evaluation-date {
-    font-weight: bold;
+    font-weight: 600;
     color: var(--primary);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 body.profile-paciente .evaluation-data {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 8px;
-    margin-top: 8px;
+    margin-top: 12px;
     font-size: 13px;
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+/* Gráficos */
+body.profile-paciente .charts-section {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+body.profile-paciente .chart-container {
+    margin-bottom: 20px;
+}
+
+body.profile-paciente .chart-container h4 {
+    font-size: 14px;
+    color: var(--secondary);
+    margin-bottom: 12px;
+    font-weight: 600;
 }
 
 body.profile-paciente canvas {
     max-height: 200px;
+    width: 100%;
 }
 
-body.profile-paciente button,
-body.profile-paciente .nav-btn {
-    min-height: 48px;
-    touch-action: manipulation;
+/* Menu lateral */
+body.profile-paciente .side-menu {
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 280px;
+    height: 100%;
+    background: white;
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+    z-index: 1001;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
 }
 
-body.profile-paciente input,
-body.profile-paciente select,
-body.profile-paciente textarea {
-    font-size: 16px !important;
+body.profile-paciente .side-menu.open {
+    right: 0;
+}
+
+body.profile-paciente .menu-header {
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+}
+
+body.profile-paciente .menu-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+body.profile-paciente .close-menu {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 20px;
+}
+
+body.profile-paciente .close-menu:hover {
+    background: var(--danger);
+}
+
+body.profile-paciente .menu-nav {
+    flex: 1;
+    padding: 12px 0;
+}
+
+body.profile-paciente .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 20px;
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: #334155;
+    transition: all 0.2s;
+}
+
+body.profile-paciente .menu-item:hover {
+    background: #f1f5f9;
+    color: var(--primary);
+}
+
+body.profile-paciente .menu-item.logout {
+    margin-top: auto;
+    border-top: 1px solid #e2e8f0;
+    color: #dc2626;
+}
+
+body.profile-paciente .menu-item.logout:hover {
+    background: #fee2e2;
+}
+
+body.profile-paciente .menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+}
+
+body.profile-paciente .menu-overlay.open {
+    opacity: 1;
+    visibility: visible;
 }
 
 /* ==================== LAYOUT PROFISSIONAL (DESKTOP) ==================== */
@@ -860,7 +1031,38 @@ body.profile-profissional .info-group label {
     cursor: pointer;
 }
 
-/* Responsivo para desktop */
+/* Botão expandir */
+.btn-expand {
+    width: 52px;
+    height: 52px;
+    padding: 14px;
+    font-size: 20px;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-expand:hover {
+    width: auto;
+    padding: 14px 28px;
+}
+
+.btn-expand:hover .btn-text {
+    display: inline;
+}
+
+.btn-text {
+    display: none;
+    font-size: 16px;
+}
+
+/* ==================== RESPONSIVO ==================== */
+
 @media (max-width: 992px) {
     body.profile-profissional .main-content {
         padding: 24px;
@@ -908,6 +1110,38 @@ body.profile-profissional .info-group label {
     .login-card {
         padding: 32px 24px;
     }
+    
+    body.profile-paciente .header {
+        padding: 12px 16px;
+    }
+    
+    body.profile-paciente .header-logo-img {
+        height: 30px;
+    }
+    
+    body.profile-paciente .header h1 {
+        font-size: 14px;
+    }
+    
+    body.profile-paciente .user-info span:first-child {
+        max-width: 100px;
+        font-size: 12px;
+    }
+    
+    body.profile-paciente .cargo-badge {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+    
+    body.profile-paciente .menu-toggle-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+    
+    body.profile-paciente .info-card p {
+        font-size: 13px;
+    }
 }
 
 /* Print */
@@ -921,530 +1155,4 @@ body.profile-profissional .info-group label {
         margin: 0;
         padding: 0;
     }
-}
-
-.btn-expand {
-    width: 52px;
-    height: 52px;
-    padding: 14px;
-    font-size: 20px;
-    border-radius: 50px;
-    transition: all 0.3s ease;
-    overflow: hidden;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.btn-expand:hover {
-    width: auto;
-    padding: 14px 28px;
-}
-
-.btn-expand:hover .btn-text {
-    display: inline;
-}
-
-.btn-text {
-    display: none;
-    font-size: 16px;
-}
-
-/* ==================== HEADER PROFISSIONAL TELA HOME DO CLIENTE ==================== */
-
-body.profile-paciente .home-container {
-    background: #f8fafc;
-    border-radius: 1.5rem;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
-    max-width: 500px;
-    margin: 0 auto;
-    overflow: hidden;
-}
-
-body.profile-paciente .header {
-    background: linear-gradient(135deg, #1a237e 0%, #0f1a5c 100%);
-    padding: 16px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-body.profile-paciente .header-logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-}
-
-body.profile-paciente .header-logo-img {
-    height: 36px;
-    width: auto;
-    filter: brightness(0) invert(1);
-}
-
-body.profile-paciente .header h1 {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0;
-    color: white;
-    white-space: nowrap;
-}
-
-body.profile-paciente .user-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.12);
-    padding: 5px 10px 5px 14px;
-    border-radius: 40px;
-    backdrop-filter: blur(4px);
-    flex: 1;
-    justify-content: flex-end;
-    min-width: 0;
-}
-
-body.profile-paciente .user-info span:first-child {
-    font-size: 13px;
-    font-weight: 500;
-    color: white;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 140px;
-}
-
-body.profile-paciente .perfil-badge {
-    padding: 4px 10px;
-    border-radius: 30px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    white-space: nowrap;
-}
-
-body.profile-paciente .perfil-operador {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-}
-
-body.profile-paciente .perfil-operador-membro {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    color: white;
-}
-
-body.profile-paciente .menu-toggle-btn {
-    background: rgba(255, 255, 255, 0.15);
-    border: none;
-    color: white;
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-
-body.profile-paciente .menu-toggle-btn:hover {
-    background: var(--primary);
-    transform: scale(1.02);
-}
-
-/* Menu lateral do cliente (ajustes) */
-body.profile-paciente .side-menu {
-    position: fixed;
-    top: 0;
-    right: -300px;
-    width: 280px;
-    height: 100%;
-    background: white;
-    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
-    z-index: 1001;
-    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-}
-
-body.profile-paciente .side-menu.open {
-    right: 0;
-}
-
-body.profile-paciente .menu-header {
-    background: linear-gradient(135deg, #1a237e 0%, #0f1a5c 100%);
-    padding: 24px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: white;
-}
-
-body.profile-paciente .menu-header h3 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 600;
-}
-
-body.profile-paciente .close-menu {
-    background: rgba(255, 255, 255, 0.15);
-    border: none;
-    color: white;
-    font-size: 24px;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-body.profile-paciente .close-menu:hover {
-    background: var(--danger);
-}
-
-body.profile-paciente .menu-nav {
-    flex: 1;
-    padding: 12px 0;
-}
-
-body.profile-paciente .menu-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    padding: 14px 24px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 500;
-    color: #334155;
-    text-align: left;
-    transition: all 0.2s;
-}
-
-body.profile-paciente .menu-item:hover {
-    background: #f1f5f9;
-    color: var(--primary);
-}
-
-body.profile-paciente .menu-item.active {
-    background: #ffedd5;
-    color: var(--primary);
-    border-right: 3px solid var(--primary);
-}
-
-body.profile-paciente .menu-item.logout {
-    margin-top: auto;
-    border-top: 1px solid #e2e8f0;
-    color: #dc2626;
-}
-
-body.profile-paciente .menu-item.logout:hover {
-    background: #fee2e2;
-}
-
-body.profile-paciente .menu-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s;
-}
-
-body.profile-paciente .menu-overlay.open {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Informações do cliente - card moderno */
-body.profile-paciente .client-info {
-    background: linear-gradient(135deg, #1a237e 0%, #0f1a5c 100%);
-    padding: 20px;
-    border-radius: 20px;
-    margin-bottom: 24px;
-    color: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-body.profile-paciente .client-info h3 {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    padding-bottom: 10px;
-}
-
-body.profile-paciente .info-card {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-}
-
-body.profile-paciente .info-card p {
-    margin: 0;
-    font-size: 13px;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 8px 12px;
-    border-radius: 12px;
-    backdrop-filter: blur(4px);
-}
-
-body.profile-paciente .info-card p strong {
-    font-weight: 600;
-    margin-right: 8px;
-    opacity: 0.8;
-}
-
-/* Botões de navegação melhorados */
-body.profile-paciente .nav-buttons {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
-}
-
-body.profile-paciente .nav-btn {
-    padding: 14px 12px;
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    border-radius: 16px;
-    background: white;
-    border: 1px solid #e2e8f0;
-    color: #1a237e;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-body.profile-paciente .nav-btn:hover {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-}
-
-/* Cards de avaliação */
-body.profile-paciente .evaluation-card {
-    background: white;
-    padding: 16px;
-    border-radius: 16px;
-    margin-bottom: 12px;
-    border-left: 4px solid var(--primary);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s;
-}
-
-body.profile-paciente .evaluation-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-1px);
-}
-
-body.profile-paciente .evaluation-date {
-    font-weight: 600;
-    color: var(--primary);
-    margin-bottom: 10px;
-    font-size: 13px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-body.profile-paciente .evaluation-data {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 8px;
-    margin-top: 12px;
-    font-size: 13px;
-    background: #f8fafc;
-    padding: 12px;
-    border-radius: 12px;
-}
-
-/* Gráficos */
-body.profile-paciente .charts-section {
-    background: white;
-    border-radius: 20px;
-    padding: 20px;
-    margin-top: 24px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-body.profile-paciente .chart-container {
-    margin-bottom: 24px;
-}
-
-body.profile-paciente .chart-container h4 {
-    font-size: 14px;
-    color: #1a237e;
-    margin-bottom: 12px;
-    font-weight: 600;
-}
-
-body.profile-paciente canvas {
-    max-height: 200px;
-    width: 100%;
-}
-
-/* Responsivo */
-@media (max-width: 480px) {
-    body.profile-paciente .header {
-        padding: 16px;
-    }
-    
-    body.profile-paciente .header-logo-img {
-        height: 36px;
-    }
-    
-    body.profile-paciente .header h1 {
-        font-size: 16px;
-    }
-    
-    body.profile-paciente .user-info span:first-child {
-        max-width: 120px;
-        font-size: 12px;
-    }
-    
-    body.profile-paciente .user-info {
-        padding: 4px 10px 4px 12px;
-    }
-    
-    body.profile-paciente .menu-toggle-btn {
-        width: 34px;
-        height: 34px;
-        font-size: 18px;
-    }
-    
-    body.profile-paciente .nav-buttons {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-    
-    body.profile-paciente .client-info .info-card {
-        grid-template-columns: 1fr;
-    }
-    
-    body.profile-paciente .evaluation-data {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Cargo badge sem background */
-body.profile-paciente .cargo-badge {
-    padding: 4px 8px;
-    font-size: 12px;
-    font-weight: 500;
-    color: white;
-    white-space: nowrap;
-}
-
-/* Informações do cliente em coluna */
-body.profile-paciente .info-card {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-body.profile-paciente .info-card p {
-    margin: 0;
-    font-size: 14px;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 10px 14px;
-    border-radius: 12px;
-    backdrop-filter: blur(4px);
-}
-
-body.profile-paciente .info-card p strong {
-    font-weight: 600;
-    margin-right: 8px;
-    opacity: 0.8;
-}
-
-/* Remove o fundo do user-info - sem retângulo cinza */
-body.profile-paciente .user-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: none !important;
-    backdrop-filter: none;
-    padding: 0;
-    border-radius: 0;
-}
-
-/* Ajuste para o texto do usuário */
-body.profile-paciente .user-info span:first-child {
-    font-size: 13px;
-    font-weight: 500;
-    color: white;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 140px;
-}
-
-/* Cargo badge - sem fundo */
-body.profile-paciente .cargo-badge {
-    background: none !important;
-    padding: 0;
-    font-size: 13px;
-    font-weight: normal;
-    color: white;
-    white-space: nowrap;
-}
-
-/* Botão menu toggle sem fundo */
-body.profile-paciente .menu-toggle-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: white;
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-
-body.profile-paciente .menu-toggle-btn:hover {
-    background: var(--primary);
-}
-
-/* Header ajustado */
-body.profile-paciente .header {
-    background: linear-gradient(135deg, #1a237e 0%, #0f1a5c 100%);
-    padding: 16px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    width: 100%;
-    box-sizing: border-box;
 }
