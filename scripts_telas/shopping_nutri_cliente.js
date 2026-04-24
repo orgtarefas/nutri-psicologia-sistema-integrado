@@ -106,7 +106,7 @@ export class ShoppingNutriCliente {
         });
         
         this.totalSlides = desafiosDisponiveis.length + desafiosIndisponiveis.length;
-
+    
         return `
             <div class="home-container">
                 <!-- HEADER PADRÃO IGUAL A HOME -->
@@ -120,8 +120,8 @@ export class ShoppingNutriCliente {
                         <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
                     </div>
                 </div>
-
-                <!-- MENU LATERAL PADRÃO IGUAL A HOME -->
+    
+                <!-- MENU LATERAL -->
                 <div class="side-menu" id="sideMenu">
                     <div class="menu-header">
                         <h3>Menu</h3>
@@ -156,7 +156,7 @@ export class ShoppingNutriCliente {
                     </nav>
                 </div>
                 <div class="menu-overlay" id="menuOverlay"></div>
-
+    
                 <!-- CONTEÚDO PRINCIPAL -->
                 <div class="content">
                     <!-- CARD DE PONTOS E NÍVEL -->
@@ -177,7 +177,7 @@ export class ShoppingNutriCliente {
                             </div>
                         </div>
                     </div>
-
+    
                     <!-- DESAFIOS COM FOTO (CARROSSEL) -->
                     ${this.desafiosFoto.length > 0 ? `
                     <div style="margin-bottom: 20px;">
@@ -227,26 +227,26 @@ export class ShoppingNutriCliente {
                         </div>
                     </div>
                     ` : ''}
-
+    
                     <!-- ROLETA ANIMADA -->
                     <div class="client-info" style="margin-bottom: 20px; text-align: center;">
                         <h3>🎡 Roleta da Sorte</h3>
                         <p style="font-size: 12px; opacity: 0.9; margin-bottom: 16px;">Gire a roleta uma vez por dia e ganhe pontos!</p>
                         
                         <div style="position: relative; display: inline-block;">
-                            <canvas id="roletaCanvas" width="300" height="300" style="max-width: 100%; height: auto; border-radius: 50%; background: white;"></canvas>
+                            <canvas id="roletaCanvas" width="280" height="280" style="max-width: 100%; height: auto; border-radius: 50%; background: white;"></canvas>
                             
-                            <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #f97316; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); z-index: 10;">
+                            <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 25px solid #f97316; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); z-index: 10;">
                             </div>
                             
-                            <button id="girarRoletaBtn" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f97316, #ea580c); color: white; border: none; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 20;" ${!this.roletaDisponivel ? 'disabled style="opacity:0.5;"' : ''}>
+                            <button id="girarRoletaBtn" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 55px; height: 55px; border-radius: 50%; background: linear-gradient(135deg, #f97316, #ea580c); color: white; border: none; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 20;" ${!this.roletaDisponivel ? 'disabled style="opacity:0.5;"' : ''}>
                                 ${this.roletaDisponivel ? 'GIRAR' : '✓'}
                             </button>
                         </div>
                         
                         ${!this.roletaDisponivel ? '<p style="margin-top: 12px; font-size: 11px; color: #10b981;">✅ Você já girou hoje! Volte amanhã!</p>' : ''}
                     </div>
-
+    
                     <!-- DESAFIOS DIÁRIOS -->
                     <div class="client-info" style="margin-bottom: 20px;">
                         <h3>⭐ Desafios Diários</h3>
@@ -254,7 +254,7 @@ export class ShoppingNutriCliente {
                             ${this.renderDesafios()}
                         </div>
                     </div>
-
+    
                     <!-- LOJA DE ITENS -->
                     <div class="client-info" style="margin-bottom: 20px;">
                         <h3>🛍️ Trocar Pontos</h3>
@@ -262,7 +262,7 @@ export class ShoppingNutriCliente {
                             ${this.renderItensLoja()}
                         </div>
                     </div>
-
+    
                     <!-- HISTÓRICO -->
                     <div class="client-info">
                         <h3>📜 Histórico</h3>
