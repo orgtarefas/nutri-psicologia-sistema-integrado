@@ -38,7 +38,7 @@ export class ShoppingNutriCliente {
         this.carregandoIA = false;
         
         // Participações do usuário nos desafios
-        this.participacoesDesafios = new Map(); // desafio_id -> quantidade
+        this.participacoesDesafios = new Map();
         
         // Conteúdo gamificado
         this.configGamificacao = null;
@@ -55,7 +55,6 @@ export class ShoppingNutriCliente {
             '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8C471', '#A9DFBF'
         ];
         
-        // Swiper/carrossel
         this.currentSlideIndex = 0;
         this.totalSlides = 0;
     }
@@ -84,7 +83,6 @@ export class ShoppingNutriCliente {
         
         this.roletaPremios = this.configGamificacao?.roleta_premios || [5, 10, 15, 20, 25, 50, 100];
         
-        // Filtrar apenas desafios de foto disponíveis (dentro do horário e com participações disponíveis)
         const desafiosDisponiveis = this.desafiosFoto.filter(desafio => {
             const disponivel = this.verificarDisponibilidadeDesafioFoto(desafio);
             const participacoesRestantes = this.getParticipacoesRestantes(desafio);
@@ -100,224 +98,243 @@ export class ShoppingNutriCliente {
         this.totalSlides = desafiosDisponiveis.length + desafiosIndisponiveis.length;
 
         return `
-            <div class="home-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
-                <div class="header" style="background: rgba(0,0,0,0.2);">
-                    <div class="header-logo">
-                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img" style="filter: brightness(0) invert(1);">
-                        <h1 style="font-size: 20px;">🛍️ Shopping Nutri</h1>
+            <div class="container-fluid p-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
+                <!-- HEADER -->
+                <div class="d-flex justify-content-between align-items-center p-3" style="background: rgba(0,0,0,0.2);">
+                    <div class="d-flex align-items-center gap-2">
+                        <img src="./imagens/logo.png" alt="TratamentoWeb" style="height: 40px; filter: brightness(0) invert(1);">
+                        <h1 class="text-white m-0" style="font-size: 20px;">🛍️ Shopping Nutri</h1>
                     </div>
-                    <div class="user-info">
-                        <span>👋 Olá, ${this.userInfo.nome}</span>
-                        <button class="logout-btn" id="backToHomeBtn" style="background: rgba(255,255,255,0.2);">← Voltar</button>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="text-white">👋 Olá, ${this.userInfo.nome}</span>
+                        <button class="btn btn-sm btn-outline-light" id="backToHomeBtn">← Voltar</button>
                     </div>
                 </div>
 
-                <div class="content" style="padding: 20px;">
+                <div class="p-3">
                     <!-- CARD DE PONTOS E NÍVEL -->
-                    <div class="points-card" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); border-radius: 24px; padding: 24px; margin-bottom: 24px; color: white;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-                            <div>
-                                <div style="font-size: 14px; opacity: 0.9;">⭐ SEUS PONTOS</div>
-                                <div style="font-size: 48px; font-weight: bold;" id="userPontosDisplay">${this.userPontos}</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 14px; opacity: 0.9;">🏆 NÍVEL</div>
-                                <div style="font-size: 36px; font-weight: bold;" id="userNivelDisplay">${this.userNivel}</div>
-                            </div>
-                            <div style="flex: 1; max-width: 200px;">
-                                <div style="font-size: 12px; margin-bottom: 8px;">📈 Progresso para Nível ${this.userNivel + 1}</div>
-                                <div style="background: rgba(255,255,255,0.3); border-radius: 10px; overflow: hidden; height: 8px;">
-                                    <div style="background: white; width: ${progressoExp}%; height: 100%; border-radius: 10px;"></div>
+                    <div class="card bg-gradient-orange text-white rounded-4 mb-4 border-0" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                <div>
+                                    <div class="small opacity-75">⭐ SEUS PONTOS</div>
+                                    <div class="display-4 fw-bold" id="userPontosDisplay">${this.userPontos}</div>
                                 </div>
-                                <div style="font-size: 12px; margin-top: 5px;">${this.userExperiencia}/${experienciaParaProxNivel} XP</div>
+                                <div class="text-center">
+                                    <div class="small opacity-75">🏆 NÍVEL</div>
+                                    <div class="display-4 fw-bold" id="userNivelDisplay">${this.userNivel}</div>
+                                </div>
+                                <div class="flex-grow-1" style="max-width: 200px;">
+                                    <div class="small mb-1">📈 Progresso para Nível ${this.userNivel + 1}</div>
+                                    <div class="progress bg-white bg-opacity-25" style="height: 8px;">
+                                        <div class="progress-bar bg-white" style="width: ${progressoExp}%;"></div>
+                                    </div>
+                                    <div class="small mt-1">${this.userExperiencia}/${experienciaParaProxNivel} XP</div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SEÇÃO: DESAFIOS COM FOTO (CARROSSEL) -->
+                    <!-- DESAFIOS COM FOTO (CARROSSEL) -->
                     ${this.desafiosFoto.length > 0 ? `
-                    <div class="desafios-foto-section" style="margin-bottom: 24px;">
-                        <h3 style="color: white; margin-bottom: 16px;">📸 Desafios com Foto Analisados por IA</h3>
-                        <div class="carrossel-container" style="position: relative; overflow: hidden;">
-                            <div class="carrossel-wrapper" id="desafiosCarrossel" style="display: flex; transition: transform 0.3s ease;">
+                    <div class="mb-4">
+                        <h3 class="text-white mb-3">📸 Desafios com Foto Analisados por IA</h3>
+                        <div class="position-relative">
+                            <div class="carrossel-wrapper d-flex overflow-hidden" id="desafiosCarrossel" style="transition: transform 0.3s ease;">
                                 ${desafiosDisponiveis.map(desafio => `
-                                    <div class="carrossel-slide" style="min-width: 100%; padding: 0 8px;">
-                                        <div class="desafio-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 20px; padding: 20px; color: white;">
-                                            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                                                <div style="font-size: 48px;">📸</div>
-                                                <div style="flex: 1;">
-                                                    <h3 style="margin-bottom: 8px;">${desafio.titulo || 'Desafio Especial'}</h3>
-                                                    <p style="margin-bottom: 8px; opacity: 0.9;">${desafio.descricao || 'Participe deste desafio e ganhe pontos extras!'}</p>
-                                                    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;">
-                                                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px;">
-                                                            ⭐ Pontos: +${desafio.pontos || 50}
-                                                        </span>
-                                                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px;">
-                                                            ⏰ ${this.formatarHorarioDesafio(desafio)}
-                                                        </span>
-                                                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px;">
-                                                            🎯 Participações: ${this.getParticipacoesRestantes(desafio)}/${desafio.quantidade_permitida || 1}
-                                                        </span>
+                                    <div class="carrossel-slide flex-shrink-0" style="width: 100%; padding: 0 8px;">
+                                        <div class="card bg-gradient-purple text-white rounded-4 border-0" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                    <div class="display-1">📸</div>
+                                                    <div class="flex-grow-1">
+                                                        <h3 class="card-title mb-2">${desafio.titulo || 'Desafio Especial'}</h3>
+                                                        <p class="card-text opacity-75 mb-2">${desafio.descricao || 'Participe deste desafio e ganhe pontos extras!'}</p>
+                                                        <div class="d-flex gap-3 flex-wrap">
+                                                            <span class="badge bg-white bg-opacity-25">⭐ Pontos: +${desafio.pontos || 50}</span>
+                                                            <span class="badge bg-white bg-opacity-25">⏰ ${this.formatarHorarioDesafio(desafio)}</span>
+                                                            <span class="badge bg-white bg-opacity-25">🎯 Participações: ${this.getParticipacoesRestantes(desafio)}/${desafio.quantidade_permitida || 1}</span>
+                                                        </div>
                                                     </div>
+                                                    <button class="btn btn-light text-purple participar-desafio-btn fw-bold" data-desafio-id="${desafio.id}">📷 Participar Agora</button>
                                                 </div>
-                                                <button class="participar-desafio-btn btn-primary" data-desafio-id="${desafio.id}" style="background: white; color: #7c3aed;">
-                                                    📷 Participar Agora
-                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                 `).join('')}
                                 ${desafiosIndisponiveis.map(desafio => `
-                                    <div class="carrossel-slide" style="min-width: 100%; padding: 0 8px;">
-                                        <div class="desafio-card" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); border-radius: 20px; padding: 20px; color: white; opacity: 0.7;">
-                                            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                                                <div style="font-size: 48px;">🔒</div>
-                                                <div style="flex: 1;">
-                                                    <h3 style="margin-bottom: 8px;">${desafio.titulo || 'Desafio Especial'}</h3>
-                                                    <p style="margin-bottom: 8px; opacity: 0.9;">${desafio.descricao || ''}</p>
-                                                    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;">
-                                                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px;">
-                                                            ⭐ Pontos: +${desafio.pontos || 50}
-                                                        </span>
-                                                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px;">
-                                                            🔒 Indisponível
-                                                        </span>
+                                    <div class="carrossel-slide flex-shrink-0" style="width: 100%; padding: 0 8px;">
+                                        <div class="card bg-secondary text-white rounded-4 border-0 opacity-75">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                    <div class="display-1">🔒</div>
+                                                    <div class="flex-grow-1">
+                                                        <h3 class="card-title mb-2">${desafio.titulo || 'Desafio Especial'}</h3>
+                                                        <p class="card-text opacity-75 mb-2">${desafio.descricao || ''}</p>
+                                                        <div class="d-flex gap-3 flex-wrap">
+                                                            <span class="badge bg-white bg-opacity-25">⭐ Pontos: +${desafio.pontos || 50}</span>
+                                                            <span class="badge bg-white bg-opacity-25">🔒 Indisponível</span>
+                                                        </div>
                                                     </div>
+                                                    <button class="btn btn-secondary" disabled>🔒 Indisponível</button>
                                                 </div>
-                                                <button class="btn-primary" disabled style="background: #9ca3af; color: white; cursor: not-allowed;">
-                                                    🔒 Indisponível
-                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                 `).join('')}
                             </div>
                             ${this.totalSlides > 1 ? `
-                            <button class="carrossel-prev" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; z-index: 10;">◀</button>
-                            <button class="carrossel-next" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; z-index: 10;">▶</button>
-                            <div class="carrossel-dots" style="display: flex; justify-content: center; gap: 8px; margin-top: 16px;"></div>
+                            <button class="carrossel-prev position-absolute start-0 top-50 translate-middle-y btn btn-dark rounded-circle p-2" style="width: 40px; height: 40px; opacity: 0.7;">◀</button>
+                            <button class="carrossel-next position-absolute end-0 top-50 translate-middle-y btn btn-dark rounded-circle p-2" style="width: 40px; height: 40px; opacity: 0.7;">▶</button>
+                            <div class="carrossel-dots d-flex justify-content-center gap-2 mt-3"></div>
                             ` : ''}
                         </div>
                     </div>
                     ` : ''}
 
                     <!-- ROLETA ANIMADA -->
-                    <div class="roleta-container" style="background: white; border-radius: 24px; padding: 24px; margin-bottom: 24px; text-align: center;">
-                        <h3 style="margin-bottom: 20px; color: #1a237e;">🎡 Roleta da Sorte</h3>
-                        <p style="margin-bottom: 20px; color: #666;">Gire a roleta uma vez por dia e ganhe pontos incríveis!</p>
-                        
-                        <div style="position: relative; display: inline-block;">
-                            <canvas id="roletaCanvas" width="400" height="400" style="max-width: 100%; height: auto; border-radius: 50%; box-shadow: 0 10px 30px rgba(0,0,0,0.2);"></canvas>
+                    <div class="card rounded-4 mb-4 border-0 shadow">
+                        <div class="card-body text-center p-4">
+                            <h3 class="card-title text-secondary mb-3">🎡 Roleta da Sorte</h3>
+                            <p class="text-muted mb-4">Gire a roleta uma vez por dia e ganhe pontos incríveis!</p>
                             
-                            <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #f97316; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); z-index: 10;">
+                            <div class="position-relative d-inline-block">
+                                <canvas id="roletaCanvas" width="400" height="400" class="rounded-circle shadow" style="max-width: 100%; height: auto;"></canvas>
+                                
+                                <div class="position-absolute top-0 start-50 translate-middle-x" style="width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #f97316; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); z-index: 10;">
+                                </div>
+                                
+                                <button id="girarRoletaBtn" class="roleta-girar-btn position-absolute top-50 start-50 translate-middle rounded-circle border-0 fw-bold shadow" style="width: 80px; height: 80px; background: linear-gradient(135deg, #f97316, #ea580c); color: white; font-size: 18px; z-index: 20; transition: all 0.3s;" ${!this.roletaDisponivel ? 'disabled style="opacity:0.5;"' : ''}>
+                                    ${this.roletaDisponivel ? 'GIRAR' : '✓'}
+                                </button>
                             </div>
                             
-                            <button id="girarRoletaBtn" class="roleta-girar-btn" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #f97316, #ea580c); color: white; border: none; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 20; transition: all 0.3s;" ${!this.roletaDisponivel ? 'disabled style="opacity:0.5;"' : ''}>
-                                ${this.roletaDisponivel ? 'GIRAR' : '✓'}
-                            </button>
+                            ${!this.roletaDisponivel ? '<p class="text-success mt-3 mb-0">✅ Você já girou a roleta hoje! Volte amanhã para mais pontos!</p>' : ''}
                         </div>
-                        
-                        ${!this.roletaDisponivel ? '<p style="margin-top: 20px; color: #10b981;">✅ Você já girou a roleta hoje! Volte amanhã para mais pontos!</p>' : ''}
                     </div>
 
                     <!-- DESAFIOS DIÁRIOS SIMPLES -->
-                    <div class="desafios-section" style="background: white; border-radius: 20px; padding: 20px; margin-bottom: 24px;">
-                        <h3 style="margin-bottom: 16px;">⭐ Desafios Diários</h3>
-                        <div id="desafiosList">
-                            ${this.renderDesafios()}
+                    <div class="card rounded-4 mb-4 border-0 shadow">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-secondary mb-3">⭐ Desafios Diários</h3>
+                            <div id="desafiosList">
+                                ${this.renderDesafios()}
+                            </div>
                         </div>
                     </div>
 
                     <!-- LOJA DE ITENS -->
-                    <div class="loja-section" style="background: white; border-radius: 20px; padding: 20px; margin-bottom: 24px;">
-                        <h3 style="margin-bottom: 16px;">🛍️ Trocar Pontos por Recompensas</h3>
-                        <div id="itensLoja" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                            ${this.renderItensLoja()}
+                    <div class="card rounded-4 mb-4 border-0 shadow">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-secondary mb-3">🛍️ Trocar Pontos por Recompensas</h3>
+                            <div id="itensLoja" class="row g-3">
+                                ${this.renderItensLoja()}
+                            </div>
                         </div>
                     </div>
 
                     <!-- HISTÓRICO -->
-                    <div class="historico-section" style="background: white; border-radius: 20px; padding: 20px;">
-                        <h3 style="margin-bottom: 16px;">📜 Histórico de Transações</h3>
-                        <div id="historicoList" style="max-height: 300px; overflow-y: auto;">
-                            ${this.renderHistorico()}
+                    <div class="card rounded-4 border-0 shadow">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-secondary mb-3">📜 Histórico de Transações</h3>
+                            <div id="historicoList" style="max-height: 300px; overflow-y: auto;">
+                                ${this.renderHistorico()}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- MODAL LOADING IA -->
-            <div id="loadingIAModal" class="modal" style="display: none;">
-                <div class="modal-content" style="max-width: 400px; text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: 20px;">🧠</div>
-                    <h3 id="loadingIATitulo">Carregando Inteligência Artificial...</h3>
-                    <p id="loadingIAMensagem" style="margin-top: 10px; color: #666;">Preparando o sistema de análise de imagens</p>
-                    <div style="width: 100%; height: 4px; background: #e2e8f0; border-radius: 4px; margin: 20px 0; overflow: hidden;">
-                        <div id="loadingIABarra" style="width: 0%; height: 100%; background: #f97316; border-radius: 4px; transition: width 0.3s;"></div>
+            <div id="loadingIAModal" class="modal fade" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content text-center p-4">
+                        <div class="display-1 mb-3">🧠</div>
+                        <h3 id="loadingIATitulo">Carregando Inteligência Artificial...</h3>
+                        <p id="loadingIAMensagem" class="text-muted mt-2">Preparando o sistema de análise de imagens</p>
+                        <div class="progress mt-3" style="height: 4px;">
+                            <div id="loadingIABarra" class="progress-bar bg-warning" style="width: 0%;"></div>
+                        </div>
+                        <p id="loadingIADetalhe" class="small text-muted mt-2"></p>
                     </div>
-                    <div id="loadingIADetalhe" style="font-size: 12px; color: #999;"></div>
                 </div>
             </div>
 
-            <!-- MODAL CÂMERA PARA DESAFIO -->
-            <div id="cameraModal" class="modal" style="display: none;">
-                <div class="modal-content" style="max-width: 600px;">
-                    <span class="close">&times;</span>
-                    <h3 id="cameraModalTitulo">📸 Tirar Foto</h3>
-                    <p id="cameraModalDescricao"></p>
-                    
-                    <div style="position: relative; margin: 20px 0;">
-                        <video id="videoCamera" autoplay playsinline style="width: 100%; border-radius: 16px; background: #000;"></video>
-                        <canvas id="canvasFoto" style="display: none;"></canvas>
-                    </div>
-                    
-                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                        <button id="tirarFotoBtn" class="btn-primary" style="background: #f97316;">📷 Tirar Foto</button>
-                        <button id="cancelarCameraBtn" class="btn-secondary">Cancelar</button>
-                    </div>
-                    
-                    <div id="iaAnaliseResultado" style="margin-top: 20px; padding: 16px; border-radius: 12px; display: none;">
-                        <div id="iaAnaliseIcone" style="font-size: 32px; text-align: center;">🤖</div>
-                        <p id="iaAnaliseMensagem" style="text-align: center; margin-top: 8px;"></p>
-                        <div id="iaAnaliseDetalhes" style="font-size: 12px; color: #666; margin-top: 8px; text-align: center;"></div>
+            <!-- MODAL CÂMERA -->
+            <div id="cameraModal" class="modal fade" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="cameraModalTitulo">📸 Tirar Foto</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="cameraModalDescricao" class="text-muted"></p>
+                            <div class="position-relative mb-3">
+                                <video id="videoCamera" autoplay playsinline class="w-100 rounded-3" style="background: #000;"></video>
+                                <canvas id="canvasFoto" style="display: none;"></canvas>
+                            </div>
+                            <div class="d-flex gap-3 justify-content-center">
+                                <button id="tirarFotoBtn" class="btn btn-warning">📷 Tirar Foto</button>
+                                <button id="cancelarCameraBtn" class="btn btn-secondary">Cancelar</button>
+                            </div>
+                            <div id="iaAnaliseResultado" class="mt-4 p-3 rounded-3 d-none">
+                                <div id="iaAnaliseIcone" class="display-4 text-center">🤖</div>
+                                <p id="iaAnaliseMensagem" class="text-center mt-2"></p>
+                                <p id="iaAnaliseDetalhes" class="small text-muted text-center"></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- MODAL PRÉ-VISUALIZAÇÃO -->
-            <div id="previewModal" class="modal" style="display: none;">
-                <div class="modal-content" style="max-width: 500px;">
-                    <span class="close">&times;</span>
-                    <h3>📸 Pré-visualização da Foto</h3>
-                    <img id="previewImagem" style="width: 100%; border-radius: 16px; margin: 20px 0;">
-                    <p id="previewResultadoIA" style="padding: 12px; border-radius: 12px; margin: 10px 0;"></p>
-                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                        <button id="refazerFotoBtn" class="btn-secondary">📷 Refazer Foto</button>
-                        <button id="confirmarEnvioBtn" class="btn-primary" style="background: #10b981;">✅ Confirmar Envio</button>
+            <div id="previewModal" class="modal fade" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">📸 Pré-visualização da Foto</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img id="previewImagem" class="img-fluid rounded-3 mb-3">
+                            <p id="previewResultadoIA" class="p-3 rounded-3"></p>
+                            <div class="d-flex gap-3 justify-content-center">
+                                <button id="refazerFotoBtn" class="btn btn-secondary">📷 Refazer Foto</button>
+                                <button id="confirmarEnvioBtn" class="btn btn-success">✅ Confirmar Envio</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- MODAL RESULTADO DA ROLETA -->
-            <div id="resultadoRoletaModal" class="modal" style="display: none;">
-                <div class="modal-content" style="max-width: 400px; text-align: center;">
-                    <span class="close">&times;</span>
-                    <div id="resultadoIcone" style="font-size: 64px; margin: 20px 0;">🎉</div>
-                    <h3 id="resultadoTitulo" style="color: #f97316;">Parabéns!</h3>
-                    <p id="resultadoMensagem" style="font-size: 18px; margin: 20px 0;"></p>
-                    <button id="fecharResultadoBtn" class="btn-primary" style="margin-top: 20px;">Continuar</button>
+            <div id="resultadoRoletaModal" class="modal fade" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content text-center p-4">
+                        <div id="resultadoIcone" class="display-1 mb-3">🎉</div>
+                        <h3 id="resultadoTitulo" class="text-warning">Parabéns!</h3>
+                        <p id="resultadoMensagem" class="fs-5 my-3"></p>
+                        <button id="fecharResultadoBtn" class="btn btn-primary mx-auto">Continuar</button>
+                    </div>
                 </div>
             </div>
 
             <!-- MODAL CONFIRMAÇÃO DE TROCA -->
-            <div id="trocaModal" class="modal" style="display: none;">
-                <div class="modal-content" style="max-width: 400px;">
-                    <span class="close">&times;</span>
-                    <h3 id="trocaModalTitulo">Confirmar Troca</h3>
-                    <p id="trocaModalDescricao"></p>
-                    <div style="display: flex; gap: 12px; margin-top: 20px;">
-                        <button id="cancelarTrocaBtn" class="btn-secondary" style="flex: 1;">Cancelar</button>
-                        <button id="confirmarTrocaBtn" class="btn-primary" style="flex: 1;">Confirmar Troca</button>
+            <div id="trocaModal" class="modal fade" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="trocaModalTitulo">Confirmar Troca</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="trocaModalDescricao"></p>
+                            <div class="d-flex gap-3 justify-content-end mt-4">
+                                <button id="cancelarTrocaBtn" class="btn btn-secondary">Cancelar</button>
+                                <button id="confirmarTrocaBtn" class="btn btn-primary">Confirmar Troca</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -336,18 +353,15 @@ export class ShoppingNutriCliente {
         this.totalSlides = slides.length;
         this.currentSlideIndex = 0;
         
-        // Criar dots
         if (dotsContainer) {
             dotsContainer.innerHTML = '';
             for (let i = 0; i < this.totalSlides; i++) {
                 const dot = document.createElement('button');
-                dot.className = `carrossel-dot ${i === this.currentSlideIndex ? 'active' : ''}`;
-                dot.style.cssText = 'width: 10px; height: 10px; border-radius: 50%; background: white; border: none; cursor: pointer; opacity: 0.5; transition: opacity 0.3s; margin: 0 4px;';
+                dot.className = `btn rounded-circle p-0 mx-1 ${i === this.currentSlideIndex ? 'bg-white' : 'bg-white bg-opacity-50'}`;
+                dot.style.width = '10px';
+                dot.style.height = '10px';
                 dot.addEventListener('click', () => this.goToSlide(i, wrapper, dotsContainer));
                 dotsContainer.appendChild(dot);
-            }
-            if (dotsContainer.children[this.currentSlideIndex]) {
-                dotsContainer.children[this.currentSlideIndex].style.opacity = '1';
             }
         }
         
@@ -356,7 +370,8 @@ export class ShoppingNutriCliente {
             if (wrapper) wrapper.style.transform = `translateX(${offset}%)`;
             if (dotsContainer) {
                 for (let i = 0; i < dotsContainer.children.length; i++) {
-                    dotsContainer.children[i].style.opacity = i === this.currentSlideIndex ? '1' : '0.5';
+                    dotsContainer.children[i].classList.toggle('bg-white', i === this.currentSlideIndex);
+                    dotsContainer.children[i].classList.toggle('bg-white bg-opacity-50', i !== this.currentSlideIndex);
                 }
             }
         };
@@ -384,7 +399,8 @@ export class ShoppingNutriCliente {
         if (wrapper) wrapper.style.transform = `translateX(${offset}%)`;
         if (dotsContainer) {
             for (let i = 0; i < dotsContainer.children.length; i++) {
-                dotsContainer.children[i].style.opacity = i === this.currentSlideIndex ? '1' : '0.5';
+                dotsContainer.children[i].classList.toggle('bg-white', i === this.currentSlideIndex);
+                dotsContainer.children[i].classList.toggle('bg-white bg-opacity-50', i !== this.currentSlideIndex);
             }
         }
     }
@@ -394,7 +410,6 @@ export class ShoppingNutriCliente {
         
         const inicio = new Date(desafio.horario_inicio);
         const fim = new Date(desafio.horario_fim);
-        
         const mesmoDia = inicio.toDateString() === fim.toDateString();
         
         if (mesmoDia) {
@@ -412,7 +427,6 @@ export class ShoppingNutriCliente {
         const horarioFim = desafio.horario_fim ? new Date(desafio.horario_fim) : null;
         
         if (!horarioInicio || !horarioFim) return true;
-        
         return agora >= horarioInicio && agora <= horarioFim;
     }
     
@@ -441,21 +455,13 @@ export class ShoppingNutriCliente {
     async registrarParticipacao(desafioId) {
         try {
             const participacoesRef = collection(db, 'participacoes_desafios');
-            const q = query(
-                participacoesRef, 
-                where('usuario_login', '==', this.userInfo.login),
-                where('desafio_id', '==', desafioId)
-            );
+            const q = query(participacoesRef, where('usuario_login', '==', this.userInfo.login), where('desafio_id', '==', desafioId));
             const querySnapshot = await getDocs(q);
-            
             const novaQuantidade = (this.participacoesDesafios.get(desafioId) || 0) + 1;
             
             if (!querySnapshot.empty) {
                 const docRef = doc(db, 'participacoes_desafios', querySnapshot.docs[0].id);
-                await updateDoc(docRef, {
-                    quantidade: novaQuantidade,
-                    ultima_participacao: new Date().toISOString()
-                });
+                await updateDoc(docRef, { quantidade: novaQuantidade, ultima_participacao: new Date().toISOString() });
             } else {
                 await addDoc(participacoesRef, {
                     usuario_login: this.userInfo.login,
@@ -466,7 +472,6 @@ export class ShoppingNutriCliente {
                     ultima_participacao: new Date().toISOString()
                 });
             }
-            
             this.participacoesDesafios.set(desafioId, novaQuantidade);
         } catch (error) {
             console.error("Erro ao registrar participação:", error);
@@ -478,7 +483,6 @@ export class ShoppingNutriCliente {
             const desafiosRef = collection(db, 'desafios_diarios');
             const q = query(desafiosRef, where('tipo', '==', 'foto'));
             const querySnapshot = await getDocs(q);
-            
             this.desafiosFoto = [];
             querySnapshot.forEach(doc => {
                 this.desafiosFoto.push({ id: doc.id, ...doc.data() });
@@ -495,21 +499,18 @@ export class ShoppingNutriCliente {
             return;
         }
         
-        const disponivel = this.verificarDisponibilidadeDesafioFoto(desafio);
-        if (!disponivel) {
+        if (!this.verificarDisponibilidadeDesafioFoto(desafio)) {
             alert('🔒 Desafio não está disponível no momento. Verifique o horário!');
             return;
         }
         
-        const participacoesRestantes = this.getParticipacoesRestantes(desafio);
-        if (participacoesRestantes <= 0) {
+        if (this.getParticipacoesRestantes(desafio) <= 0) {
             alert('🔒 Você já atingiu o limite de participações neste desafio!');
             return;
         }
         
         this.desafioSelecionado = desafio;
         
-        // Carregar IA se necessário (apenas quando clicar em participar)
         if (!isModeloCarregado()) {
             await this.mostrarLoadingIAEcarregar();
         }
@@ -519,17 +520,12 @@ export class ShoppingNutriCliente {
     
     async mostrarLoadingIAEcarregar() {
         return new Promise(async (resolve, reject) => {
-            const modal = document.getElementById('loadingIAModal');
-            const titulo = document.getElementById('loadingIATitulo');
-            const mensagem = document.getElementById('loadingIAMensagem');
+            const modalEl = document.getElementById('loadingIAModal');
+            const modal = new bootstrap.Modal(modalEl);
             const barra = document.getElementById('loadingIABarra');
             const detalhe = document.getElementById('loadingIADetalhe');
             
-            modal.style.display = 'flex';
-            titulo.textContent = 'Carregando Inteligência Artificial...';
-            mensagem.textContent = 'Preparando o sistema de análise de imagens';
-            barra.style.width = '0%';
-            detalhe.textContent = '';
+            modal.show();
             
             const onProgress = (percent, msg) => {
                 barra.style.width = `${percent}%`;
@@ -538,10 +534,10 @@ export class ShoppingNutriCliente {
             
             try {
                 await carregarModeloIA(onProgress);
-                modal.style.display = 'none';
+                modal.hide();
                 resolve();
             } catch (error) {
-                modal.style.display = 'none';
+                modal.hide();
                 reject(error);
             }
         });
@@ -553,32 +549,19 @@ export class ShoppingNutriCliente {
                 this.streamCamera.getTracks().forEach(track => track.stop());
             }
             
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: 'user' } 
-            });
-            
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
             this.streamCamera = stream;
             const video = document.getElementById('videoCamera');
-            if (video) {
-                video.srcObject = stream;
-            }
+            if (video) video.srcObject = stream;
             
-            const modal = document.getElementById('cameraModal');
-            const titulo = document.getElementById('cameraModalTitulo');
-            const descricao = document.getElementById('cameraModalDescricao');
+            const modalEl = document.getElementById('cameraModal');
+            const modal = new bootstrap.Modal(modalEl);
+            document.getElementById('cameraModalTitulo').textContent = `📸 Desafio: ${this.desafioSelecionado?.titulo || 'Foto'}`;
+            document.getElementById('cameraModalDescricao').textContent = this.desafioSelecionado?.descricao || '';
+            modal.show();
             
-            titulo.textContent = `📸 Desafio: ${this.desafioSelecionado?.titulo || 'Foto'}`;
-            descricao.textContent = this.desafioSelecionado?.descricao || '';
-            modal.style.display = 'flex';
-            
-            const tirarFotoBtn = document.getElementById('tirarFotoBtn');
-            const cancelarBtn = document.getElementById('cancelarCameraBtn');
-            
-            const novoTirarFoto = () => this.tirarFoto();
-            const novoCancelar = () => this.fecharCamera();
-            
-            tirarFotoBtn.onclick = novoTirarFoto;
-            cancelarBtn.onclick = novoCancelar;
+            document.getElementById('tirarFotoBtn').onclick = () => this.tirarFoto();
+            document.getElementById('cancelarCameraBtn').onclick = () => this.fecharCamera();
             
         } catch (error) {
             console.error('Erro ao acessar câmera:', error);
@@ -596,10 +579,7 @@ export class ShoppingNutriCliente {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
         const imagemDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        
         this.fecharCamera();
-        
-        // Analisar com IA
         await this.analisarComIA(imagemDataUrl);
     }
 
@@ -609,56 +589,40 @@ export class ShoppingNutriCliente {
         const iaMensagem = document.getElementById('iaAnaliseMensagem');
         const iaDetalhes = document.getElementById('iaAnaliseDetalhes');
         
-        iaResultado.style.display = 'block';
+        iaResultado.classList.remove('d-none');
         iaIcone.innerHTML = '🔍';
         iaMensagem.innerHTML = 'Analisando imagem com Inteligência Artificial...';
         iaDetalhes.innerHTML = '';
         
-        let analise = {
-            aprovado: false,
-            confianca: 0,
-            objetosEncontrados: [],
-            mensagem: ''
-        };
+        let analise = { aprovado: false, confianca: 0, objetosEncontrados: [], mensagem: '' };
         
         try {
-            const onProgress = (percent, msg) => {
-                iaDetalhes.innerHTML = msg || '';
-            };
-            
-            const resultado = await analisarImagemComIA(imagemDataUrl, this.desafioSelecionado?.categoria, onProgress);
+            const resultado = await analisarImagemComIA(imagemDataUrl, this.desafioSelecionado?.categoria);
             analise = resultado;
-            
         } catch (error) {
             console.error('Erro na análise de IA:', error);
-            analise.aprovado = false;
-            analise.confianca = 0;
             analise.mensagem = 'Erro na análise automática. Foto será enviada para avaliação manual.';
         }
         
-        // Atualizar UI da análise
         if (analise.aprovado && analise.confianca >= 0.7) {
             iaIcone.innerHTML = '✅';
             iaMensagem.innerHTML = `✔️ Imagem validada pela IA! ${analise.mensagem}`;
             iaDetalhes.innerHTML = `Objetos identificados: ${analise.objetosEncontrados.join(', ')}`;
-            iaDetalhes.style.color = '#10b981';
-            iaMensagem.style.color = '#10b981';
+            iaDetalhes.classList.add('text-success');
         } else if (analise.aprovado && analise.confianca < 0.7) {
             iaIcone.innerHTML = '⚠️';
             iaMensagem.innerHTML = `🤔 Análise em dúvida. Foto será enviada para avaliação manual.`;
             iaDetalhes.innerHTML = `Motivo: ${analise.mensagem}`;
-            iaDetalhes.style.color = '#f59e0b';
-            iaMensagem.style.color = '#f59e0b';
+            iaDetalhes.classList.add('text-warning');
         } else {
             iaIcone.innerHTML = '👩‍⚕️';
             iaMensagem.innerHTML = `📋 Foto será enviada para avaliação do nutricionista.`;
             iaDetalhes.innerHTML = `Motivo: ${analise.mensagem || 'IA não reconheceu o conteúdo esperado'}`;
-            iaDetalhes.style.color = '#f97316';
-            iaMensagem.style.color = '#f97316';
+            iaDetalhes.classList.add('text-muted');
         }
         
-        // Mostrar pré-visualização
-        const previewModal = document.getElementById('previewModal');
+        const previewModalEl = document.getElementById('previewModal');
+        const previewModal = new bootstrap.Modal(previewModalEl);
         const previewImg = document.getElementById('previewImagem');
         const previewResultado = document.getElementById('previewResultadoIA');
         
@@ -668,50 +632,38 @@ export class ShoppingNutriCliente {
             ${analise.mensagem}
             ${analise.objetosEncontrados.length > 0 ? `<br><small>🔍 Identificado: ${analise.objetosEncontrados.join(', ')}</small>` : ''}
         `;
-        previewResultado.style.background = analise.aprovado && analise.confianca >= 0.7 ? '#d1fae5' : '#fed7aa';
+        previewResultado.classList.add(analise.aprovado && analise.confianca >= 0.7 ? 'bg-success bg-opacity-10' : 'bg-warning bg-opacity-10');
         
-        previewModal.style.display = 'flex';
+        this.fotoTemp = { dataUrl: imagemDataUrl, analise: analise };
         
-        // Armazenar dados para envio
-        this.fotoTemp = {
-            dataUrl: imagemDataUrl,
-            analise: analise
-        };
-        
-        const confirmarBtn = document.getElementById('confirmarEnvioBtn');
-        const refazerBtn = document.getElementById('refazerFotoBtn');
-        
-        confirmarBtn.onclick = () => this.confirmarEnvioFoto();
-        refazerBtn.onclick = () => {
-            previewModal.style.display = 'none';
+        document.getElementById('confirmarEnvioBtn').onclick = () => this.confirmarEnvioFoto();
+        document.getElementById('refazerFotoBtn').onclick = () => {
+            previewModal.hide();
             this.abrirCamera();
         };
+        
+        previewModal.show();
     }
 
     async confirmarEnvioFoto() {
         if (!this.fotoTemp || !this.desafioSelecionado) return;
         
-        const modal = document.getElementById('previewModal');
-        modal.style.display = 'none';
+        const previewModal = bootstrap.Modal.getInstance(document.getElementById('previewModal'));
+        previewModal.hide();
         
         const pontos = this.desafioSelecionado.pontos || 50;
         const status = (this.fotoTemp.analise.aprovado && this.fotoTemp.analise.confianca >= 0.7) ? 'aprovado_ia' : 'pendente_manual';
         
         try {
-            // Upload para ImgBB
             let imagemUrl = '';
             try {
                 const uploadResult = await uploadParaImgbb(this.fotoTemp.dataUrl);
-                if (uploadResult.success) {
-                    imagemUrl = uploadResult.url;
-                }
+                if (uploadResult.success) imagemUrl = uploadResult.url;
             } catch (uploadError) {
                 console.error('Erro no upload para ImgBB:', uploadError);
-                // Continua mesmo sem upload, salva base64
             }
             
-            const fotoRef = collection(db, 'fotos_desafio');
-            await addDoc(fotoRef, {
+            await addDoc(collection(db, 'fotos_desafio'), {
                 usuario_login: this.userInfo.login,
                 usuario_nome: this.userInfo.nome,
                 desafio_id: this.desafioSelecionado.id,
@@ -729,7 +681,6 @@ export class ShoppingNutriCliente {
                 data_envio: new Date().toISOString()
             });
             
-            // Registrar participação
             await this.registrarParticipacao(this.desafioSelecionado.id);
             
             if (status === 'aprovado_ia') {
@@ -757,14 +708,13 @@ export class ShoppingNutriCliente {
             this.streamCamera = null;
         }
         
-        const modal = document.getElementById('cameraModal');
-        if (modal) modal.style.display = 'none';
+        const modalEl = document.getElementById('cameraModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
         
-        const iaResultado = document.getElementById('iaAnaliseResultado');
-        if (iaResultado) iaResultado.style.display = 'none';
-        
-        const loadingModal = document.getElementById('loadingIAModal');
-        if (loadingModal) loadingModal.style.display = 'none';
+        const loadingModalEl = document.getElementById('loadingIAModal');
+        const loadingModal = bootstrap.Modal.getInstance(loadingModalEl);
+        if (loadingModal) loadingModal.hide();
     }
 
     // ==================== MÉTODOS DA ROLETA ====================
@@ -827,8 +777,7 @@ export class ShoppingNutriCliente {
             this.roletaCtx.fillStyle = '#333';
             
             const premio = this.roletaPremios[i];
-            const texto = `${premio} pts`;
-            this.roletaCtx.fillText(texto, radius * 0.65, 0);
+            this.roletaCtx.fillText(`${premio} pts`, radius * 0.65, 0);
             this.roletaCtx.restore();
         }
         
@@ -851,7 +800,6 @@ export class ShoppingNutriCliente {
             alert('❌ Você já girou a roleta hoje! Volte amanhã para mais pontos!');
             return;
         }
-        
         if (this.roletaGirando) return;
         
         this.roletaGirando = true;
@@ -862,10 +810,8 @@ export class ShoppingNutriCliente {
         const duracao = 3000;
         const inicio = performance.now();
         const anguloInicial = this.roletaAnguloAtual;
-        
         const premioIndex = Math.floor(Math.random() * this.roletaPremios.length);
         const premioGanho = this.roletaPremios[premioIndex];
-        
         const anguloPorSegmento = (Math.PI * 2) / this.roletaPremios.length;
         const anguloAlvo = (-Math.PI / 2) - (premioIndex * anguloPorSegmento) - (anguloPorSegmento / 2);
         
@@ -880,7 +826,6 @@ export class ShoppingNutriCliente {
             const progresso = Math.min(1, elapsed / duracao);
             const easeOut = 1 - Math.pow(1 - progresso, 3);
             const anguloAtual = anguloInicial + (anguloDestino - anguloInicial) * easeOut;
-            
             this.roletaAnguloAtual = anguloAtual;
             this.desenharRoleta();
             
@@ -893,16 +838,13 @@ export class ShoppingNutriCliente {
             }
         };
         
-        if (this.roletaAnimacaoId) {
-            cancelAnimationFrame(this.roletaAnimacaoId);
-        }
+        if (this.roletaAnimacaoId) cancelAnimationFrame(this.roletaAnimacaoId);
         this.roletaAnimacaoId = requestAnimationFrame(animar);
     }
 
     async finalizarGiroRoleta(premioGanho) {
         try {
             const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
-            
             let userDoc = await getDoc(userRef);
             if (!userDoc.exists()) {
                 await this.criarDocumentoUsuario();
@@ -920,12 +862,8 @@ export class ShoppingNutriCliente {
                 }
             }
             
-            await updateDoc(userRef, {
-                ultima_roleta: new Date().toISOString()
-            });
-            
+            await updateDoc(userRef, { ultima_roleta: new Date().toISOString() });
             await this.adicionarPontos(premioGanho, `🎡 Roleta da Sorte - Ganhou ${premioGanho} pontos`, 'ganho');
-            
             this.roletaDisponivel = false;
             this.mostrarResultadoRoleta(premioGanho);
             
@@ -946,7 +884,8 @@ export class ShoppingNutriCliente {
     }
 
     mostrarResultadoRoleta(premio) {
-        const modal = document.getElementById('resultadoRoletaModal');
+        const modalEl = document.getElementById('resultadoRoletaModal');
+        const modal = new bootstrap.Modal(modalEl);
         const icone = document.getElementById('resultadoIcone');
         const titulo = document.getElementById('resultadoTitulo');
         const mensagem = document.getElementById('resultadoMensagem');
@@ -954,35 +893,23 @@ export class ShoppingNutriCliente {
         if (premio >= 50) {
             icone.innerHTML = '🎉🎊🏆';
             titulo.textContent = '🎉 JACKPOT! 🎉';
-            mensagem.innerHTML = `Parabéns! Você ganhou <strong style="font-size: 24px; color: #f97316;">${premio} pontos</strong> na Roleta da Sorte!<br><br>Continue assim! 🌟`;
+            mensagem.innerHTML = `Parabéns! Você ganhou <strong class="fs-2 text-warning">${premio} pontos</strong> na Roleta da Sorte!<br><br>Continue assim! 🌟`;
         } else if (premio >= 25) {
             icone.innerHTML = '🎉✨';
             titulo.textContent = 'Parabéns!';
-            mensagem.innerHTML = `Você ganhou <strong style="font-size: 24px; color: #f97316;">${premio} pontos</strong> na Roleta da Sorte!<br><br>Boa sorte amanhã! 🍀`;
+            mensagem.innerHTML = `Você ganhou <strong class="fs-2 text-warning">${premio} pontos</strong> na Roleta da Sorte!<br><br>Boa sorte amanhã! 🍀`;
         } else {
             icone.innerHTML = '🎲🍀';
             titulo.textContent = 'Boa Sorte!';
-            mensagem.innerHTML = `Você ganhou <strong style="font-size: 24px; color: #f97316;">${premio} pontos</strong> na Roleta da Sorte!<br><br>Volte amanhã para mais chances! 🌟`;
+            mensagem.innerHTML = `Você ganhou <strong class="fs-2 text-warning">${premio} pontos</strong> na Roleta da Sorte!<br><br>Volte amanhã para mais chances! 🌟`;
         }
         
-        modal.style.display = 'flex';
+        modal.show();
         
-        const fecharBtn = document.getElementById('fecharResultadoBtn');
-        const closeBtn = modal.querySelector('.close');
-        
-        const fecharModal = () => {
-            modal.style.display = 'none';
+        document.getElementById('fecharResultadoBtn').onclick = () => {
+            modal.hide();
             const pontosElement = document.getElementById('userPontosDisplay');
-            if (pontosElement) {
-                pontosElement.textContent = this.userPontos;
-            }
-        };
-        
-        fecharBtn.onclick = fecharModal;
-        if (closeBtn) closeBtn.onclick = fecharModal;
-        
-        window.onclick = (event) => {
-            if (event.target === modal) fecharModal();
+            if (pontosElement) pontosElement.textContent = this.userPontos;
         };
     }
 
@@ -990,21 +917,21 @@ export class ShoppingNutriCliente {
 
     renderDesafios() {
         if (this.desafiosDiarios.length === 0) {
-            return '<p style="text-align: center; color: #666;">Nenhum desafio ativo no momento.</p>';
+            return '<p class="text-center text-muted py-4">Nenhum desafio ativo no momento.</p>';
         }
         
         return this.desafiosDiarios.map(desafio => `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee;">
+            <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
                 <div>
-                    <span style="font-size: 24px; margin-right: 12px;">${desafio.icone || '🎯'}</span>
+                    <span class="fs-1 me-3">${desafio.icone || '🎯'}</span>
                     <strong>${desafio.titulo}</strong>
-                    <p style="font-size: 12px; color: #666; margin: 0;">${desafio.descricao}</p>
+                    <p class="text-muted small mb-0">${desafio.descricao}</p>
                 </div>
-                <div style="text-align: right;">
-                    <div style="color: #f97316; font-weight: bold;">+${desafio.pontos} pts</div>
+                <div class="text-end">
+                    <div class="text-warning fw-bold">+${desafio.pontos} pts</div>
                     ${!desafio.completado ? 
-                        `<button class="completar-desafio-btn btn-small" data-desafio-id="${desafio.id}" style="margin-top: 5px; padding: 4px 12px; background: #10b981; color: white; border: none; border-radius: 20px; cursor: pointer;">Completar</button>` :
-                        '<span style="color: #10b981; font-size: 12px;">✅ Concluído</span>'
+                        `<button class="completar-desafio-btn btn btn-sm btn-success mt-2" data-desafio-id="${desafio.id}">Completar</button>` :
+                        '<span class="badge bg-success mt-2">✅ Concluído</span>'
                     }
                 </div>
             </div>
@@ -1013,35 +940,39 @@ export class ShoppingNutriCliente {
 
     renderItensLoja() {
         if (this.itensDisponiveis.length === 0) {
-            return '<p style="text-align: center; color: #666; grid-column: 1/-1;">Nenhum item disponível no momento.</p>';
+            return '<p class="text-center text-muted py-4 col-12">Nenhum item disponível no momento.</p>';
         }
         
         return this.itensDisponiveis.map(item => `
-            <div class="item-card" style="border: 2px solid ${item.pontos <= this.userPontos ? '#10b981' : '#e2e8f0'}; border-radius: 16px; padding: 16px; text-align: center; transition: all 0.3s;">
-                <div style="font-size: 48px; margin-bottom: 8px;">${item.icone || '🎁'}</div>
-                <h4 style="margin-bottom: 4px;">${item.nome}</h4>
-                <p style="font-size: 12px; color: #666; min-height: 40px;">${item.descricao || ''}</p>
-                <div style="font-size: 20px; font-weight: bold; color: #f97316; margin: 8px 0;">${item.pontos} pts</div>
-                <button class="trocar-item-btn" data-item-id="${item.id}" data-item-nome="${item.nome}" data-item-pontos="${item.pontos}" ${item.pontos <= this.userPontos ? '' : 'disabled style="opacity:0.5;"'}>
-                    ${item.pontos <= this.userPontos ? '🛒 Trocar' : '🔒 Pontos insuficientes'}
-                </button>
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 text-center border-2 ${item.pontos <= this.userPontos ? 'border-success' : 'border-secondary'}">
+                    <div class="card-body">
+                        <div class="display-1 mb-3">${item.icone || '🎁'}</div>
+                        <h5 class="card-title">${item.nome}</h5>
+                        <p class="card-text small text-muted">${item.descricao || ''}</p>
+                        <div class="fs-3 fw-bold text-warning my-3">${item.pontos} pts</div>
+                        <button class="trocar-item-btn btn ${item.pontos <= this.userPontos ? 'btn-warning' : 'btn-secondary'}" data-item-id="${item.id}" data-item-nome="${item.nome}" data-item-pontos="${item.pontos}" ${item.pontos <= this.userPontos ? '' : 'disabled'}>
+                            ${item.pontos <= this.userPontos ? '🛒 Trocar' : '🔒 Pontos insuficientes'}
+                        </button>
+                    </div>
+                </div>
             </div>
         `).join('');
     }
 
     renderHistorico() {
         if (this.historicoTransacoes.length === 0) {
-            return '<p style="text-align: center; color: #666;">Nenhuma transação realizada.</p>';
+            return '<p class="text-center text-muted py-4">Nenhuma transação realizada.</p>';
         }
         
         return this.historicoTransacoes.slice(0, 10).map(transacao => `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee;">
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                 <div>
-                    <span style="font-size: 20px; margin-right: 12px;">${transacao.tipo === 'ganho' ? '➕' : '➖'}</span>
+                    <span class="fs-4 me-2">${transacao.tipo === 'ganho' ? '➕' : '➖'}</span>
                     <strong>${transacao.descricao.substring(0, 50)}</strong>
-                    <div style="font-size: 11px; color: #999;">${new Date(transacao.data).toLocaleString('pt-BR')}</div>
+                    <div class="small text-muted">${new Date(transacao.data).toLocaleString('pt-BR')}</div>
                 </div>
-                <div style="font-weight: bold; color: ${transacao.tipo === 'ganho' ? '#10b981' : '#dc2626'}">
+                <div class="fw-bold ${transacao.tipo === 'ganho' ? 'text-success' : 'text-danger'}">
                     ${transacao.tipo === 'ganho' ? '+' : '-'} ${transacao.pontos} pts
                 </div>
             </div>
@@ -1069,7 +1000,7 @@ export class ShoppingNutriCliente {
     async criarDocumentoUsuario() {
         try {
             const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
-            const dadosIniciais = {
+            await setDoc(userRef, {
                 login: this.userInfo.login,
                 nome: this.userInfo.nome,
                 pontos: 0,
@@ -1078,8 +1009,7 @@ export class ShoppingNutriCliente {
                 ultimo_acesso_diario: null,
                 ultima_roleta: null,
                 data_criacao: new Date().toISOString()
-            };
-            await setDoc(userRef, dadosIniciais);
+            });
         } catch (error) {
             console.error("Erro ao criar documento:", error);
         }
@@ -1089,7 +1019,6 @@ export class ShoppingNutriCliente {
         try {
             const itensRef = collection(db, 'itens_recompensa');
             const querySnapshot = await getDocs(itensRef);
-            
             this.itensDisponiveis = [];
             querySnapshot.forEach(doc => {
                 const data = doc.data();
@@ -1097,7 +1026,6 @@ export class ShoppingNutriCliente {
                     this.itensDisponiveis.push({ id: doc.id, ...data });
                 }
             });
-            
             this.itensDisponiveis.sort((a, b) => a.pontos - b.pontos);
         } catch (error) {
             console.error("Erro ao carregar itens:", error);
@@ -1109,12 +1037,10 @@ export class ShoppingNutriCliente {
             const historicoRef = collection(db, 'transacoes_pontos');
             const q = query(historicoRef, where('usuario_login', '==', this.userInfo.login));
             const querySnapshot = await getDocs(q);
-            
             this.historicoTransacoes = [];
             querySnapshot.forEach(doc => {
                 this.historicoTransacoes.push({ id: doc.id, ...doc.data() });
             });
-            
             this.historicoTransacoes.sort((a, b) => new Date(b.data) - new Date(a.data));
         } catch (error) {
             console.error("Erro ao carregar histórico:", error);
@@ -1125,7 +1051,6 @@ export class ShoppingNutriCliente {
         try {
             const configRef = doc(db, 'config_gamificacao', 'principal');
             const configDoc = await getDoc(configRef);
-            
             if (configDoc.exists()) {
                 this.configGamificacao = configDoc.data();
             } else {
@@ -1150,8 +1075,7 @@ export class ShoppingNutriCliente {
                 const ultimaRoleta = userDoc.data().ultima_roleta;
                 if (ultimaRoleta) {
                     const hoje = new Date().toISOString().split('T')[0];
-                    const ultimaRoletaData = ultimaRoleta.split('T')[0];
-                    this.roletaDisponivel = hoje !== ultimaRoletaData;
+                    this.roletaDisponivel = hoje !== ultimaRoleta.split('T')[0];
                 } else {
                     this.roletaDisponivel = true;
                 }
@@ -1168,7 +1092,6 @@ export class ShoppingNutriCliente {
         try {
             const desafiosRef = collection(db, 'desafios_diarios');
             const querySnapshot = await getDocs(desafiosRef);
-            
             const hoje = new Date().toISOString().split('T')[0];
             
             this.desafiosDiarios = [];
@@ -1208,17 +1131,17 @@ export class ShoppingNutriCliente {
         try {
             const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
             
-            const userDoc = await getDoc(userRef);
+            let userDoc = await getDoc(userRef);
             if (!userDoc.exists()) {
                 await this.criarDocumentoUsuario();
+                userDoc = await getDoc(userRef);
             }
             
             this.userPontos += pontos;
             this.userExperiencia += pontos;
             
             let novoNivel = this.userNivel;
-            const experienciaNecessaria = this.userNivel * 100;
-            if (this.userExperiencia >= experienciaNecessaria) {
+            if (this.userExperiencia >= this.userNivel * 100) {
                 novoNivel = this.userNivel + 1;
             }
             
@@ -1229,8 +1152,7 @@ export class ShoppingNutriCliente {
                 ultima_atualizacao: new Date().toISOString()
             });
             
-            const transacaoRef = collection(db, 'transacoes_pontos');
-            await addDoc(transacaoRef, {
+            await addDoc(collection(db, 'transacoes_pontos'), {
                 usuario_login: this.userInfo.login,
                 usuario_nome: this.userInfo.nome,
                 pontos: pontos,
@@ -1271,8 +1193,7 @@ export class ShoppingNutriCliente {
                 ultima_atualizacao: new Date().toISOString()
             });
             
-            const transacaoRef = collection(db, 'transacoes_pontos');
-            await addDoc(transacaoRef, {
+            await addDoc(collection(db, 'transacoes_pontos'), {
                 usuario_login: this.userInfo.login,
                 usuario_nome: this.userInfo.nome,
                 pontos: pontos,
@@ -1284,8 +1205,7 @@ export class ShoppingNutriCliente {
                 saldo_apos: this.userPontos
             });
             
-            const resgateRef = collection(db, 'resgates_realizados');
-            await addDoc(resgateRef, {
+            await addDoc(collection(db, 'resgates_realizados'), {
                 usuario_login: this.userInfo.login,
                 usuario_nome: this.userInfo.nome,
                 item_id: itemId,
@@ -1319,11 +1239,7 @@ export class ShoppingNutriCliente {
             }
             
             const completadosRef = collection(db, 'desafios_completados');
-            const q = query(completadosRef, 
-                where('usuario_login', '==', this.userInfo.login),
-                where('desafio_id', '==', desafioId),
-                where('data_completado', '>=', new Date().toISOString().split('T')[0])
-            );
+            const q = query(completadosRef, where('usuario_login', '==', this.userInfo.login), where('desafio_id', '==', desafioId), where('data_completado', '>=', new Date().toISOString().split('T')[0]));
             const checkSnapshot = await getDocs(q);
             
             if (!checkSnapshot.empty) {
@@ -1341,7 +1257,6 @@ export class ShoppingNutriCliente {
             });
             
             await this.adicionarPontos(desafio.pontos, `⭐ Desafio: ${desafio.titulo}`, 'ganho');
-            
             alert(`🎉 Desafio completado!\n\n${desafio.titulo}\n+${desafio.pontos} pontos`);
             
             await this.carregarDesafiosDiarios();
@@ -1357,7 +1272,6 @@ export class ShoppingNutriCliente {
     async registrarAcessoDiario() {
         try {
             const userRef = doc(db, 'pontuacao_usuarios', this.userInfo.login);
-            
             let userDoc = await getDoc(userRef);
             if (!userDoc.exists()) {
                 await this.criarDocumentoUsuario();
@@ -1367,16 +1281,10 @@ export class ShoppingNutriCliente {
             const hoje = new Date().toISOString().split('T')[0];
             const ultimoAcesso = userDoc.data()?.ultimo_acesso_diario;
             
-            if (ultimoAcesso && ultimoAcesso.split('T')[0] === hoje) {
-                return;
-            }
+            if (ultimoAcesso && ultimoAcesso.split('T')[0] === hoje) return;
             
-            await updateDoc(userRef, {
-                ultimo_acesso_diario: new Date().toISOString()
-            });
-            
-            const pontosDiarios = 5;
-            await this.adicionarPontos(pontosDiarios, '📅 Acesso diário ao sistema', 'ganho');
+            await updateDoc(userRef, { ultimo_acesso_diario: new Date().toISOString() });
+            await this.adicionarPontos(5, '📅 Acesso diário ao sistema', 'ganho');
             
         } catch (error) {
             console.error("Erro ao registrar acesso diário:", error);
@@ -1384,15 +1292,8 @@ export class ShoppingNutriCliente {
     }
 
     attachEvents() {
-        const backBtn = document.getElementById('backToHomeBtn');
-        if (backBtn) {
-            backBtn.addEventListener('click', () => this.navegador.navegarPara('home'));
-        }
-        
-        const girarRoletaBtn = document.getElementById('girarRoletaBtn');
-        if (girarRoletaBtn) {
-            girarRoletaBtn.addEventListener('click', () => this.girarRoleta());
-        }
+        document.getElementById('backToHomeBtn')?.addEventListener('click', () => this.navegador.navegarPara('home'));
+        document.getElementById('girarRoletaBtn')?.addEventListener('click', () => this.girarRoleta());
         
         document.querySelectorAll('.participar-desafio-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1415,60 +1316,20 @@ export class ShoppingNutriCliente {
                 const itemPontos = parseInt(btn.getAttribute('data-item-pontos'));
                 
                 if (this.userPontos >= itemPontos) {
-                    const modal = document.getElementById('trocaModal');
-                    const titulo = document.getElementById('trocaModalTitulo');
-                    const descricao = document.getElementById('trocaModalDescricao');
+                    const modalEl = document.getElementById('trocaModal');
+                    const modal = new bootstrap.Modal(modalEl);
+                    document.getElementById('trocaModalTitulo').textContent = `Confirmar Troca: ${itemNome}`;
+                    document.getElementById('trocaModalDescricao').innerHTML = `Você está trocando <strong>${itemPontos} pontos</strong> por:<br><strong>${itemNome}</strong><br><br>Deseja confirmar?`;
+                    modal.show();
                     
-                    if (titulo) titulo.textContent = `Confirmar Troca: ${itemNome}`;
-                    if (descricao) descricao.innerHTML = `Você está trocando <strong>${itemPontos} pontos</strong> por:<br><strong>${itemNome}</strong><br><br>Deseja confirmar?`;
-                    
-                    modal.style.display = 'flex';
-                    
-                    const confirmarBtn = document.getElementById('confirmarTrocaBtn');
-                    const cancelarBtn = document.getElementById('cancelarTrocaBtn');
-                    
-                    const handlerConfirmar = () => {
+                    document.getElementById('confirmarTrocaBtn').onclick = () => {
                         this.gastarPontos(itemPontos, `🛍️ Troca por: ${itemNome}`, itemId, itemNome);
-                        modal.style.display = 'none';
-                        confirmarBtn.removeEventListener('click', handlerConfirmar);
-                        cancelarBtn.removeEventListener('click', handlerCancelar);
+                        modal.hide();
                     };
-                    
-                    const handlerCancelar = () => {
-                        modal.style.display = 'none';
-                        confirmarBtn.removeEventListener('click', handlerConfirmar);
-                        cancelarBtn.removeEventListener('click', handlerCancelar);
-                    };
-                    
-                    confirmarBtn.onclick = handlerConfirmar;
-                    cancelarBtn.onclick = handlerCancelar;
+                    document.getElementById('cancelarTrocaBtn').onclick = () => modal.hide();
                 }
             });
         });
-        
-        const modais = ['cameraModal', 'previewModal', 'trocaModal', 'resultadoRoletaModal', 'loadingIAModal'];
-        modais.forEach(modalId => {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                const closeBtn = modal.querySelector('.close');
-                if (closeBtn) {
-                    closeBtn.onclick = () => {
-                        modal.style.display = 'none';
-                        if (modalId === 'cameraModal') this.fecharCamera();
-                    };
-                }
-            }
-        });
-        
-        window.onclick = (event) => {
-            modais.forEach(modalId => {
-                const modal = document.getElementById(modalId);
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                    if (modalId === 'cameraModal') this.fecharCamera();
-                }
-            });
-        };
         
         this.registrarAcessoDiario();
     }
