@@ -52,15 +52,12 @@ const appCheck = initializeAppCheck(app, {
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// console.log('Firebase inicializado! Project ID:', firebaseConfig.projectId);
-// console.log('App Check ativado com reCAPTCHA v3 - Site Key:', SITE_KEY);
-
 // ==================== IMGBB UPLOAD ====================
 
 let imgbbApiKey = null;
 
 // Carregar a chave da API do ImgBB do Firestore
-export async function getImgbbApiKey() {
+async function getImgbbApiKey() {
     if (imgbbApiKey) return imgbbApiKey;
     
     try {
@@ -81,7 +78,7 @@ export async function getImgbbApiKey() {
 }
 
 // Upload de imagem para o ImgBB
-export async function uploadParaImgbb(imagemBase64) {
+async function uploadParaImgbb(imagemBase64) {
     try {
         const apiKey = await getImgbbApiKey();
         if (!apiKey) {
@@ -119,6 +116,7 @@ export async function uploadParaImgbb(imagemBase64) {
     }
 }
 
+// Export all necessary modules
 export { 
     // Firebase instances
     db, 
