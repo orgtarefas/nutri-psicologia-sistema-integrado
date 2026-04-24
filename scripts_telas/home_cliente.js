@@ -85,7 +85,6 @@ export class HomeCliente {
                 <div class="header d-flex justify-content-between align-items-center flex-wrap">
                     <div class="d-flex align-items-center gap-2">
                         <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img" style="height: 36px; filter: brightness(0) invert(1);">
-                        <h1 class="m-0 text-white" style="font-size: 16px; font-weight: 600;">Minhas Avaliações</h1>
                     </div>
                     <div class="user-info d-flex align-items-center gap-2">
                         <span class="text-white">👋 Olá, ${nomeFormatado}</span>
