@@ -28,77 +28,76 @@ export class HomeCliente {
         
         const isMembro = this.userInfo.perfil === 'operador_membro' && !this.userInfo.isAdminView;
         
-        const cargoDisplayText = this.userInfo.isAdminView ? 
-            `[Admin] Visualizando como ${this.getCargoDisplayName(this.userInfo.cargo)}` : 
-            (this.userInfo.cargo === 'paciente' ? 'Paciente' : this.userInfo.cargo);
+        // Truncar nome muito longo
+        const nomeExibido = this.userInfo.nome?.length > 25 ? this.userInfo.nome.substring(0, 22) + '...' : this.userInfo.nome;
         
         return `
             <div class="home-container">
-                <!-- HEADER COM MENU HAMBURGUER -->
-                <div class="header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <!-- HEADER PROFISSIONAL -->
+                <div class="header">
                     <div class="header-logo">
                         <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img">
                         <h1>Minhas Avaliações</h1>
                     </div>
-                    <div class="user-info" style="display: flex; align-items: center; gap: 12px;">
-                        <span>👋 Olá, ${this.userInfo.nome}</span>
+                    <div class="user-info">
+                        <span>👋 Olá, ${nomeExibido || 'Usuário'}</span>
                         <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
-                        <button class="menu-toggle-btn" id="menuToggleBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: white;">☰</button>
+                        <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
                     </div>
                 </div>
 
-                <!-- MENU LATERAL (3 PONTINHOS) -->
-                <div class="side-menu" id="sideMenu" style="position: fixed; top: 0; right: -280px; width: 280px; height: 100%; background: white; box-shadow: -2px 0 10px rgba(0,0,0,0.1); z-index: 1001; transition: right 0.3s ease; display: flex; flex-direction: column;">
-                    <div class="menu-header" style="background: linear-gradient(135deg, #1a237e 0%, #0f1a5c 100%); padding: 24px 20px; display: flex; justify-content: space-between; align-items: center; color: white;">
-                        <h3 style="margin: 0;">Menu</h3>
-                        <button class="close-menu" id="closeMenu" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 28px; width: 36px; height: 36px; border-radius: 8px; cursor: pointer;">×</button>
+                <!-- MENU LATERAL -->
+                <div class="side-menu" id="sideMenu">
+                    <div class="menu-header">
+                        <h3>Menu</h3>
+                        <button class="close-menu" id="closeMenu">×</button>
                     </div>
-                    <nav class="menu-nav" style="flex: 1; padding: 16px 0;">
-                        <button class="menu-item" data-module="home" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #475569; text-align: left;">
+                    <nav class="menu-nav">
+                        <button class="menu-item" data-module="home">
                             <span class="menu-icon">🏠</span>
                             <span>Home</span>
                         </button>
-                        <button class="menu-item" data-module="meu_plano_alimentar" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #475569; text-align: left;">
+                        <button class="menu-item" data-module="meu_plano_alimentar">
                             <span class="menu-icon">🍽️</span>
                             <span>Meu Plano Alimentar</span>
                         </button>
-                        <button class="menu-item" data-module="minha_anamnese" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #475569; text-align: left;">
+                        <button class="menu-item" data-module="minha_anamnese">
                             <span class="menu-icon">📋</span>
                             <span>Minha Anamnese</span>
                         </button>
-                        <button class="menu-item" data-module="shopping_nutri" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #475569; text-align: left;">
+                        <button class="menu-item" data-module="shopping_nutri">
                             <span class="menu-icon">🛍️</span>
                             <span>Shopping Nutri</span>
                         </button>
-                        <button class="menu-item" id="minhaJornadaMenuItem" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #8b5cf6; text-align: left;">
+                        <button class="menu-item" id="minhaJornadaMenuItem">
                             <span class="menu-icon">🌟</span>
                             <span>Minha Jornada</span>
                         </button>
                         ${isMembro ? `
-                        <button class="menu-item" id="membroExclusiveMenuItem" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #ed8936; text-align: left;">
+                        <button class="menu-item" id="membroExclusiveMenuItem">
                             <span class="menu-icon">⭐</span>
                             <span>Conteúdo Exclusivo</span>
                         </button>
                         ` : ''}
-                        <div style="height: 1px; background: #e2e8f0; margin: 12px 24px;"></div>
-                        <button class="menu-item logout" id="logoutMenuItem" style="display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 24px; background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 500; color: #dc2626; text-align: left;">
+                        <div class="menu-divider"></div>
+                        <button class="menu-item logout" id="logoutMenuItem">
                             <span class="menu-icon">🚪</span>
                             <span>Sair</span>
                         </button>
                     </nav>
                 </div>
-                <div class="menu-overlay" id="menuOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s;"></div>
+                <div class="menu-overlay" id="menuOverlay"></div>
 
                 <div class="content">
                     <!-- INFORMAÇÕES DO PACIENTE -->
                     <div class="client-info">
                         <h3>📋 Meus Dados</h3>
                         <div class="info-card">
-                            <p><strong>Nome:</strong> ${this.userInfo.nome || 'Não informado'}</p>
-                            <p><strong>Login:</strong> ${this.userInfo.login || 'Não informado'}</p>
-                            <p><strong>Data Nasc.:</strong> ${this.funcoes.formatDateToDisplay(this.userInfo.dataNascimento) || 'Não informado'}</p>
-                            <p><strong>Idade:</strong> ${this.funcoes.calcularIdade(this.userInfo.dataNascimento) || 'Não informado'} anos</p>
-                            <p><strong>Sexo:</strong> ${this.userInfo.sexo === 'masculino' ? 'Masculino' : (this.userInfo.sexo === 'feminino' ? 'Feminino' : 'Não informado')}</p>
+                            <p><strong>👤 Nome:</strong> ${this.userInfo.nome || 'Não informado'}</p>
+                            <p><strong>🔑 Login:</strong> ${this.userInfo.login || 'Não informado'}</p>
+                            <p><strong>📅 Nascimento:</strong> ${this.funcoes.formatDateToDisplay(this.userInfo.dataNascimento) || 'Não informado'}</p>
+                            <p><strong>🎂 Idade:</strong> ${this.funcoes.calcularIdade(this.userInfo.dataNascimento) || 'Não informado'} anos</p>
+                            <p><strong>⚥ Sexo:</strong> ${this.userInfo.sexo === 'masculino' ? 'Masculino' : (this.userInfo.sexo === 'feminino' ? 'Feminino' : 'Não informado')}</p>
                         </div>
                     </div>
                     
@@ -108,10 +107,9 @@ export class HomeCliente {
                         <div id="evaluationsList"></div>
                     </div>
                     
-                    <!-- GRÁFICOS (apenas para membros reais, não para admin) -->
+                    <!-- GRÁFICOS (apenas para membros) -->
                     ${isMembro ? `
                         <div class="charts-section">
-                            <h3 style="color: #1a237e; margin-bottom: 20px;">📈 Meus Gráficos de Evolução</h3>
                             <div class="chart-container">
                                 <h4>📈 Evolução do Peso</h4>
                                 <canvas id="weightChart"></canvas>
@@ -168,20 +166,14 @@ export class HomeCliente {
         const closeMenu = document.getElementById('closeMenu');
 
         const openMenu = () => {
-            if (sideMenu) sideMenu.style.right = '0';
-            if (menuOverlay) {
-                menuOverlay.style.opacity = '1';
-                menuOverlay.style.visibility = 'visible';
-            }
+            if (sideMenu) sideMenu.classList.add('open');
+            if (menuOverlay) menuOverlay.classList.add('open');
             this.isMenuOpen = true;
         };
 
         const closeMenuFunc = () => {
-            if (sideMenu) sideMenu.style.right = '-280px';
-            if (menuOverlay) {
-                menuOverlay.style.opacity = '0';
-                menuOverlay.style.visibility = 'hidden';
-            }
+            if (sideMenu) sideMenu.classList.remove('open');
+            if (menuOverlay) menuOverlay.classList.remove('open');
             this.isMenuOpen = false;
         };
 
@@ -224,16 +216,10 @@ export class HomeCliente {
                 this.navegador.navegarPara('logout');
             });
         }
-
-        // Botão Meu Plano Alimentar (antigo, manter para compatibilidade)
-        const meuPlanoAlimentarBtn = document.getElementById('meuPlanoAlimentarBtn');
-        if (meuPlanoAlimentarBtn) {
-            meuPlanoAlimentarBtn.addEventListener('click', () => {
-                this.navegador.navegarPara('meu_plano_alimentar');
-            });
-        }
     }
 
+    // ... (restante dos métodos showMinhaJornada, showModuleMessage, showMembroExclusiveContent, loadEvaluations, formatDate, showEmptyCharts, renderCharts, createCharts permanecem iguais)
+    
     showMinhaJornada() {
         const evaluations = this.currentEvaluations;
         
