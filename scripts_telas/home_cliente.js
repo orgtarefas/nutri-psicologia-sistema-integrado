@@ -56,7 +56,6 @@ export class HomeCliente {
         }
     }
 
-    // Método para formatar cargo (primeira letra maiúscula)
     formatarCargo(cargo) {
         if (!cargo) return '';
         const cargos = {
@@ -67,120 +66,117 @@ export class HomeCliente {
         return cargos[cargo] || cargo.charAt(0).toUpperCase() + cargo.slice(1);
     }
 
-    // Método para formatar nome: apenas primeiro nome, primeira letra maiúscula
     formatarNome(nomeCompleto) {
         if (!nomeCompleto) return 'Usuário';
-        
-        // Pega o primeiro nome
         let primeiroNome = nomeCompleto.trim().split(' ')[0];
-        
-        // Converte para minúsculas e depois capitaliza a primeira letra
         primeiroNome = primeiroNome.toLowerCase();
         primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1);
-        
         return primeiroNome;
     }
 
     renderHTML() {
         const isMembro = this.userInfo.perfil === 'operador_membro' && !this.userInfo.isAdminView;
-        
-        // Nome formatado: apenas primeiro nome com primeira letra maiúscula
         const nomeFormatado = this.formatarNome(this.userInfo.nome);
-        
-        // Cargo formatado
         const cargoFormatado = this.formatarCargo(this.userInfo.cargo);
         
-        // Construir a lista de profissionais formatada
+        // Renderizar profissionais vinculados
         const profissionaisHtml = this.profissionaisVinculados.map(prof => {
-            const cargoNome = prof.cargo === 'nutricionista' ? '🥗 Nutricionista' : 
-                              (prof.cargo === 'psicologo' ? '🧠 Psicólogo' : '👨‍⚕️ Profissional');
-            return `<span style="display: block; margin-top: 5px;"><strong>${cargoNome}:</strong> ${prof.nome}</span>`;
+            const icone = prof.cargo === 'nutricionista' ? '🥗' : (prof.cargo === 'psicologo' ? '🧠' : '👨‍⚕️');
+            const titulo = prof.cargo === 'nutricionista' ? 'Nutricionista' : (prof.cargo === 'psicologo' ? 'Psicólogo' : 'Profissional');
+            return `
+                <div class="profissional-item">
+                    <strong>${icone} ${titulo}:</strong> ${prof.nome}
+                </div>
+            `;
         }).join('');
         
         return `
             <div class="home-container">
-                <!-- HEADER PROFISSIONAL -->
-                <div class="header">
-                    <div class="header-logo">
-                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img">
-                        <h1>Minhas Avaliações</h1>
+                <!-- HEADER -->
+                <div class="header d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="d-flex align-items-center gap-2">
+                        <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img" style="height: 36px; filter: brightness(0) invert(1);">
+                        <h1 class="m-0 text-white" style="font-size: 16px; font-weight: 600;">Minhas Avaliações</h1>
                     </div>
-                    <div class="user-info" style="flex: 1; justify-content: flex-end;">
-                        <span>👋 Olá, ${nomeFormatado}</span>
-                        <span class="cargo-badge" style="background: none; padding: 0; color: white; font-weight: normal;">${cargoFormatado}</span>
-                        <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
+                    <div class="user-info d-flex align-items-center gap-2">
+                        <span class="text-white">👋 Olá, ${nomeFormatado}</span>
+                        <span class="cargo-badge">${cargoFormatado}</span>
+                        <button class="menu-toggle-btn d-flex align-items-center justify-content-center" id="menuToggleBtn">☰</button>
                     </div>
                 </div>
 
                 <!-- MENU LATERAL -->
                 <div class="side-menu" id="sideMenu">
                     <div class="menu-header">
-                        <h3>Menu</h3>
+                        <h3 class="m-0">Menu</h3>
                         <button class="close-menu" id="closeMenu">×</button>
                     </div>
                     <nav class="menu-nav">
                         <button class="menu-item" data-module="home">
-                            <span class="menu-icon">🏠</span>
+                            <span>🏠</span>
                             <span>Home</span>
                         </button>
                         <button class="menu-item" data-module="meu_plano_alimentar">
-                            <span class="menu-icon">🍽️</span>
+                            <span>🍽️</span>
                             <span>Meu Plano Alimentar</span>
                         </button>
                         <button class="menu-item" data-module="minha_anamnese">
-                            <span class="menu-icon">📋</span>
+                            <span>📋</span>
                             <span>Minha Anamnese</span>
                         </button>
                         <button class="menu-item" data-module="shopping_nutri">
-                            <span class="menu-icon">🛍️</span>
+                            <span>🛍️</span>
                             <span>Shopping Nutri</span>
                         </button>
                         <button class="menu-item" id="minhaJornadaMenuItem">
-                            <span class="menu-icon">🌟</span>
+                            <span>🌟</span>
                             <span>Minha Jornada</span>
                         </button>
                         ${isMembro ? `
                         <button class="menu-item" id="membroExclusiveMenuItem">
-                            <span class="menu-icon">⭐</span>
+                            <span>⭐</span>
                             <span>Conteúdo Exclusivo</span>
                         </button>
                         ` : ''}
                         <div class="menu-divider"></div>
                         <button class="menu-item logout" id="logoutMenuItem">
-                            <span class="menu-icon">🚪</span>
+                            <span>🚪</span>
                             <span>Sair</span>
                         </button>
                     </nav>
                 </div>
                 <div class="menu-overlay" id="menuOverlay"></div>
 
-                <div class="content">
-                    <!-- INFORMAÇÕES DO PACIENTE -->
-                    <div class="client-info">
+                <div class="content p-3">
+                    <!-- DADOS DO CLIENTE -->
+                    <div class="client-info mb-3">
                         <h3>📋 Meus Dados</h3>
-                        <div class="info-card" style="display: flex; flex-direction: column; gap: 10px;">
+                        <div class="info-card">
                             <p><strong>👤 Nome:</strong> ${this.userInfo.nome || 'Não informado'}</p>
                             <p><strong>📅 Nascimento:</strong> ${this.funcoes.formatDateToDisplay(this.userInfo.dataNascimento) || 'Não informado'}</p>
                             <p><strong>🎂 Idade:</strong> ${this.funcoes.calcularIdade(this.userInfo.dataNascimento) || 'Não informado'} anos</p>
                             <p><strong>📋 Plano:</strong> ${this.plano}</p>
-                            <p><strong>👨‍⚕️ Profissionais Vinculados:</strong> ${profissionaisHtml || 'Nenhum profissional vinculado'}</p>
+                            <p><strong>👨‍⚕️ Profissionais Vinculados:</strong></p>
+                            <div class="profissionais-container">
+                                ${profissionaisHtml || 'Nenhum profissional vinculado'}
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- LISTA DE AVALIAÇÕES -->
-                    <div id="clientEvaluations" class="client-evaluations">
-                        <h3>📊 Histórico de Avaliações Nutricionais</h3>
+                    <!-- AVALIAÇÕES -->
+                    <div id="clientEvaluations">
+                        <h3 class="mb-2" style="font-size: 16px; color: var(--secondary);">📊 Histórico de Avaliações Nutricionais</h3>
                         <div id="evaluationsList"></div>
                     </div>
                     
-                    <!-- GRÁFICOS (apenas para membros) -->
+                    <!-- GRÁFICOS -->
                     ${isMembro ? `
-                        <div class="charts-section">
-                            <div class="chart-container">
+                        <div class="charts-section mt-3">
+                            <div class="chart-container mb-3">
                                 <h4>📈 Evolução do Peso</h4>
                                 <canvas id="weightChart"></canvas>
                             </div>
-                            <div class="chart-container">
+                            <div class="chart-container mb-3">
                                 <h4>📊 Evolução do IMC</h4>
                                 <canvas id="imcChart"></canvas>
                             </div>
@@ -225,7 +221,6 @@ export class HomeCliente {
     }
 
     attachEvents() {
-        // Menu lateral
         const menuToggle = document.getElementById('menuToggleBtn');
         const sideMenu = document.getElementById('sideMenu');
         const menuOverlay = document.getElementById('menuOverlay');
@@ -247,7 +242,6 @@ export class HomeCliente {
         if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
         if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
 
-        // Botões do menu
         document.querySelectorAll('.menu-item[data-module]').forEach(item => {
             item.addEventListener('click', async (e) => {
                 const module = item.getAttribute('data-module');
@@ -256,7 +250,6 @@ export class HomeCliente {
             });
         });
 
-        // Botão Minha Jornada do menu
         const minhaJornadaMenuItem = document.getElementById('minhaJornadaMenuItem');
         if (minhaJornadaMenuItem) {
             minhaJornadaMenuItem.addEventListener('click', () => {
@@ -265,7 +258,6 @@ export class HomeCliente {
             });
         }
 
-        // Botão Conteúdo Exclusivo do menu
         const membroExclusiveMenuItem = document.getElementById('membroExclusiveMenuItem');
         if (membroExclusiveMenuItem) {
             membroExclusiveMenuItem.addEventListener('click', () => {
@@ -274,7 +266,6 @@ export class HomeCliente {
             });
         }
 
-        // Botão Sair do menu
         const logoutMenuItem = document.getElementById('logoutMenuItem');
         if (logoutMenuItem) {
             logoutMenuItem.addEventListener('click', () => {
@@ -284,6 +275,8 @@ export class HomeCliente {
         }
     }
 
+    // ... (restante dos métodos showMinhaJornada, showModuleMessage, showMembroExclusiveContent, loadEvaluations, formatDate, showEmptyCharts, renderCharts, createCharts permanecem iguais)
+    
     showMinhaJornada() {
         const evaluations = this.currentEvaluations;
         
