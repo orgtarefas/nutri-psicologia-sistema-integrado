@@ -90,6 +90,13 @@ export class HomeCliente {
         // Cargo formatado
         const cargoFormatado = this.formatarCargo(this.userInfo.cargo);
         
+        // Construir a lista de profissionais formatada
+        const profissionaisHtml = this.profissionaisVinculados.map(prof => {
+            const cargoNome = prof.cargo === 'nutricionista' ? '🥗 Nutricionista' : 
+                              (prof.cargo === 'psicologo' ? '🧠 Psicólogo' : '👨‍⚕️ Profissional');
+            return `<span style="display: block; margin-top: 5px;"><strong>${cargoNome}:</strong> ${prof.nome}</span>`;
+        }).join('');
+        
         return `
             <div class="home-container">
                 <!-- HEADER PROFISSIONAL -->
@@ -100,7 +107,7 @@ export class HomeCliente {
                     </div>
                     <div class="user-info" style="flex: 1; justify-content: flex-end;">
                         <span>👋 Olá, ${nomeFormatado}</span>
-                        <span class="cargo-badge">${cargoFormatado}</span>
+                        <span class="cargo-badge" style="background: none; padding: 0; color: white; font-weight: normal;">${cargoFormatado}</span>
                         <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
                     </div>
                 </div>
@@ -156,7 +163,7 @@ export class HomeCliente {
                             <p><strong>📅 Nascimento:</strong> ${this.funcoes.formatDateToDisplay(this.userInfo.dataNascimento) || 'Não informado'}</p>
                             <p><strong>🎂 Idade:</strong> ${this.funcoes.calcularIdade(this.userInfo.dataNascimento) || 'Não informado'} anos</p>
                             <p><strong>📋 Plano:</strong> ${this.plano}</p>
-                            <p><strong>👨‍⚕️ Profissionais Vinculados:</strong> ${this.renderProfissionaisVinculados()}</p>
+                            <p><strong>👨‍⚕️ Profissionais Vinculados:</strong> ${profissionaisHtml || 'Nenhum profissional vinculado'}</p>
                         </div>
                     </div>
                     
@@ -186,24 +193,6 @@ export class HomeCliente {
                 </div>
             </div>
         `;
-    }
-
-    renderProfissionaisVinculados() {
-        if (this.profissionaisVinculados.length === 0) {
-            return '<span style="color: #999;">Nenhum profissional vinculado</span>';
-        }
-        
-        const profissionaisHtml = this.profissionaisVinculados.map(prof => {
-            const cargoFormatado = prof.cargo === 'nutricionista' ? '🥗 Nutricionista' : 
-                                  (prof.cargo === 'psicologo' ? '🧠 Psicólogo' : '👨‍⚕️ Profissional');
-            return `
-                <div style="margin-top: 5px; padding: 6px 10px; background: rgba(255,255,255,0.1); border-radius: 10px;">
-                    <strong>${cargoFormatado}:</strong> ${prof.nome}
-                </div>
-            `;
-        }).join('');
-        
-        return `<div style="display: flex; flex-direction: column; gap: 5px;">${profissionaisHtml}</div>`;
     }
 
     getCargoDisplayName(cargo) {
