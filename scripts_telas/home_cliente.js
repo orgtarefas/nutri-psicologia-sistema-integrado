@@ -1,5 +1,6 @@
 import { FuncoesCompartilhadas } from './0_home.js';
 import { criarNavegador } from './0_complementos_menu_navegacao.js';
+import { db, doc, getDoc } from '../0_firebase_api_config.js';
 
 export class HomeCliente {
     constructor(userInfo) {
@@ -9,17 +10,61 @@ export class HomeCliente {
         this.navegador = criarNavegador(userInfo);
         this.isMenuOpen = false;
         
+        // Dados adicionais do cliente
+        this.plano = '';
+        this.profissionaisVinculados = [];
+        
         // Gráficos
         this.weightChart = null;
         this.imcChart = null;
         this.muscleChart = null;
     }
 
-    render() {
+    async render() {
         const app = document.getElementById('app');
+        await this.carregarDadosAdicionais();
         app.innerHTML = this.renderHTML();
         this.attachEvents();
         this.loadEvaluations();
+    }
+
+    async carregarDadosAdicionais() {
+        try {
+            const userRef = doc(db, 'logins', this.userInfo.login);
+            const userDoc = await getDoc(userRef);
+            
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                this.plano = data.plano || 'Não informado';
+                
+                // Processar profissionais vinculados
+                this.profissionaisVinculados = [];
+                if (data.profissionais_vinculados) {
+                    for (const [login, info] of Object.entries(data.profissionais_vinculados)) {
+                        this.profissionaisVinculados.push({
+                            login: login,
+                            nome: info.nome || login,
+                            cargo: info.cargo || 'Profissional'
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Erro ao carregar dados adicionais:", error);
+            this.plano = 'Erro ao carregar';
+            this.profissionaisVinculados = [];
+        }
+    }
+
+    // Método para formatar cargo (primeira letra maiúscula)
+    formatarCargo(cargo) {
+        if (!cargo) return '';
+        const cargos = {
+            'paciente': 'Paciente',
+            'nutricionista': 'Nutricionista',
+            'psicologo': 'Psicólogo'
+        };
+        return cargos[cargo] || cargo.charAt(0).toUpperCase() + cargo.slice(1);
     }
 
     // Método para formatar nome: apenas primeiro nome, primeira letra maiúscula
@@ -37,13 +82,13 @@ export class HomeCliente {
     }
 
     renderHTML() {
-        const perfilDisplayName = this.getPerfilDisplayName(this.userInfo.perfil);
-        const perfilBadgeClass = this.getPerfilBadgeClass(this.userInfo.perfil);
-        
         const isMembro = this.userInfo.perfil === 'operador_membro' && !this.userInfo.isAdminView;
         
         // Nome formatado: apenas primeiro nome com primeira letra maiúscula
         const nomeFormatado = this.formatarNome(this.userInfo.nome);
+        
+        // Cargo formatado
+        const cargoFormatado = this.formatarCargo(this.userInfo.cargo);
         
         return `
             <div class="home-container">
@@ -55,7 +100,7 @@ export class HomeCliente {
                     </div>
                     <div class="user-info" style="flex: 1; justify-content: flex-end;">
                         <span>👋 Olá, ${nomeFormatado}</span>
-                        <span class="perfil-badge ${perfilBadgeClass}">${perfilDisplayName}</span>
+                        <span class="cargo-badge">${cargoFormatado}</span>
                         <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
                     </div>
                 </div>
@@ -106,12 +151,12 @@ export class HomeCliente {
                     <!-- INFORMAÇÕES DO PACIENTE -->
                     <div class="client-info">
                         <h3>📋 Meus Dados</h3>
-                        <div class="info-card">
+                        <div class="info-card" style="display: flex; flex-direction: column; gap: 10px;">
                             <p><strong>👤 Nome:</strong> ${this.userInfo.nome || 'Não informado'}</p>
-                            <p><strong>🔑 Login:</strong> ${this.userInfo.login || 'Não informado'}</p>
                             <p><strong>📅 Nascimento:</strong> ${this.funcoes.formatDateToDisplay(this.userInfo.dataNascimento) || 'Não informado'}</p>
                             <p><strong>🎂 Idade:</strong> ${this.funcoes.calcularIdade(this.userInfo.dataNascimento) || 'Não informado'} anos</p>
-                            <p><strong>⚥ Sexo:</strong> ${this.userInfo.sexo === 'masculino' ? 'Masculino' : (this.userInfo.sexo === 'feminino' ? 'Feminino' : 'Não informado')}</p>
+                            <p><strong>📋 Plano:</strong> ${this.plano}</p>
+                            <p><strong>👨‍⚕️ Profissionais Vinculados:</strong> ${this.renderProfissionaisVinculados()}</p>
                         </div>
                     </div>
                     
@@ -141,6 +186,24 @@ export class HomeCliente {
                 </div>
             </div>
         `;
+    }
+
+    renderProfissionaisVinculados() {
+        if (this.profissionaisVinculados.length === 0) {
+            return '<span style="color: #999;">Nenhum profissional vinculado</span>';
+        }
+        
+        const profissionaisHtml = this.profissionaisVinculados.map(prof => {
+            const cargoFormatado = prof.cargo === 'nutricionista' ? '🥗 Nutricionista' : 
+                                  (prof.cargo === 'psicologo' ? '🧠 Psicólogo' : '👨‍⚕️ Profissional');
+            return `
+                <div style="margin-top: 5px; padding: 6px 10px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                    <strong>${cargoFormatado}:</strong> ${prof.nome}
+                </div>
+            `;
+        }).join('');
+        
+        return `<div style="display: flex; flex-direction: column; gap: 5px;">${profissionaisHtml}</div>`;
     }
 
     getCargoDisplayName(cargo) {
