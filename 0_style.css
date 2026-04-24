@@ -1382,3 +1382,69 @@ body.profile-paciente .info-card p strong {
     margin-right: 8px;
     opacity: 0.8;
 }
+
+/* Remove o fundo do user-info - sem retângulo cinza */
+body.profile-paciente .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: none !important;
+    backdrop-filter: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* Ajuste para o texto do usuário */
+body.profile-paciente .user-info span:first-child {
+    font-size: 13px;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+
+/* Cargo badge - sem fundo */
+body.profile-paciente .cargo-badge {
+    background: none !important;
+    padding: 0;
+    font-size: 13px;
+    font-weight: normal;
+    color: white;
+    white-space: nowrap;
+}
+
+/* Botão menu toggle sem fundo */
+body.profile-paciente .menu-toggle-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+body.profile-paciente .menu-toggle-btn:hover {
+    background: var(--primary);
+}
+
+/* Header ajustado */
+body.profile-paciente .header {
+    background: linear-gradient(135deg, #1a237e 0%, #0f1a5c 100%);
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+}
