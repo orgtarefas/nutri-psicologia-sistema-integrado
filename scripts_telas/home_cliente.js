@@ -56,16 +56,7 @@ export class HomeCliente {
         }
     }
 
-    formatarCargo(cargo) {
-        if (!cargo) return '';
-        const cargos = {
-            'paciente': 'Paciente',
-            'nutricionista': 'Nutricionista',
-            'psicologo': 'Psicólogo'
-        };
-        return cargos[cargo] || cargo.charAt(0).toUpperCase() + cargo.slice(1);
-    }
-
+    // Formatar nome: apenas primeiro nome, primeira letra maiúscula
     formatarNome(nomeCompleto) {
         if (!nomeCompleto) return 'Usuário';
         let primeiroNome = nomeCompleto.trim().split(' ')[0];
@@ -77,33 +68,30 @@ export class HomeCliente {
     renderHTML() {
         const isMembro = this.userInfo.perfil === 'operador_membro' && !this.userInfo.isAdminView;
         const nomeFormatado = this.formatarNome(this.userInfo.nome);
-        const cargoFormatado = this.formatarCargo(this.userInfo.cargo);
         
-        // Renderizar profissionais vinculados
+        // Renderizar profissionais vinculados (sem formatação de cargo)
         const profissionaisHtml = this.profissionaisVinculados.map(prof => {
-            const icone = prof.cargo === 'nutricionista' ? '🥗' : (prof.cargo === 'psicologo' ? '🧠' : '👨‍⚕️');
-            const titulo = prof.cargo === 'nutricionista' ? 'Nutricionista' : (prof.cargo === 'psicologo' ? 'Psicólogo' : 'Profissional');
+            // Remove a formatação de cargo, mostra apenas o nome
             return `
                 <div class="profissional-item">
-                    <strong>${icone} ${titulo}:</strong> ${prof.nome}
+                    ${prof.nome}
                 </div>
             `;
         }).join('');
         
         return `
             <div class="home-container">
-                <!-- HEADER -->
+                <!-- HEADER - sem cargo -->
                 <div class="header d-flex justify-content-between align-items-center flex-wrap">
                     <div class="d-flex align-items-center gap-2">
                         <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img" style="height: 36px; filter: brightness(0) invert(1);">
                     </div>
                     <div class="user-info d-flex align-items-center gap-2">
                         <span class="text-white">👋 Olá, ${nomeFormatado}</span>
-                        <span class="cargo-badge">${cargoFormatado}</span>
                         <button class="menu-toggle-btn d-flex align-items-center justify-content-center" id="menuToggleBtn">☰</button>
                     </div>
                 </div>
-    
+
                 <!-- MENU LATERAL -->
                 <div class="side-menu" id="sideMenu">
                     <div class="menu-header">
@@ -145,7 +133,7 @@ export class HomeCliente {
                     </nav>
                 </div>
                 <div class="menu-overlay" id="menuOverlay"></div>
-    
+
                 <div class="content p-3">
                     <!-- DADOS DO CLIENTE -->
                     <div class="client-info mb-3">
@@ -190,35 +178,8 @@ export class HomeCliente {
         `;
     }
 
-    getCargoDisplayName(cargo) {
-        const nomes = {
-            'paciente': 'Paciente',
-            'nutricionista': 'Nutricionista',
-            'psicologo': 'Psicólogo'
-        };
-        return nomes[cargo] || cargo;
-    }
-
-    getPerfilDisplayName(perfil) {
-        const perfis = {
-            'operador': 'Operador',
-            'operador_membro': 'Membro VIP',
-            'supervisor': 'Supervisor',
-            'gerente': 'Gerente'
-        };
-        return perfis[perfil] || perfil || 'Usuário';
-    }
-
-    getPerfilBadgeClass(perfil) {
-        const classes = {
-            'operador': 'perfil-operador',
-            'operador_membro': 'perfil-operador-membro',
-            'supervisor': 'perfil-supervisor',
-            'gerente': 'perfil-gerente'
-        };
-        return classes[perfil] || '';
-    }
-
+    // ... (restante dos métodos permanecem iguais)
+    
     attachEvents() {
         const menuToggle = document.getElementById('menuToggleBtn');
         const sideMenu = document.getElementById('sideMenu');
@@ -273,8 +234,6 @@ export class HomeCliente {
             });
         }
     }
-
-    // ... (restante dos métodos showMinhaJornada, showModuleMessage, showMembroExclusiveContent, loadEvaluations, formatDate, showEmptyCharts, renderCharts, createCharts permanecem iguais)
     
     showMinhaJornada() {
         const evaluations = this.currentEvaluations;
