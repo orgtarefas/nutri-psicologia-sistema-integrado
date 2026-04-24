@@ -1351,3 +1351,34 @@ body.profile-paciente canvas {
         grid-template-columns: 1fr;
     }
 }
+
+/* Cargo badge sem background */
+body.profile-paciente .cargo-badge {
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+}
+
+/* Informações do cliente em coluna */
+body.profile-paciente .info-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+body.profile-paciente .info-card p {
+    margin: 0;
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px 14px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+}
+
+body.profile-paciente .info-card p strong {
+    font-weight: 600;
+    margin-right: 8px;
+    opacity: 0.8;
+}
