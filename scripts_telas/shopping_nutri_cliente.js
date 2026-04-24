@@ -56,7 +56,8 @@ export class ShoppingNutriCliente {
         ];
         
         // Swiper/carrossel
-        this.swiperInstance = null;
+        this.currentSlideIndex = 0;
+        this.totalSlides = 0;
     }
 
     async render() {
@@ -95,6 +96,8 @@ export class ShoppingNutriCliente {
             const participacoesRestantes = this.getParticipacoesRestantes(desafio);
             return !disponivel || participacoesRestantes === 0;
         });
+        
+        this.totalSlides = desafiosDisponiveis.length + desafiosIndisponiveis.length;
 
         return `
             <div class="home-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
@@ -135,10 +138,10 @@ export class ShoppingNutriCliente {
                     ${this.desafiosFoto.length > 0 ? `
                     <div class="desafios-foto-section" style="margin-bottom: 24px;">
                         <h3 style="color: white; margin-bottom: 16px;">📸 Desafios com Foto Analisados por IA</h3>
-                        <div class="swiper-container" style="overflow: hidden; position: relative;">
-                            <div class="swiper-wrapper" id="desafiosCarrossel" style="display: flex; transition: transform 0.3s ease;">
+                        <div class="carrossel-container" style="position: relative; overflow: hidden;">
+                            <div class="carrossel-wrapper" id="desafiosCarrossel" style="display: flex; transition: transform 0.3s ease;">
                                 ${desafiosDisponiveis.map(desafio => `
-                                    <div class="swiper-slide" style="min-width: 100%; padding: 0 8px;">
+                                    <div class="carrossel-slide" style="min-width: 100%; padding: 0 8px;">
                                         <div class="desafio-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 20px; padding: 20px; color: white;">
                                             <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
                                                 <div style="font-size: 48px;">📸</div>
@@ -153,7 +156,7 @@ export class ShoppingNutriCliente {
                                                             ⏰ ${this.formatarHorarioDesafio(desafio)}
                                                         </span>
                                                         <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px;">
-                                                            🎯 Participações: ${this.getParticipacoesRestantes(desafio)}/${desafio.max_participacoes || 1}
+                                                            🎯 Participações: ${this.getParticipacoesRestantes(desafio)}/${desafio.quantidade_permitida || 1}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -165,7 +168,7 @@ export class ShoppingNutriCliente {
                                     </div>
                                 `).join('')}
                                 ${desafiosIndisponiveis.map(desafio => `
-                                    <div class="swiper-slide" style="min-width: 100%; padding: 0 8px;">
+                                    <div class="carrossel-slide" style="min-width: 100%; padding: 0 8px;">
                                         <div class="desafio-card" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); border-radius: 20px; padding: 20px; color: white; opacity: 0.7;">
                                             <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
                                                 <div style="font-size: 48px;">🔒</div>
@@ -189,7 +192,7 @@ export class ShoppingNutriCliente {
                                     </div>
                                 `).join('')}
                             </div>
-                            ${desafiosDisponiveis.length + desafiosIndisponiveis.length > 1 ? `
+                            ${this.totalSlides > 1 ? `
                             <button class="carrossel-prev" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; z-index: 10;">◀</button>
                             <button class="carrossel-next" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; z-index: 10;">▶</button>
                             <div class="carrossel-dots" style="display: flex; justify-content: center; gap: 8px; margin-top: 16px;"></div>
@@ -322,52 +325,52 @@ export class ShoppingNutriCliente {
     }
 
     inicializarCarrossel() {
-        const slides = document.querySelectorAll('.swiper-slide');
+        const slides = document.querySelectorAll('.carrossel-slide');
         const prevBtn = document.querySelector('.carrossel-prev');
         const nextBtn = document.querySelector('.carrossel-next');
         const dotsContainer = document.querySelector('.carrossel-dots');
+        const wrapper = document.querySelector('.carrossel-wrapper');
         
         if (slides.length <= 1) return;
         
-        let currentIndex = 0;
-        const totalSlides = slides.length;
-        const wrapper = document.querySelector('.swiper-wrapper');
+        this.totalSlides = slides.length;
+        this.currentSlideIndex = 0;
         
         // Criar dots
         if (dotsContainer) {
             dotsContainer.innerHTML = '';
-            for (let i = 0; i < totalSlides; i++) {
+            for (let i = 0; i < this.totalSlides; i++) {
                 const dot = document.createElement('button');
-                dot.className = `carrossel-dot ${i === currentIndex ? 'active' : ''}`;
-                dot.style.cssText = 'width: 10px; height: 10px; border-radius: 50%; background: white; border: none; cursor: pointer; opacity: 0.5; transition: opacity 0.3s;';
-                dot.addEventListener('click', () => this.goToSlide(i, wrapper, slides, dotsContainer));
+                dot.className = `carrossel-dot ${i === this.currentSlideIndex ? 'active' : ''}`;
+                dot.style.cssText = 'width: 10px; height: 10px; border-radius: 50%; background: white; border: none; cursor: pointer; opacity: 0.5; transition: opacity 0.3s; margin: 0 4px;';
+                dot.addEventListener('click', () => this.goToSlide(i, wrapper, dotsContainer));
                 dotsContainer.appendChild(dot);
             }
-            if (dotsContainer.children[currentIndex]) {
-                dotsContainer.children[currentIndex].style.opacity = '1';
+            if (dotsContainer.children[this.currentSlideIndex]) {
+                dotsContainer.children[this.currentSlideIndex].style.opacity = '1';
             }
         }
         
         const updateSlide = () => {
-            const offset = -currentIndex * 100;
+            const offset = -this.currentSlideIndex * 100;
             if (wrapper) wrapper.style.transform = `translateX(${offset}%)`;
             if (dotsContainer) {
                 for (let i = 0; i < dotsContainer.children.length; i++) {
-                    dotsContainer.children[i].style.opacity = i === currentIndex ? '1' : '0.5';
+                    dotsContainer.children[i].style.opacity = i === this.currentSlideIndex ? '1' : '0.5';
                 }
             }
         };
         
         if (prevBtn) {
             prevBtn.onclick = () => {
-                currentIndex = (currentIndex - 1 + totalSlides) % totalSlides;
+                this.currentSlideIndex = (this.currentSlideIndex - 1 + this.totalSlides) % this.totalSlides;
                 updateSlide();
             };
         }
         
         if (nextBtn) {
             nextBtn.onclick = () => {
-                currentIndex = (currentIndex + 1) % totalSlides;
+                this.currentSlideIndex = (this.currentSlideIndex + 1) % this.totalSlides;
                 updateSlide();
             };
         }
@@ -375,12 +378,13 @@ export class ShoppingNutriCliente {
         updateSlide();
     }
     
-    goToSlide(index, wrapper, slides, dotsContainer) {
-        const offset = -index * 100;
+    goToSlide(index, wrapper, dotsContainer) {
+        this.currentSlideIndex = index;
+        const offset = -this.currentSlideIndex * 100;
         if (wrapper) wrapper.style.transform = `translateX(${offset}%)`;
         if (dotsContainer) {
             for (let i = 0; i < dotsContainer.children.length; i++) {
-                dotsContainer.children[i].style.opacity = i === index ? '1' : '0.5';
+                dotsContainer.children[i].style.opacity = i === this.currentSlideIndex ? '1' : '0.5';
             }
         }
     }
@@ -413,7 +417,7 @@ export class ShoppingNutriCliente {
     }
     
     getParticipacoesRestantes(desafio) {
-        const maxParticipacoes = desafio.max_participacoes || 1;
+        const maxParticipacoes = desafio.quantidade_permitida || 1;
         const participacoesFeitas = this.participacoesDesafios.get(desafio.id) || 0;
         return Math.max(0, maxParticipacoes - participacoesFeitas);
     }
@@ -763,7 +767,7 @@ export class ShoppingNutriCliente {
         if (loadingModal) loadingModal.style.display = 'none';
     }
 
-    // ==================== MÉTODOS DA ROLETA (PRESERVADOS) ====================
+    // ==================== MÉTODOS DA ROLETA ====================
 
     inicializarRoleta() {
         this.roletaCanvas = document.getElementById('roletaCanvas');
