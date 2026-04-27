@@ -256,14 +256,14 @@ export class NavegadorPaciente extends NavegadorBase {
     }
 
     async irParaMeuPlanoAlimentar() {
-        const { MeuPlanoAlimentar } = await import('./meu_plano_alimentar.js');
-        const planoScreen = new MeuPlanoAlimentar(this.userInfo);
+        const { PlanoAlimentarCliente } = await import('./plano_alimentar_cliente.js');
+        const planoScreen = new PlanoAlimentarCliente(this.userInfo);
         planoScreen.render();
     }
-
+    
     async irParaMinhaAnamnese() {
-        const { MinhaAnamnese } = await import('./minha_anamnese.js');
-        const anamneseScreen = new MinhaAnamnese(this.userInfo);
+        const { AnamneseCliente } = await import('./anamnese_cliente.js');
+        const anamneseScreen = new AnamneseCliente(this.userInfo);
         anamneseScreen.render();
     }
 
