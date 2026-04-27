@@ -37,7 +37,7 @@ export class HomeCliente {
                 const data = userDoc.data();
                 this.plano = data.plano || 'Não informado';
                 
-                // Processar profissionais vinculados
+                // Processar profissionais vinculados (todos independente do cargo)
                 this.profissionaisVinculados = [];
                 if (data.profissionais_vinculados) {
                     for (const [login, info] of Object.entries(data.profissionais_vinculados)) {
@@ -48,6 +48,13 @@ export class HomeCliente {
                         });
                     }
                 }
+                
+                // Ordenar: nutricionista primeiro
+                this.profissionaisVinculados.sort((a, b) => {
+                    if (a.cargo === 'nutricionista') return -1;
+                    if (b.cargo === 'nutricionista') return 1;
+                    return 0;
+                });
             }
         } catch (error) {
             console.error("Erro ao carregar dados adicionais:", error);
@@ -69,7 +76,10 @@ export class HomeCliente {
         const isMembro = this.userInfo.perfil === 'operador_membro' && !this.userInfo.isAdminView;
         const nomeFormatado = this.formatarNome(this.userInfo.nome);
         
-        // Renderizar profissionais vinculados com cargo (sem formatação, apenas com :)
+        // Verifica se tem nutricionista vinculado
+        const temNutricionista = this.profissionaisVinculados.some(prof => prof.cargo === 'nutricionista');
+        
+        // Renderizar profissionais vinculados com cargo
         const profissionaisHtml = this.profissionaisVinculados.map(prof => {
             const cargo = prof.cargo || 'profissional';
             return `
@@ -81,7 +91,7 @@ export class HomeCliente {
         
         return `
             <div class="home-container">
-                <!-- HEADER - sem cargo -->
+                <!-- HEADER -->
                 <div class="header d-flex justify-content-between align-items-center flex-wrap">
                     <div class="d-flex align-items-center gap-2">
                         <img src="./imagens/logo.png" alt="TratamentoWeb" class="header-logo-img" style="height: 36px; filter: brightness(0) invert(1);">
@@ -103,18 +113,23 @@ export class HomeCliente {
                             <span>🏠</span>
                             <span>Home</span>
                         </button>
-                        <button class="menu-item" data-module="meu_plano_alimentar">
-                            <span>🍽️</span>
-                            <span>Meu Plano Alimentar</span>
-                        </button>
-                        <button class="menu-item" data-module="minha_anamnese">
-                            <span>📋</span>
-                            <span>Minha Anamnese</span>
-                        </button>
-                        <button class="menu-item" data-module="shopping_nutri">
-                            <span>🛍️</span>
-                            <span>Shopping Nutri</span>
-                        </button>
+                        
+                        <!-- SÓ MOSTRA ITENS DE NUTRIÇÃO SE TIVER NUTRICIONISTA VINCULADO -->
+                        ${temNutricionista ? `
+                            <button class="menu-item" data-module="meu_plano_alimentar">
+                                <span>🍽️</span>
+                                <span>Meu Plano Alimentar</span>
+                            </button>
+                            <button class="menu-item" data-module="minha_anamnese">
+                                <span>📋</span>
+                                <span>Minha Anamnese</span>
+                            </button>
+                            <button class="menu-item" data-module="shopping_nutri">
+                                <span>🛍️</span>
+                                <span>Shopping Nutri</span>
+                            </button>
+                        ` : ''}
+                        
                         <button class="menu-item" id="minhaJornadaMenuItem">
                             <span>🌟</span>
                             <span>Minha Jornada</span>
@@ -175,7 +190,7 @@ export class HomeCliente {
                     ` : ''}
                 </div>
             </div>
-        `;
+       `;
     }
     
     attachEvents() {
@@ -183,23 +198,24 @@ export class HomeCliente {
         const sideMenu = document.getElementById('sideMenu');
         const menuOverlay = document.getElementById('menuOverlay');
         const closeMenu = document.getElementById('closeMenu');
-
+    
         const openMenu = () => {
             if (sideMenu) sideMenu.classList.add('open');
             if (menuOverlay) menuOverlay.classList.add('open');
             this.isMenuOpen = true;
         };
-
+    
         const closeMenuFunc = () => {
             if (sideMenu) sideMenu.classList.remove('open');
             if (menuOverlay) menuOverlay.classList.remove('open');
             this.isMenuOpen = false;
         };
-
+    
         if (menuToggle) menuToggle.addEventListener('click', openMenu);
         if (closeMenu) closeMenu.addEventListener('click', closeMenuFunc);
         if (menuOverlay) menuOverlay.addEventListener('click', closeMenuFunc);
-
+    
+        // Eventos para botões com data-module (já tratados pelo navegador)
         document.querySelectorAll('.menu-item[data-module]').forEach(item => {
             item.addEventListener('click', async (e) => {
                 const module = item.getAttribute('data-module');
@@ -207,7 +223,7 @@ export class HomeCliente {
                 await this.navegador.navegarPara(module);
             });
         });
-
+    
         const minhaJornadaMenuItem = document.getElementById('minhaJornadaMenuItem');
         if (minhaJornadaMenuItem) {
             minhaJornadaMenuItem.addEventListener('click', () => {
@@ -215,7 +231,7 @@ export class HomeCliente {
                 this.showMinhaJornada();
             });
         }
-
+    
         const membroExclusiveMenuItem = document.getElementById('membroExclusiveMenuItem');
         if (membroExclusiveMenuItem) {
             membroExclusiveMenuItem.addEventListener('click', () => {
@@ -223,7 +239,7 @@ export class HomeCliente {
                 this.showMembroExclusiveContent();
             });
         }
-
+    
         const logoutMenuItem = document.getElementById('logoutMenuItem');
         if (logoutMenuItem) {
             logoutMenuItem.addEventListener('click', () => {
