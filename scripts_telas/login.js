@@ -184,123 +184,173 @@ export class LoginManager {
         const loginInput = document.getElementById('login')?.value.trim();
         const password = document.getElementById('password')?.value;
         const rememberCheckbox = document.getElementById('rememberLogin');
-
+    
         if (!loginInput || !password) {
             this.showError('Preencha todos os campos!');
             return;
         }
-
+    
         const submitBtn = document.querySelector('.login-button');
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Entrando...';
         submitBtn.disabled = true;
-
+    
         try {
+            // 1. Buscar o documento do usuário no Firestore
             const userRef = doc(db, "logins", loginInput);
             const userDoc = await getDoc(userRef);
             
             if (!userDoc.exists()) {
-                this.showError('Login nao encontrado!');
+                this.showError('Login não encontrado!');
                 return;
             }
             
             const userData = userDoc.data();
             
-            if (!userData.cargo) {
-                this.showError('Usuario sem cargo definido! Contate o administrador.');
-                return;
-            }
-            
-            if (!this.isCargoValido(userData.cargo)) {
-                this.showError(this.getMensagemCargoInvalido(userData.cargo));
-                return;
-            }
-            
-            if (userData.perfil && !FuncoesCompartilhadas.isCombinacaoValida(userData.cargo, userData.perfil)) {
-                this.showError(`Combinacao invalida: cargo "${userData.cargo}" com perfil "${userData.perfil}"`);
-                return;
-            }
-            
+            // 2. Validar se o usuário está ativo
             if (userData.status_ativo === false) {
                 this.showError('Conta desativada! Contate o administrador.');
                 return;
             }
             
+            // 3. Validar cargo
+            if (!this.isCargoValido(userData.cargo)) {
+                this.showError(this.getMensagemCargoInvalido(userData.cargo));
+                return;
+            }
+            
             if (!userData.email) {
-                this.showError('Erro de configuracao: contate o administrador!');
+                this.showError('Erro de configuração: contate o administrador!');
                 return;
             }
             
-            const hasUltimoLogin = userData.hasOwnProperty('ultimo_login');
+            // ==================== FLUXO DE LOGIN ====================
             
-            if (!hasUltimoLogin) {
-                if (password !== userData.codigo_temporario) {
-                    this.showError('Codigo temporario invalido!');
-                    return;
-                }
-                
-                const dataExpiracao = new Date(userData.codigo_expiracao);
-                if (dataExpiracao < new Date()) {
-                    this.showError('Codigo expirado! Solicite um novo codigo ao profissional.');
-                    return;
-                }
-                
-                this.tempData = {
-                    login: loginInput,
-                    email: userData.email,
-                    nome: userData.nome,
-                    cargo: userData.cargo,
-                    perfil: userData.perfil,
-                    userRef: userRef
-                };
-                
-                this.showCreatePasswordScreen();
-                return;
-            }
+            const isFuncionario = userData.cargo === 'nutricionista' || userData.cargo === 'psicologo';
+            const isPaciente = userData.cargo === 'paciente';
             
-            try {
-                await signInWithEmailAndPassword(auth, userData.email, password);
-                
-                await updateDoc(userRef, {
-                    ultimo_login: serverTimestamp()
-                });
-                
-                userData.login = loginInput;
-                
-                if (!userData.perfil) {
-                    console.warn(`Usuario ${loginInput} sem perfil definido, usando padrao`);
-                    if (userData.cargo === 'paciente') {
-                        userData.perfil = 'operador';
-                    } else {
+            // 🔥 FUNCIONÁRIO: usa autenticação normal (já tem conta no Auth)
+            if (isFuncionario) {
+                try {
+                    // Tenta logar diretamente no Auth
+                    await signInWithEmailAndPassword(auth, userData.email, password);
+                    
+                    // Atualiza último login
+                    await updateDoc(userRef, {
+                        ultimo_login: serverTimestamp()
+                    });
+                    
+                    userData.login = loginInput;
+                    
+                    // Garante que tem perfil
+                    if (!userData.perfil) {
                         userData.perfil = 'supervisor';
                     }
+                    
+                    // Salva sessão
+                    if (rememberCheckbox && rememberCheckbox.checked) {
+                        localStorage.setItem('savedLogin', loginInput);
+                        localStorage.setItem('savedPassword', password);
+                        localStorage.setItem('rememberLogin', 'true');
+                    } else {
+                        localStorage.removeItem('savedLogin');
+                        localStorage.removeItem('savedPassword');
+                        localStorage.setItem('rememberLogin', 'false');
+                    }
+                    
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                    this.showHome(userData);
+                    
+                } catch (authError) {
+                    console.error("Erro de autenticação do funcionário:", authError);
+                    
+                    if (authError.code === 'auth/invalid-credential' || 
+                        authError.code === 'auth/wrong-password') {
+                        this.showError('Senha incorreta!');
+                    } else if (authError.code === 'auth/user-not-found') {
+                        this.showError('Funcionário não encontrado no sistema de autenticação. Contate o administrador.');
+                    } else {
+                        this.showError('Erro: ' + authError.message);
+                    }
                 }
-                
-                if (rememberCheckbox && rememberCheckbox.checked) {
-                    localStorage.setItem('savedLogin', loginInput);
-                    localStorage.setItem('savedPassword', password);
-                    localStorage.setItem('rememberLogin', 'true');
-                } else {
-                    localStorage.removeItem('savedLogin');
-                    localStorage.removeItem('savedPassword');
-                    localStorage.setItem('rememberLogin', 'false');
-                }
-                
-                localStorage.setItem('currentUser', JSON.stringify(userData));
-                this.showHome(userData);
-                
-            } catch (authError) {
-                console.error("Erro de autenticacao:", authError);
-                
-                if (authError.code === 'auth/invalid-credential' || 
-                    authError.code === 'auth/wrong-password') {
-                    this.showError('Senha incorreta!');
-                } else if (authError.code === 'auth/user-not-found') {
-                    this.showError('Usuario nao encontrado! Contate o administrador.');
-                } else {
-                    this.showError('Erro: ' + authError.message);
-                }
+                return; // Sai do fluxo
             }
+            
+            // ==================== FLUXO DO PACIENTE ====================
+            
+            if (isPaciente) {
+                const hasPrimeiroAcesso = userData.hasOwnProperty('ultimo_login');
+                
+                // Caso 1: Primeiro acesso (usar código temporário)
+                if (!hasPrimeiroAcesso) {
+                    // Validar código temporário
+                    if (password !== userData.codigo_temporario) {
+                        this.showError('Código temporário inválido!');
+                        return;
+                    }
+                    
+                    const dataExpiracao = new Date(userData.codigo_expiracao);
+                    if (dataExpiracao < new Date()) {
+                        this.showError('Código expirado! Solicite um novo código ao profissional.');
+                        return;
+                    }
+                    
+                    // Salvar dados temporários e mostrar tela de criação de senha
+                    this.tempData = {
+                        login: loginInput,
+                        email: userData.email,
+                        nome: userData.nome,
+                        cargo: userData.cargo,
+                        perfil: userData.perfil,
+                        userRef: userRef
+                    };
+                    
+                    this.showCreatePasswordScreen();
+                    return;
+                }
+                
+                // Caso 2: Já tem senha (acesso normal)
+                try {
+                    await signInWithEmailAndPassword(auth, userData.email, password);
+                    
+                    await updateDoc(userRef, {
+                        ultimo_login: serverTimestamp()
+                    });
+                    
+                    userData.login = loginInput;
+                    
+                    if (!userData.perfil) {
+                        userData.perfil = 'operador';
+                    }
+                    
+                    if (rememberCheckbox && rememberCheckbox.checked) {
+                        localStorage.setItem('savedLogin', loginInput);
+                        localStorage.setItem('savedPassword', password);
+                        localStorage.setItem('rememberLogin', 'true');
+                    } else {
+                        localStorage.removeItem('savedLogin');
+                        localStorage.removeItem('savedPassword');
+                        localStorage.setItem('rememberLogin', 'false');
+                    }
+                    
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                    this.showHome(userData);
+                    
+                } catch (authError) {
+                    console.error("Erro de autenticação do paciente:", authError);
+                    
+                    if (authError.code === 'auth/invalid-credential' || 
+                        authError.code === 'auth/wrong-password') {
+                        this.showError('Senha incorreta!');
+                    } else {
+                        this.showError('Erro: ' + authError.message);
+                    }
+                }
+                return;
+            }
+            
+            // Se chegou aqui, cargo não reconhecido
+            this.showError('Tipo de usuário não reconhecido!');
             
         } catch (error) {
             console.error("Erro:", error);
