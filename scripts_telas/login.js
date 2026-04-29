@@ -372,10 +372,6 @@ export class LoginManager {
                 console.error('   → Erro desconhecido:', authError.message);
                 this.showError('Erro: ' + authError.message);
             }
-        } catch (error) {
-            console.error('========== ERRO INESPERADO ==========');
-            console.error('❌ Erro:', error);
-            this.showError('Erro ao conectar com o servidor: ' + error.message);
         } finally {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
