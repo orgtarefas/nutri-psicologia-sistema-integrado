@@ -1,7 +1,16 @@
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
 import { criarNavegador } from './0_complementos_menu_navegacao.js';
-import { collection, addDoc, getDocs, query, where, doc, updateDoc } from '../0_firebase_api_config.js';
+import { 
+    db,
+    collection, 
+    addDoc, 
+    getDocs, 
+    query, 
+    where, 
+    doc, 
+    updateDoc 
+} from '../0_firebase_api_config.js';
 
 export class CalculoEnergeticoNutricionista {
     constructor(userInfo, pacientesList) {
@@ -18,7 +27,6 @@ export class CalculoEnergeticoNutricionista {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         
-        // Atualiza a lista de pacientes no navegador
         this.navegador.pacientesList = this.pacientesList;
         
         this.menu = new MenuProfissional(this.userInfo, (module) => this.navegador.navegarPara(module), 'calculo_energetico');
@@ -42,7 +50,6 @@ export class CalculoEnergeticoNutricionista {
                 <div id="menuContainer"></div>
 
                 <div class="main-content" style="flex: 1; overflow-y: auto; padding: 20px 32px;">
-                    <!-- SELETOR DE PACIENTE -->
                     <div id="pacienteInfo" class="info-section" style="margin-bottom: 24px;">
                         <div style="margin-bottom: 20px;">
                             <select id="pacienteSelect" style="width: 100%; max-width: 350px; padding: 10px 14px; border-radius: 10px; border: 2px solid #e2e8f0; background: white;">
@@ -80,9 +87,7 @@ export class CalculoEnergeticoNutricionista {
                     </div>
 
                     ${this.selectedPaciente ? `
-                        <!-- FORMULÁRIO DE CÁLCULO -->
                         <div class="calculo-container">
-                            <!-- 1. DADOS ANTROPOMÉTRICOS -->
                             <div class="evaluation-section" style="margin-bottom: 24px;">
                                 <div class="section-header">
                                     <h3>📏 Dados Antropométricos</h3>
@@ -120,7 +125,6 @@ export class CalculoEnergeticoNutricionista {
                                 </div>
                             </div>
 
-                            <!-- 2. FÓRMULA DE CÁLCULO -->
                             <div class="evaluation-section" style="margin-bottom: 24px;">
                                 <div class="section-header">
                                     <h3>🧮 Fórmula de Cálculo do GEB/TMB</h3>
@@ -151,7 +155,6 @@ export class CalculoEnergeticoNutricionista {
                                 </div>
                             </div>
 
-                            <!-- 3. OBJETIVO E ADICIONAL ENERGÉTICO -->
                             <div class="evaluation-section" style="margin-bottom: 24px;">
                                 <div class="section-header">
                                     <h3>🎯 Objetivo e Adicional Energético</h3>
@@ -181,13 +184,11 @@ export class CalculoEnergeticoNutricionista {
                                 </div>
                             </div>
 
-                            <!-- 4. MACRONUTRIENTES (DIRETRIZES PARA HIPERTROFIA) -->
                             <div class="evaluation-section" style="margin-bottom: 24px;">
                                 <div class="section-header">
                                     <h3>🥩 Distribuição de Macronutrientes</h3>
                                 </div>
                                 
-                                <!-- PROTEÍNAS -->
                                 <div style="background: #f0fdf4; border-radius: 1rem; padding: 20px; margin-bottom: 20px;">
                                     <h4 style="color: #166534; margin-bottom: 16px;">🥩 PROTEÍNAS</h4>
                                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
@@ -218,7 +219,6 @@ export class CalculoEnergeticoNutricionista {
                                     </div>
                                 </div>
 
-                                <!-- CARBOIDRATOS -->
                                 <div style="background: #fef3c7; border-radius: 1rem; padding: 20px; margin-bottom: 20px;">
                                     <h4 style="color: #92400e; margin-bottom: 16px;">🍚 CARBOIDRATOS</h4>
                                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
@@ -249,7 +249,6 @@ export class CalculoEnergeticoNutricionista {
                                     </div>
                                 </div>
 
-                                <!-- LIPÍDIOS -->
                                 <div style="background: #fee2e2; border-radius: 1rem; padding: 20px; margin-bottom: 20px;">
                                     <h4 style="color: #991b1b; margin-bottom: 16px;">🧈 LIPÍDIOS (GORDURAS)</h4>
                                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
@@ -280,7 +279,6 @@ export class CalculoEnergeticoNutricionista {
                                     </div>
                                 </div>
 
-                                <!-- RESUMO FINAL -->
                                 <div style="background: linear-gradient(135deg, #1a237e 0%, #0f1a5c 100%); border-radius: 1rem; padding: 20px; color: white;">
                                     <h4 style="margin-bottom: 16px;">📊 RESUMO DA DIETA</h4>
                                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
@@ -301,7 +299,6 @@ export class CalculoEnergeticoNutricionista {
                     `}
                 </div>
 
-                <!-- BOTÃO SALVAR -->
                 <div style="position: fixed; bottom: 30px; right: 30px; z-index: 100;">
                     <button id="saveCalculoBtn" class="btn-primary btn-expand">
                         <span>💾</span>
@@ -313,7 +310,6 @@ export class CalculoEnergeticoNutricionista {
     }
 
     attachEvents() {
-        // Seletor de paciente
         const pacienteSelect = document.getElementById('pacienteSelect');
         if (pacienteSelect) {
             pacienteSelect.addEventListener('change', async (e) => {
@@ -329,7 +325,6 @@ export class CalculoEnergeticoNutricionista {
             });
         }
 
-        // Eventos para recálculo automático
         const inputs = ['peso', 'altura', 'fator_atividade', 'formula', 'massa_magra', 
                         'objetivo', 'adicional_energetico', 'deficit_energetico',
                         'ptn_g_kg', 'ptn_metodo', 'cho_g_kg', 'cho_metodo', 'lip_g_kg', 'lip_metodo'];
@@ -345,7 +340,6 @@ export class CalculoEnergeticoNutricionista {
             if (el) el.addEventListener('change', () => this.calcularTudo());
         });
 
-        // Botão salvar
         const saveBtn = document.getElementById('saveCalculoBtn');
         if (saveBtn) saveBtn.addEventListener('click', () => this.saveCalculo());
     }
@@ -582,7 +576,8 @@ export class CalculoEnergeticoNutricionista {
         if (!this.selectedPaciente) return;
         
         try {
-            const calculoRef = collection(window.db, 'calculos_energeticos');
+            // ✅ CORRIGIDO: window.db → db
+            const calculoRef = collection(db, 'calculos_energeticos');
             const q = query(calculoRef, where('paciente_login', '==', this.selectedPaciente.login));
             const querySnapshot = await getDocs(q);
             
@@ -659,10 +654,12 @@ export class CalculoEnergeticoNutricionista {
                 }
             };
 
-            const calculoRef = collection(window.db, 'calculos_energeticos');
+            // ✅ CORRIGIDO: window.db → db
+            const calculoRef = collection(db, 'calculos_energeticos');
             
             if (this.currentCalculo?.id) {
-                const calculoDoc = doc(window.db, 'calculos_energeticos', this.currentCalculo.id);
+                // ✅ CORRIGIDO: window.db → db
+                const calculoDoc = doc(db, 'calculos_energeticos', this.currentCalculo.id);
                 await updateDoc(calculoDoc, calculoData);
                 alert('✅ Cálculo energético atualizado com sucesso!');
             } else {
