@@ -690,21 +690,30 @@ export class ShoppingNutriNutricionista {
             const pontosRef = collection(db, 'pontuacao_usuarios');
             const querySnapshot = await getDocs(pontosRef);
             this.rankingPontuacao = [];
+            
             querySnapshot.forEach(doc => {
                 const data = doc.data();
-                this.rankingPontuacao.push({
-                    id: doc.id,
-                    login: data.login,
-                    nome: data.nome,
-                    pontos: data.pontos || 0,
-                    nivel: data.nivel || 1,
-                    experiencia: data.experiencia || 0,
-                    ultimo_acesso: data.ultimo_acesso_diario || data.ultima_atualizacao
-                });
+                // Filtra apenas se for paciente ou se tiver dados válidos
+                if (data.login && (data.cargo === 'paciente' || !data.cargo)) {
+                    this.rankingPontuacao.push({
+                        id: doc.id,
+                        login: data.login,
+                        nome: data.nome || data.login,
+                        pontos: data.pontos || 0,
+                        nivel: data.nivel || 1,
+                        experiencia: data.experiencia || 0,
+                        ultimo_acesso: data.ultimo_acesso_diario || data.ultima_atualizacao
+                    });
+                }
             });
+            
+            // Ordena por pontos (maior para menor)
             this.rankingPontuacao.sort((a, b) => b.pontos - a.pontos);
+            console.log(`✅ Ranking carregado: ${this.rankingPontuacao.length} usuários`);
+            
         } catch (error) {
             console.error("Erro ao carregar ranking:", error);
+            this.rankingPontuacao = [];
         }
     }
 
