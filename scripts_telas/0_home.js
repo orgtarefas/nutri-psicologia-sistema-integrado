@@ -1,4 +1,4 @@
-// 0_home.js - CORRIJA A IMPORTAÇÃO
+// 0_home.js
 
 import { 
     db, 
