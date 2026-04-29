@@ -180,6 +180,7 @@ export class LoginManager {
         return `Cargo invalido: ${cargo}`;
     }
 
+    // Função que gera o e-mail para o login
     async handleLogin() {
         const loginInput = document.getElementById('login')?.value.trim();
         const password = document.getElementById('password')?.value;
@@ -196,7 +197,10 @@ export class LoginManager {
         submitBtn.disabled = true;
     
         try {
-            // 1. Buscar o documento do usuário no Firestore
+            // 🔥 NOVO: Monta o email a partir do login digitado
+            const emailMontado = `${loginInput.toLowerCase()}@tratamentoweb.com`;
+            
+            // 1. Buscar o documento do usuário no Firestore usando o login (não o email)
             const userRef = doc(db, "logins", loginInput);
             const userDoc = await getDoc(userRef);
             
@@ -219,21 +223,14 @@ export class LoginManager {
                 return;
             }
             
-            if (!userData.email) {
-                this.showError('Erro de configuração: contate o administrador!');
-                return;
-            }
-            
-            // ==================== FLUXO DE LOGIN ====================
-            
             const isFuncionario = userData.cargo === 'nutricionista' || userData.cargo === 'psicologo';
             const isPaciente = userData.cargo === 'paciente';
             
-            // 🔥 FUNCIONÁRIO: usa autenticação normal (já tem conta no Auth)
+            // 🔥 FUNCIONÁRIO: usa o email montado para autenticação
             if (isFuncionario) {
                 try {
-                    // Tenta logar diretamente no Auth
-                    await signInWithEmailAndPassword(auth, userData.email, password);
+                    // Usa o email montado para login no Auth
+                    await signInWithEmailAndPassword(auth, emailMontado, password);
                     
                     // Atualiza último login
                     await updateDoc(userRef, {
@@ -241,6 +238,7 @@ export class LoginManager {
                     });
                     
                     userData.login = loginInput;
+                    userData.email = emailMontado; // Adiciona o email montado aos dados
                     
                     // Garante que tem perfil
                     if (!userData.perfil) {
@@ -268,12 +266,12 @@ export class LoginManager {
                         authError.code === 'auth/wrong-password') {
                         this.showError('Senha incorreta!');
                     } else if (authError.code === 'auth/user-not-found') {
-                        this.showError('Funcionário não encontrado no sistema de autenticação. Contate o administrador.');
+                        this.showError('Usuário não encontrado no sistema de autenticação. Contate o administrador.');
                     } else {
                         this.showError('Erro: ' + authError.message);
                     }
                 }
-                return; // Sai do fluxo
+                return;
             }
             
             // ==================== FLUXO DO PACIENTE ====================
@@ -298,7 +296,7 @@ export class LoginManager {
                     // Salvar dados temporários e mostrar tela de criação de senha
                     this.tempData = {
                         login: loginInput,
-                        email: userData.email,
+                        email: emailMontado, // Usa o email montado
                         nome: userData.nome,
                         cargo: userData.cargo,
                         perfil: userData.perfil,
@@ -311,13 +309,15 @@ export class LoginManager {
                 
                 // Caso 2: Já tem senha (acesso normal)
                 try {
-                    await signInWithEmailAndPassword(auth, userData.email, password);
+                    // Usa o email montado para login
+                    await signInWithEmailAndPassword(auth, emailMontado, password);
                     
                     await updateDoc(userRef, {
                         ultimo_login: serverTimestamp()
                     });
                     
                     userData.login = loginInput;
+                    userData.email = emailMontado;
                     
                     if (!userData.perfil) {
                         userData.perfil = 'operador';
@@ -342,6 +342,10 @@ export class LoginManager {
                     if (authError.code === 'auth/invalid-credential' || 
                         authError.code === 'auth/wrong-password') {
                         this.showError('Senha incorreta!');
+                    } else if (authError.code === 'auth/user-not-found') {
+                        // Se o usuário não existe no Auth, podemos tentar criar a conta
+                        // Isso pode acontecer se o paciente já fez primeiro acesso mas a conta não foi criada
+                        this.showError('Conta não encontrada. Contate o administrador.');
                     } else {
                         this.showError('Erro: ' + authError.message);
                     }
@@ -372,14 +376,14 @@ export class LoginManager {
                                 <img src="./imagens/logo.png" alt="TratamentoWeb" class="login-logo-img">
                             </div>
                             <h2>Primeiro Acesso</h2>
-                            <p>Ola, <strong>${this.tempData.nome || this.tempData.login}</strong>!</p>
+                            <p>Olá, <strong>${this.tempData.nome || this.tempData.login}</strong>!</p>
                             <p>Cadastre sua senha pessoal para continuar.</p>
                         </div>
     
                         <form id="createPasswordForm" class="login-form">
                             <div class="info-box" style="background: #e8eaf6; padding: 12px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
                                 <i class="bi bi-info-circle" style="color: #1a237e;"></i>
-                                <span style="font-size: 13px; color: #1a237e;">Crie uma senha forte e segura para suas proximas visitas.</span>
+                                <span style="font-size: 13px; color: #1a237e;">Crie uma senha forte e segura para suas próximas visitas.</span>
                             </div>
     
                             <div class="input-group-custom">
@@ -459,27 +463,30 @@ export class LoginManager {
             const confirm = confirmPassword.value;
             
             if (password !== confirm) {
-                this.showError('As senhas nao coincidem!', 'createPasswordForm');
+                this.showError('As senhas não coincidem!', 'createPasswordForm');
                 return;
             }
             
             if (password.length < 6) {
-                this.showError('A senha deve ter no minimo 6 caracteres!', 'createPasswordForm');
+                this.showError('A senha deve ter no mínimo 6 caracteres!', 'createPasswordForm');
                 return;
             }
             
             try {
+                // 🔥 Usa o email montado (this.tempData.email) que já foi definido
                 await createUserWithEmailAndPassword(auth, this.tempData.email, password);
                 
                 await updateDoc(this.tempData.userRef, {
                     ultimo_login: serverTimestamp(),
                     codigo_temporario: deleteField(),
-                    codigo_expiracao: deleteField()
+                    codigo_expiracao: deleteField(),
+                    email: this.tempData.email // Salva o email montado no Firestore também
                 });
                 
                 const updatedDoc = await getDoc(this.tempData.userRef);
                 const userData = updatedDoc.data();
                 userData.login = this.tempData.login;
+                userData.email = this.tempData.email;
                 
                 if (!userData.perfil) {
                     if (userData.cargo === 'paciente') {
@@ -493,10 +500,10 @@ export class LoginManager {
                 this.showHome(userData);
                 
             } catch (authError) {
-                console.error("Erro ao criar usuario:", authError);
+                console.error("Erro ao criar usuário:", authError);
                 
                 if (authError.code === 'auth/email-already-in-use') {
-                    this.showError('Este login ja possui cadastro. Contate o administrador.', 'createPasswordForm');
+                    this.showError('Este login já possui cadastro. Contate o administrador.', 'createPasswordForm');
                 } else if (authError.code === 'auth/weak-password') {
                     this.showError('Senha muito fraca. Use pelo menos 6 caracteres.', 'createPasswordForm');
                 } else {
