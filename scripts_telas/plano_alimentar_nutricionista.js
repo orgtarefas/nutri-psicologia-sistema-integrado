@@ -1,10 +1,10 @@
-// plano_alimentar_nutricionista.js
+// plano_alimentar_nutricionista.js - COMPLETO CORRIGIDO
 
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
 import { criarNavegador } from './0_complementos_menu_navegacao.js';
 import { 
-    db,                    
+    db,
     collection, 
     addDoc, 
     getDocs, 
@@ -29,10 +29,8 @@ export class PlanoAlimentarNutricionista {
         const app = document.getElementById('app');
         app.innerHTML = this.renderHTML();
         
-        // Atualiza a lista de pacientes no navegador
         this.navegador.pacientesList = this.pacientesList;
         
-        // Inicializa o menu e insere no container
         this.menu = new MenuProfissional(this.userInfo, (module) => this.navegador.navegarPara(module), 'plano_alimentar');
         const menuHtml = this.menu.render();
         const menuContainer = document.getElementById('menuContainer');
@@ -53,9 +51,7 @@ export class PlanoAlimentarNutricionista {
                 <div id="menuContainer"></div>
 
                 <div class="main-content" style="flex: 1; overflow-y: auto; padding: 20px 32px;">
-                    <!-- INFORMAÇÕES DO PACIENTE (com seletor dentro) -->
                     <div id="pacienteInfo" class="info-section" style="margin-bottom: 24px;">
-                        <!-- SELETOR DE PACIENTE DENTRO DO CARD -->
                         <div style="margin-bottom: 20px;">
                             <select id="pacienteSelect" style="width: 100%; max-width: 350px; padding: 10px 14px; border-radius: 10px; border: 2px solid #e2e8f0; background: white;">
                                 <option value="">-- Selecione um paciente --</option>
@@ -88,7 +84,6 @@ export class PlanoAlimentarNutricionista {
                     </div>
 
                     ${this.selectedPaciente ? `
-                        <!-- PLANO ALIMENTAR -->
                         <div class="meal-plan-container">
                             <div class="meals-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 24px;">
                                 <div class="meal-card" style="background: #f8fafc; border-radius: 1rem; overflow: hidden; border: 1px solid #e2e8f0;">
@@ -141,7 +136,6 @@ export class PlanoAlimentarNutricionista {
                     `}
                 </div>
 
-                <!-- BOTÃO SALVAR PLANO (flutuante) -->
                 <div style="position: fixed; bottom: 30px; right: 30px; z-index: 100;">
                     <button id="savePlanBtn" class="btn-primary btn-expand">
                         <span>💾</span>
@@ -175,27 +169,32 @@ export class PlanoAlimentarNutricionista {
         if (!this.selectedPaciente) return;
         
         try {
+            console.log('🔍 Buscando plano alimentar para:', this.selectedPaciente.login);
+            
             const plansRef = collection(db, 'planos_alimentares');
             const q = query(plansRef, where('paciente_login', '==', this.selectedPaciente.login));
             const querySnapshot = await getDocs(q);
+            
             if (!querySnapshot.empty) {
                 const docSnap = querySnapshot.docs[0];
                 this.currentMealPlan = { id: docSnap.id, ...docSnap.data() };
+                console.log('✅ Plano encontrado');
             } else {
                 this.currentMealPlan = null;
+                console.log('📝 Nenhum plano encontrado, criando novo');
             }
         } catch (error) {
             console.error("Erro ao carregar plano:", error);
             this.currentMealPlan = null;
         }
     }
-    
+
     async saveMealPlan() {
         if (!this.selectedPaciente) {
             alert('❌ Selecione um paciente primeiro!');
             return;
         }
-    
+
         try {
             const mealPlanData = {
                 paciente_login: this.selectedPaciente.login,
@@ -213,7 +212,7 @@ export class PlanoAlimentarNutricionista {
                 restrictions: document.getElementById('restrictions')?.value || '',
                 goals: document.getElementById('goals')?.value || ''
             };
-            
+
             const plansRef = collection(db, 'planos_alimentares');
             
             if (this.currentMealPlan?.id) {
