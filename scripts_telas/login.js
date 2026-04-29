@@ -1,4 +1,4 @@
-// login.js - VERSÃO COMPLETA COM LOGS (SEM PERDER NADA)
+// login.js
 
 import { 
     db, 
