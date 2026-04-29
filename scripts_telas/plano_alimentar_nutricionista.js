@@ -1,7 +1,18 @@
+// plano_alimentar_nutricionista.js - IMPORTAÇÃO CORRETA
+
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
 import { criarNavegador } from './0_complementos_menu_navegacao.js';
-import { collection, addDoc, getDocs, query, where, doc, updateDoc } from '../0_firebase_api_config.js';
+import { 
+    db,                    
+    collection, 
+    addDoc, 
+    getDocs, 
+    query, 
+    where, 
+    doc, 
+    updateDoc 
+} from '../0_firebase_api_config.js';
 
 export class PlanoAlimentarNutricionista {
     constructor(userInfo, pacientesList) {
