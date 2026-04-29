@@ -1,4 +1,4 @@
-// plano_alimentar_nutricionista.js - IMPORTAÇÃO CORRETA
+// plano_alimentar_nutricionista.js
 
 import { FuncoesCompartilhadas } from './0_home.js';
 import { MenuProfissional } from './0_complementos_menu_profissional.js';
