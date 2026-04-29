@@ -1,5 +1,3 @@
-// 0_home.js
-
 import { 
     db, 
     collection, 
@@ -87,15 +85,13 @@ export class FuncoesCompartilhadas {
         return idade;
     }
     
-    // ==================== FUNÇÕES DE EXIBIÇÃO (SIMPLES) ====================
+    // ==================== FUNÇÕES DE EXIBIÇÃO ====================
     
-    // Apenas primeira letra maiúscula do cargo
     static formatarCargo(cargo) {
         if (!cargo) return '';
         return cargo.charAt(0).toUpperCase() + cargo.slice(1);
     }
     
-    // Retorna o perfil exatamente como está no banco
     static getPerfil(perfil) {
         return perfil || '';
     }
@@ -129,16 +125,14 @@ export class FuncoesCompartilhadas {
     // ==================== FUNÇÕES DE PACIENTE ====================
     
     static async loadPacientesList(profissionalLogin = null) {
-        // 🔒 SÓ PROFISSIONAL PODE CARREGAR LISTA DE PACIENTES
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        
-        // Se for paciente, retorna lista vazia
-        if (currentUser.cargo === 'paciente') {
-            console.log('🔒 Paciente não tem permissão para ver lista de pacientes');
-            return [];
-        }
-        
         try {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            
+            if (currentUser.cargo === 'paciente') {
+                console.log('🔒 Paciente não tem permissão para ver lista de pacientes');
+                return [];
+            }
+            
             if (!profissionalLogin) {
                 profissionalLogin = currentUser.login;
             }
@@ -272,183 +266,6 @@ export class FuncoesCompartilhadas {
         }
     }
     
-    // ==================== FUNÇÕES DE GESTÃO DE CÓDIGO ====================
-    
-    static async visualizarCodigoPaciente(login) {
-        try {
-            const userRef = doc(db, "logins", login);
-            const userDoc = await getDoc(userRef);
-            
-            if (!userDoc.exists()) {
-                throw new Error('Paciente não encontrado!');
-            }
-            
-            const userData = userDoc.data();
-            
-            if (userData.hasOwnProperty('ultimo_login')) {
-                throw new Error('❌ Este paciente já fez o primeiro acesso!');
-            }
-            
-            if (!userData.codigo_temporario) {
-                throw new Error('❌ Nenhum código temporário encontrado.');
-            }
-            
-            const dataExpiracao = new Date(userData.codigo_expiracao);
-            if (dataExpiracao < new Date()) {
-                throw new Error('⚠️ O código expirou! Gere um novo código.');
-            }
-            
-            return {
-                success: true,
-                codigo: userData.codigo_temporario,
-                expiracao: userData.codigo_expiracao,
-                nome: userData.nome,
-                login: login
-            };
-            
-        } catch (error) {
-            console.error("Erro ao visualizar código:", error);
-            throw error;
-        }
-    }
-    
-    static async regenerarCodigoPaciente(login) {
-        try {
-            const userRef = doc(db, "logins", login);
-            const userDoc = await getDoc(userRef);
-            
-            if (!userDoc.exists()) {
-                throw new Error('Paciente não encontrado!');
-            }
-            
-            const userData = userDoc.data();
-            
-            if (userData.hasOwnProperty('ultimo_login')) {
-                throw new Error('❌ Este paciente já fez o primeiro acesso!');
-            }
-            
-            const novoCodigo = this.gerarCodigoTemporario();
-            const dataExpiracao = new Date();
-            dataExpiracao.setDate(dataExpiracao.getDate() + 7);
-            
-            await updateDoc(userRef, {
-                codigo_temporario: novoCodigo,
-                codigo_expiracao: dataExpiracao.toISOString()
-            });
-            
-            return {
-                success: true,
-                codigo: novoCodigo,
-                expiracao: dataExpiracao.toISOString(),
-                nome: userData.nome,
-                login: login
-            };
-            
-        } catch (error) {
-            console.error("Erro ao regenerar código:", error);
-            throw error;
-        }
-    }
-    
-    // ==================== FUNÇÕES DE RESET DE SENHA ====================
-    
-    static async resetarSenhaPaciente(login) {
-        try {
-            const userRef = doc(db, "logins", login);
-            const userDoc = await getDoc(userRef);
-            
-            if (!userDoc.exists()) {
-                throw new Error('Paciente não encontrado!');
-            }
-            
-            const userData = userDoc.data();
-            
-            if (!userData.hasOwnProperty('ultimo_login')) {
-                throw new Error('❌ Este paciente ainda não fez o primeiro acesso! Use a opção de gerar código.');
-            }
-            
-            const tokenReset = this.gerarCodigoTemporario();
-            const dataExpiracao = new Date();
-            dataExpiracao.setHours(dataExpiracao.getHours() + 1);
-            
-            await updateDoc(userRef, {
-                reset_token: tokenReset,
-                reset_token_expiracao: dataExpiracao.toISOString()
-            });
-            
-            return {
-                success: true,
-                token: tokenReset,
-                expiracao: dataExpiracao.toISOString(),
-                nome: userData.nome,
-                login: login
-            };
-            
-        } catch (error) {
-            console.error("Erro ao resetar senha:", error);
-            throw error;
-        }
-    }
-    
-    static async visualizarTokenReset(login) {
-        try {
-            const userRef = doc(db, "logins", login);
-            const userDoc = await getDoc(userRef);
-            
-            if (!userDoc.exists()) {
-                throw new Error('Paciente não encontrado!');
-            }
-            
-            const userData = userDoc.data();
-            
-            if (!userData.reset_token) {
-                throw new Error('❌ Nenhum token de reset ativo. Gere um novo token.');
-            }
-            
-            const dataExpiracao = new Date(userData.reset_token_expiracao);
-            if (dataExpiracao < new Date()) {
-                throw new Error('⚠️ Token expirado! Gere um novo token.');
-            }
-            
-            return {
-                success: true,
-                token: userData.reset_token,
-                expiracao: userData.reset_token_expiracao,
-                nome: userData.nome,
-                login: login
-            };
-            
-        } catch (error) {
-            console.error("Erro ao visualizar token:", error);
-            throw error;
-        }
-    }
-    
-    static async limparTokenReset(login) {
-        try {
-            const userRef = doc(db, "logins", login);
-            await updateDoc(userRef, {
-                reset_token: deleteField(),
-                reset_token_expiracao: deleteField()
-            });
-            return { success: true };
-        } catch (error) {
-            console.error("Erro ao limpar token:", error);
-            throw error;
-        }
-    }
-
-    static async updatePaciente(login, data) {
-        try {
-            const userRef = doc(db, "logins", login);
-            await updateDoc(userRef, data);
-            return { success: true };
-        } catch (error) {
-            console.error("Erro ao atualizar paciente:", error);
-            throw new Error('Erro ao atualizar dados do paciente');
-        }
-    }
-    
     // ==================== FUNÇÕES DE AVALIAÇÃO ====================
     
     static async loadEvaluationsByPatient(patientLogin) {
@@ -477,8 +294,6 @@ export class FuncoesCompartilhadas {
             
         } catch (error) {
             console.error("Erro ao carregar avaliações:", error);
-            console.log('🔒 Verificando permissões...');
-            console.log('   - Usuário logado:', localStorage.getItem('currentUser') ? JSON.parse(localStorage.getItem('currentUser')).login : 'nenhum');
             return [];
         }
     }
@@ -632,6 +447,179 @@ export class FuncoesCompartilhadas {
         localStorage.removeItem('currentUser');
         window.location.reload();
     }
+    
+    static async updatePaciente(login, data) {
+        try {
+            const userRef = doc(db, "logins", login);
+            await updateDoc(userRef, data);
+            return { success: true };
+        } catch (error) {
+            console.error("Erro ao atualizar paciente:", error);
+            throw new Error('Erro ao atualizar dados do paciente');
+        }
+    }
+    
+    static async visualizarCodigoPaciente(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                throw new Error('Paciente não encontrado!');
+            }
+            
+            const userData = userDoc.data();
+            
+            if (userData.hasOwnProperty('ultimo_login')) {
+                throw new Error('❌ Este paciente já fez o primeiro acesso!');
+            }
+            
+            if (!userData.codigo_temporario) {
+                throw new Error('❌ Nenhum código temporário encontrado.');
+            }
+            
+            const dataExpiracao = new Date(userData.codigo_expiracao);
+            if (dataExpiracao < new Date()) {
+                throw new Error('⚠️ O código expirou! Gere um novo código.');
+            }
+            
+            return {
+                success: true,
+                codigo: userData.codigo_temporario,
+                expiracao: userData.codigo_expiracao,
+                nome: userData.nome,
+                login: login
+            };
+            
+        } catch (error) {
+            console.error("Erro ao visualizar código:", error);
+            throw error;
+        }
+    }
+    
+    static async regenerarCodigoPaciente(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                throw new Error('Paciente não encontrado!');
+            }
+            
+            const userData = userDoc.data();
+            
+            if (userData.hasOwnProperty('ultimo_login')) {
+                throw new Error('❌ Este paciente já fez o primeiro acesso!');
+            }
+            
+            const novoCodigo = this.gerarCodigoTemporario();
+            const dataExpiracao = new Date();
+            dataExpiracao.setDate(dataExpiracao.getDate() + 7);
+            
+            await updateDoc(userRef, {
+                codigo_temporario: novoCodigo,
+                codigo_expiracao: dataExpiracao.toISOString()
+            });
+            
+            return {
+                success: true,
+                codigo: novoCodigo,
+                expiracao: dataExpiracao.toISOString(),
+                nome: userData.nome,
+                login: login
+            };
+            
+        } catch (error) {
+            console.error("Erro ao regenerar código:", error);
+            throw error;
+        }
+    }
+    
+    static async resetarSenhaPaciente(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                throw new Error('Paciente não encontrado!');
+            }
+            
+            const userData = userDoc.data();
+            
+            if (!userData.hasOwnProperty('ultimo_login')) {
+                throw new Error('❌ Este paciente ainda não fez o primeiro acesso! Use a opção de gerar código.');
+            }
+            
+            const tokenReset = this.gerarCodigoTemporario();
+            const dataExpiracao = new Date();
+            dataExpiracao.setHours(dataExpiracao.getHours() + 1);
+            
+            await updateDoc(userRef, {
+                reset_token: tokenReset,
+                reset_token_expiracao: dataExpiracao.toISOString()
+            });
+            
+            return {
+                success: true,
+                token: tokenReset,
+                expiracao: dataExpiracao.toISOString(),
+                nome: userData.nome,
+                login: login
+            };
+            
+        } catch (error) {
+            console.error("Erro ao resetar senha:", error);
+            throw error;
+        }
+    }
+    
+    static async visualizarTokenReset(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                throw new Error('Paciente não encontrado!');
+            }
+            
+            const userData = userDoc.data();
+            
+            if (!userData.reset_token) {
+                throw new Error('❌ Nenhum token de reset ativo. Gere um novo token.');
+            }
+            
+            const dataExpiracao = new Date(userData.reset_token_expiracao);
+            if (dataExpiracao < new Date()) {
+                throw new Error('⚠️ Token expirado! Gere um novo token.');
+            }
+            
+            return {
+                success: true,
+                token: userData.reset_token,
+                expiracao: userData.reset_token_expiracao,
+                nome: userData.nome,
+                login: login
+            };
+            
+        } catch (error) {
+            console.error("Erro ao visualizar token:", error);
+            throw error;
+        }
+    }
+    
+    static async limparTokenReset(login) {
+        try {
+            const userRef = doc(db, "logins", login);
+            await updateDoc(userRef, {
+                reset_token: deleteField(),
+                reset_token_expiracao: deleteField()
+            });
+            return { success: true };
+        } catch (error) {
+            console.error("Erro ao limpar token:", error);
+            throw error;
+        }
+    }
 }
 
 // ==================== GERENCIADOR PRINCIPAL ====================
@@ -659,7 +647,6 @@ export class HomeManager {
                 this.currentHome = new HomePsicologo(this.userInfo);
                 break;
             default:
-                // Para novos profissionais, usa tela padrão de profissional
                 this.currentHome = new HomeNutricionista(this.userInfo);
         }
         
