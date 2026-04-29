@@ -449,21 +449,32 @@ export class FuncoesCompartilhadas {
     
     static async loadEvaluationsByPatient(patientLogin) {
         try {
-            const querySnapshot = await getDocs(collection(db, "avaliacao_nutricional"));
+            console.log('🔍 Buscando avaliações do paciente:', patientLogin);
+            
+            const avaliacoesRef = collection(db, "avaliacao_nutricional");
+            const q = query(avaliacoesRef, where("paciente_login", "==", patientLogin));
+            const querySnapshot = await getDocs(q);
+            
             const evaluations = [];
             
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                if (data.paciente_login === patientLogin) {
-                    evaluations.push({ id: doc.id, ...data });
-                }
+                evaluations.push({ id: doc.id, ...data });
             });
             
-            evaluations.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            evaluations.sort((a, b) => {
+                const dateA = a.data_avaliacao || a.timestamp;
+                const dateB = b.data_avaliacao || b.timestamp;
+                return new Date(dateA) - new Date(dateB);
+            });
+            
+            console.log(`✅ Encontradas ${evaluations.length} avaliações`);
             return evaluations;
             
         } catch (error) {
             console.error("Erro ao carregar avaliações:", error);
+            console.log('🔒 Verificando permissões...');
+            console.log('   - Usuário logado:', localStorage.getItem('currentUser') ? JSON.parse(localStorage.getItem('currentUser')).login : 'nenhum');
             return [];
         }
     }
