@@ -395,7 +395,7 @@ export class CadastroCliente {
                 email: document.getElementById('email').value,
                 endereco: document.getElementById('endereco').value
             };
-
+    
             if (existingCliente) {
                 await this.funcoes.updatePaciente(login, clienteData);
                 alert(`✅ Cliente "${clienteData.nome}" atualizado com sucesso!`);
@@ -410,7 +410,7 @@ export class CadastroCliente {
             alert('❌ Erro: ' + error.message);
         }
     }
-
+        
     async editCliente(login) {
         const cliente = this.clientesList.find(c => c.login === login);
         if (!cliente) return;
