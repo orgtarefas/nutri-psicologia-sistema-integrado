@@ -1,3 +1,5 @@
+// login.js - FLUXO CORRETO
+
 import { 
     db, 
     auth, 
@@ -51,7 +53,7 @@ export class LoginManager {
                                 </div>
                                 <div class="input-field">
                                     <input type="password" id="password" placeholder=" " autocomplete="current-password">
-                                    <label>Senha / Codigo</label>
+                                    <label>Senha / Código</label>
                                 </div>
                                 <div class="input-icon password-toggle" id="togglePassword">
                                     <i class="bi bi-eye-slash"></i>
@@ -180,7 +182,6 @@ export class LoginManager {
         return `Cargo invalido: ${cargo}`;
     }
 
-    // Função que gera o e-mail para o login
     async handleLogin() {
         const loginInput = document.getElementById('login')?.value.trim();
         const password = document.getElementById('password')?.value;
@@ -197,10 +198,129 @@ export class LoginManager {
         submitBtn.disabled = true;
     
         try {
-            // 🔥 NOVO: Monta o email a partir do login digitado
+            // 1. Monta o email a partir do login
             const emailMontado = `${loginInput.toLowerCase()}@tratamentoweb.com`;
             
-            // 1. Buscar o documento do usuário no Firestore usando o login (não o email)
+            // 2. TENTA AUTENTICAR NO AUTH PRIMEIRO
+            const userCredential = await signInWithEmailAndPassword(auth, emailMontado, password);
+            const authUser = userCredential.user;
+            
+            console.log('✅ Autenticado no Auth com email:', emailMontado);
+            
+            // 3. SÓ AGORA, após autenticado, consulta o Firestore
+            const userRef = doc(db, "logins", loginInput);
+            const userDoc = await getDoc(userRef);
+            
+            if (!userDoc.exists()) {
+                // Usuário autenticado no Auth mas não existe no Firestore
+                await auth.signOut(); // Desloga do Auth
+                this.showError('Usuário autenticado mas dados não encontrados! Contate o administrador.');
+                return;
+            }
+            
+            const userData = userDoc.data();
+            
+            // 4. Validar se o usuário está ativo
+            if (userData.status_ativo === false) {
+                await auth.signOut();
+                this.showError('Conta desativada! Contate o administrador.');
+                return;
+            }
+            
+            // 5. Validar cargo
+            if (!this.isCargoValido(userData.cargo)) {
+                await auth.signOut();
+                this.showError(this.getMensagemCargoInvalido(userData.cargo));
+                return;
+            }
+            
+            // 6. Verificar se é primeiro acesso (paciente sem ultimo_login)
+            const isPaciente = userData.cargo === 'paciente';
+            const hasPrimeiroAcesso = userData.hasOwnProperty('ultimo_login');
+            
+            // 7. Para pacientes em primeiro acesso, precisa criar a conta no Auth
+            if (isPaciente && !hasPrimeiroAcesso) {
+                // Neste caso, o paciente NÃO deveria ter conseguido autenticar ainda
+                // Pois a conta no Auth ainda não existe
+                // Isso indica que o fluxo de primeiro acesso deve ser tratado diferente
+                console.log('Paciente em primeiro acesso - redirecionando para criar senha');
+                await auth.signOut();
+                
+                // Verificar código temporário
+                if (password !== userData.codigo_temporario) {
+                    this.showError('Código temporário inválido!');
+                    return;
+                }
+                
+                const dataExpiracao = new Date(userData.codigo_expiracao);
+                if (dataExpiracao < new Date()) {
+                    this.showError('Código expirado! Solicite um novo código ao profissional.');
+                    return;
+                }
+                
+                this.tempData = {
+                    login: loginInput,
+                    email: emailMontado,
+                    nome: userData.nome,
+                    cargo: userData.cargo,
+                    perfil: userData.perfil,
+                    userRef: userRef
+                };
+                
+                this.showCreatePasswordScreen();
+                return;
+            }
+            
+            // 8. Atualiza último login no Firestore
+            await updateDoc(userRef, {
+                ultimo_login: serverTimestamp()
+            });
+            
+            // 9. Prepara dados do usuário para a sessão
+            userData.login = loginInput;
+            userData.email = emailMontado;
+            
+            // Garante perfil padrão
+            if (!userData.perfil) {
+                userData.perfil = isPaciente ? 'operador' : 'supervisor';
+            }
+            
+            // 10. Salva credenciais se solicitado
+            if (rememberCheckbox && rememberCheckbox.checked) {
+                localStorage.setItem('savedLogin', loginInput);
+                localStorage.setItem('savedPassword', password);
+                localStorage.setItem('rememberLogin', 'true');
+            } else {
+                localStorage.removeItem('savedLogin');
+                localStorage.removeItem('savedPassword');
+                localStorage.setItem('rememberLogin', 'false');
+            }
+            
+            // 11. Salva sessão e mostra home
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            this.showHome(userData);
+            
+        } catch (authError) {
+            console.error("Erro de autenticação:", authError);
+            
+            if (authError.code === 'auth/invalid-credential' || 
+                authError.code === 'auth/wrong-password') {
+                this.showError('Login ou senha incorretos!');
+            } else if (authError.code === 'auth/user-not-found') {
+                // Usuário não existe no Auth - pode ser primeiro acesso de paciente
+                await this.handlePrimeiroAcesso(loginInput, password);
+            } else {
+                this.showError('Erro: ' + authError.message);
+            }
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    }
+    
+    async handlePrimeiroAcesso(loginInput, password) {
+        try {
+            // Verificar se o usuário existe no Firestore
             const userRef = doc(db, "logins", loginInput);
             const userDoc = await getDoc(userRef);
             
@@ -211,157 +331,40 @@ export class LoginManager {
             
             const userData = userDoc.data();
             
-            // 2. Validar se o usuário está ativo
-            if (userData.status_ativo === false) {
-                this.showError('Conta desativada! Contate o administrador.');
+            // Só paciente pode ter primeiro acesso
+            if (userData.cargo !== 'paciente') {
+                this.showError('Usuário não encontrado no sistema. Contate o administrador.');
                 return;
             }
             
-            // 3. Validar cargo
-            if (!this.isCargoValido(userData.cargo)) {
-                this.showError(this.getMensagemCargoInvalido(userData.cargo));
+            // Verificar código temporário
+            if (password !== userData.codigo_temporario) {
+                this.showError('Código temporário inválido!');
                 return;
             }
             
-            const isFuncionario = userData.cargo === 'nutricionista' || userData.cargo === 'psicologo';
-            const isPaciente = userData.cargo === 'paciente';
-            
-            // 🔥 FUNCIONÁRIO: usa o email montado para autenticação
-            if (isFuncionario) {
-                try {
-                    // Usa o email montado para login no Auth
-                    await signInWithEmailAndPassword(auth, emailMontado, password);
-                    
-                    // Atualiza último login
-                    await updateDoc(userRef, {
-                        ultimo_login: serverTimestamp()
-                    });
-                    
-                    userData.login = loginInput;
-                    userData.email = emailMontado; // Adiciona o email montado aos dados
-                    
-                    // Garante que tem perfil
-                    if (!userData.perfil) {
-                        userData.perfil = 'supervisor';
-                    }
-                    
-                    // Salva sessão
-                    if (rememberCheckbox && rememberCheckbox.checked) {
-                        localStorage.setItem('savedLogin', loginInput);
-                        localStorage.setItem('savedPassword', password);
-                        localStorage.setItem('rememberLogin', 'true');
-                    } else {
-                        localStorage.removeItem('savedLogin');
-                        localStorage.removeItem('savedPassword');
-                        localStorage.setItem('rememberLogin', 'false');
-                    }
-                    
-                    localStorage.setItem('currentUser', JSON.stringify(userData));
-                    this.showHome(userData);
-                    
-                } catch (authError) {
-                    console.error("Erro de autenticação do funcionário:", authError);
-                    
-                    if (authError.code === 'auth/invalid-credential' || 
-                        authError.code === 'auth/wrong-password') {
-                        this.showError('Senha incorreta!');
-                    } else if (authError.code === 'auth/user-not-found') {
-                        this.showError('Usuário não encontrado no sistema de autenticação. Contate o administrador.');
-                    } else {
-                        this.showError('Erro: ' + authError.message);
-                    }
-                }
+            const dataExpiracao = new Date(userData.codigo_expiracao);
+            if (dataExpiracao < new Date()) {
+                this.showError('Código expirado! Solicite um novo código ao profissional.');
                 return;
             }
             
-            // ==================== FLUXO DO PACIENTE ====================
+            const emailMontado = `${loginInput.toLowerCase()}@tratamentoweb.com`;
             
-            if (isPaciente) {
-                const hasPrimeiroAcesso = userData.hasOwnProperty('ultimo_login');
-                
-                // Caso 1: Primeiro acesso (usar código temporário)
-                if (!hasPrimeiroAcesso) {
-                    // Validar código temporário
-                    if (password !== userData.codigo_temporario) {
-                        this.showError('Código temporário inválido!');
-                        return;
-                    }
-                    
-                    const dataExpiracao = new Date(userData.codigo_expiracao);
-                    if (dataExpiracao < new Date()) {
-                        this.showError('Código expirado! Solicite um novo código ao profissional.');
-                        return;
-                    }
-                    
-                    // Salvar dados temporários e mostrar tela de criação de senha
-                    this.tempData = {
-                        login: loginInput,
-                        email: emailMontado, // Usa o email montado
-                        nome: userData.nome,
-                        cargo: userData.cargo,
-                        perfil: userData.perfil,
-                        userRef: userRef
-                    };
-                    
-                    this.showCreatePasswordScreen();
-                    return;
-                }
-                
-                // Caso 2: Já tem senha (acesso normal)
-                try {
-                    // Usa o email montado para login
-                    await signInWithEmailAndPassword(auth, emailMontado, password);
-                    
-                    await updateDoc(userRef, {
-                        ultimo_login: serverTimestamp()
-                    });
-                    
-                    userData.login = loginInput;
-                    userData.email = emailMontado;
-                    
-                    if (!userData.perfil) {
-                        userData.perfil = 'operador';
-                    }
-                    
-                    if (rememberCheckbox && rememberCheckbox.checked) {
-                        localStorage.setItem('savedLogin', loginInput);
-                        localStorage.setItem('savedPassword', password);
-                        localStorage.setItem('rememberLogin', 'true');
-                    } else {
-                        localStorage.removeItem('savedLogin');
-                        localStorage.removeItem('savedPassword');
-                        localStorage.setItem('rememberLogin', 'false');
-                    }
-                    
-                    localStorage.setItem('currentUser', JSON.stringify(userData));
-                    this.showHome(userData);
-                    
-                } catch (authError) {
-                    console.error("Erro de autenticação do paciente:", authError);
-                    
-                    if (authError.code === 'auth/invalid-credential' || 
-                        authError.code === 'auth/wrong-password') {
-                        this.showError('Senha incorreta!');
-                    } else if (authError.code === 'auth/user-not-found') {
-                        // Se o usuário não existe no Auth, podemos tentar criar a conta
-                        // Isso pode acontecer se o paciente já fez primeiro acesso mas a conta não foi criada
-                        this.showError('Conta não encontrada. Contate o administrador.');
-                    } else {
-                        this.showError('Erro: ' + authError.message);
-                    }
-                }
-                return;
-            }
+            this.tempData = {
+                login: loginInput,
+                email: emailMontado,
+                nome: userData.nome,
+                cargo: userData.cargo,
+                perfil: userData.perfil,
+                userRef: userRef
+            };
             
-            // Se chegou aqui, cargo não reconhecido
-            this.showError('Tipo de usuário não reconhecido!');
+            this.showCreatePasswordScreen();
             
         } catch (error) {
-            console.error("Erro:", error);
-            this.showError('Erro ao conectar com o servidor!');
-        } finally {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+            console.error("Erro ao verificar primeiro acesso:", error);
+            this.showError('Erro ao verificar dados. Tente novamente.');
         }
     }
 
@@ -473,27 +476,25 @@ export class LoginManager {
             }
             
             try {
-                // 🔥 Usa o email montado (this.tempData.email) que já foi definido
+                // Cria a conta no Auth com o email montado
                 await createUserWithEmailAndPassword(auth, this.tempData.email, password);
                 
+                // Atualiza o Firestore
                 await updateDoc(this.tempData.userRef, {
                     ultimo_login: serverTimestamp(),
                     codigo_temporario: deleteField(),
                     codigo_expiracao: deleteField(),
-                    email: this.tempData.email // Salva o email montado no Firestore também
+                    email: this.tempData.email
                 });
                 
+                // Busca os dados atualizados
                 const updatedDoc = await getDoc(this.tempData.userRef);
                 const userData = updatedDoc.data();
                 userData.login = this.tempData.login;
                 userData.email = this.tempData.email;
                 
                 if (!userData.perfil) {
-                    if (userData.cargo === 'paciente') {
-                        userData.perfil = 'operador';
-                    } else {
-                        userData.perfil = 'supervisor';
-                    }
+                    userData.perfil = 'operador';
                 }
                 
                 localStorage.setItem('currentUser', JSON.stringify(userData));
@@ -524,8 +525,8 @@ export class LoginManager {
                                 <img src="./imagens/logo.png" alt="TratamentoWeb" class="login-logo-img">
                             </div>
                             <h2>Recuperar Senha</h2>
-                            <p>Para recuperar sua senha, entre em contato com o profissional responsavel.</p>
-                            <p>Ele podera gerar uma nova senha temporaria para voce.</p>
+                            <p>Para recuperar sua senha, entre em contato com o profissional responsável.</p>
+                            <p>Ele poderá gerar uma nova senha temporária para você.</p>
                         </div>
     
                         <form id="resetForm" class="login-form">
