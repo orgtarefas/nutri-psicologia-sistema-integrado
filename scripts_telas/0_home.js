@@ -124,30 +124,75 @@ export class FuncoesCompartilhadas {
     
     // ==================== FUNÇÕES DE PACIENTE ====================
     
-    static async loadPacientesList() {
+    static async loadPacientesList(profissionalLogin = null) {
         try {
-            const querySnapshot = await getDocs(collection(db, "logins"));
+            // Se não tem profissionalLogin, busca do usuário logado
+            if (!profissionalLogin) {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                profissionalLogin = currentUser.login;
+            }
+            
+            console.log('🔍 Buscando pacientes vinculados ao profissional:', profissionalLogin);
+            
+            // Busca o documento do profissional
+            const profissionalRef = doc(db, "logins", profissionalLogin);
+            const profissionalDoc = await getDoc(profissionalRef);
+            
+            if (!profissionalDoc.exists()) {
+                console.error('Profissional não encontrado:', profissionalLogin);
+                return [];
+            }
+            
+            const profissionalData = profissionalDoc.data();
+            const pacientesMap = profissionalData.pacientes || {};
+            
+            console.log('📋 Mapa de pacientes encontrado:', Object.keys(pacientesMap).length);
+            
             const pacientesList = [];
             
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                if (data.cargo === 'paciente') {
-                    pacientesList.push({
-                        login: doc.id,
-                        nome: data.nome,
-                        email: data.email,
-                        dataNascimento: data.dataNascimento,
-                        sexo: data.sexo,
-                        status_ativo: data.status_ativo,
-                        cargo: data.cargo,
-                        perfil: data.perfil,
-                        dataHoraCadastro: data.dataHoraCadastro,
-                        hasUltimoLogin: data.hasOwnProperty('ultimo_login')
-                    });
+            // Para cada paciente no mapa, buscar os dados completos
+            for (const [pacienteLogin, pacienteNome] of Object.entries(pacientesMap)) {
+                try {
+                    const pacienteRef = doc(db, "logins", pacienteLogin);
+                    const pacienteDoc = await getDoc(pacienteRef);
+                    
+                    if (pacienteDoc.exists()) {
+                        const pacienteData = pacienteDoc.data();
+                        pacientesList.push({
+                            login: pacienteLogin,
+                            nome: pacienteData.nome || pacienteNome,
+                            email: pacienteData.email,
+                            dataNascimento: pacienteData.dataNascimento,
+                            sexo: pacienteData.sexo,
+                            status_ativo: pacienteData.status_ativo,
+                            cargo: pacienteData.cargo,
+                            perfil: pacienteData.perfil,
+                            dataHoraCadastro: pacienteData.dataHoraCadastro,
+                            hasUltimoLogin: pacienteData.hasOwnProperty('ultimo_login'),
+                            telefone: pacienteData.telefone,
+                            whatsapp: pacienteData.whatsapp,
+                            endereco: pacienteData.endereco,
+                            plano: pacienteData.plano
+                        });
+                    } else {
+                        // Se o documento do paciente não existe, pelo menos adiciona com nome do mapa
+                        pacientesList.push({
+                            login: pacienteLogin,
+                            nome: pacienteNome,
+                            cargo: 'paciente',
+                            perfil: 'operador',
+                            status_ativo: true,
+                            hasUltimoLogin: false
+                        });
+                    }
+                } catch (err) {
+                    console.error(`Erro ao buscar paciente ${pacienteLogin}:`, err);
                 }
-            });
+            }
             
+            console.log(`✅ Encontrados ${pacientesList.length} pacientes vinculados`);
             return pacientesList;
+            
         } catch (error) {
             console.error("Erro ao carregar pacientes:", error);
             return [];
