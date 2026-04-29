@@ -43,12 +43,16 @@ export class HomeNutricionista {
     }
 
     renderHTML() {
+        const isPaciente = this.userInfo.cargo === 'paciente';
+        
         return `
             <div class="dashboard-container" style="height: 100vh; display: flex; flex-direction: column;">
                 <div id="menuContainer"></div>
-
+    
                 <div class="main-content" style="flex: 1; overflow-y: auto; padding: 20px 32px;">
-                    <!-- INFORMAÇÕES DO PACIENTE (com seletor dentro) -->
+                    
+                    ${!isPaciente ? `
+                    <!-- INFORMAÇÕES DO PACIENTE (com seletor dentro) - APENAS PARA PROFISSIONAIS -->
                     <div id="pacienteInfo" class="info-section" style="margin-bottom: 24px;">
                         
                         <!-- SELETOR DE PACIENTE DENTRO DO CARD -->
@@ -57,7 +61,7 @@ export class HomeNutricionista {
                                 <option value="">-- Selecione um paciente --</option>
                             </select>
                         </div>
-
+    
                         <div class="info-grid">
                             <div class="info-card">
                                 <span class="info-label">Nome</span>
@@ -81,7 +85,7 @@ export class HomeNutricionista {
                             </div>
                         </div>
                     </div>
-
+    
                     <!-- SELEÇÃO DE PERÍODO -->
                     <div id="periodoSection" class="evaluation-section" style="display: none; margin-bottom: 24px;">
                         <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
@@ -95,7 +99,7 @@ export class HomeNutricionista {
                             </div>
                         </div>
                     </div>
-
+    
                     <!-- GRÁFICOS -->
                     <div id="chartsSection" class="charts-section" style="display: none;">
                         <div class="chart-card">
@@ -111,7 +115,7 @@ export class HomeNutricionista {
                             <canvas id="muscleChart" style="max-height: 300px; width: 100%;"></canvas>
                         </div>
                     </div>
-
+    
                     <!-- BOTÃO NOVA AVALIAÇÃO -->
                     <div style="position: fixed; bottom: 30px; right: 30px; z-index: 100;">
                         <button id="novaAvaliacaoBtn" class="btn-primary btn-expand">
@@ -119,10 +123,22 @@ export class HomeNutricionista {
                             <span class="btn-text">Nova Avaliação Nutricional</span>
                         </button>
                     </div>
+                    ` : `
+                    <!-- MENSAGEM PARA PACIENTE - ACESSO RESTRITO -->
+                    <div style="display: flex; justify-content: center; align-items: center; height: 80vh;">
+                        <div class="alert alert-warning" style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 1rem; padding: 2rem; text-align: center; max-width: 500px;">
+                            <span style="font-size: 48px; display: block; margin-bottom: 16px;">🔒</span>
+                            <h3 style="color: #92400e; margin-bottom: 12px;">Acesso Restrito</h3>
+                            <p style="color: #78350f;">Você não tem permissão para acessar esta área.</p>
+                            <p style="color: #78350f; font-size: 13px; margin-top: 8px;">Apenas profissionais podem visualizar lista de pacientes e realizar avaliações.</p>
+                        </div>
+                    </div>
+                    `}
                 </div>
             </div>
-
-            <!-- MODAL NOVA AVALIAÇÃO -->
+    
+            <!-- MODAL NOVA AVALIAÇÃO - SÓ APARECE PARA PROFISSIONAIS -->
+            ${!isPaciente ? `
             <div id="avaliacaoModal" class="modal" style="display: none;">
                 <div class="modal-content" style="max-width: 700px;">
                     <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -175,10 +191,36 @@ export class HomeNutricionista {
                     </form>
                 </div>
             </div>
+            ` : ''}
         `;
     }
 
     attachEvents() {
+        // 🔒 Se for paciente, não carrega eventos de profissional
+        if (this.userInfo.cargo === 'paciente') {
+            console.log('🔒 Paciente não tem permissão para usar esta tela');
+            
+            // Apenas configura o logout e menu
+            const logoutMenuItem = document.getElementById('logoutMenuItem');
+            if (logoutMenuItem) {
+                logoutMenuItem.addEventListener('click', () => {
+                    this.navegador.navegarPara('logout');
+                });
+            }
+            
+            // Configura menu se existir
+            const menuToggle = document.getElementById('menuToggleBtn');
+            const sideMenu = document.getElementById('sideMenu');
+            const menuOverlay = document.getElementById('menuOverlay');
+            const closeMenu = document.getElementById('closeMenu');
+            
+            if (menuToggle) menuToggle.addEventListener('click', () => sideMenu?.classList.add('open'));
+            if (closeMenu) closeMenu.addEventListener('click', () => sideMenu?.classList.remove('open'));
+            if (menuOverlay) menuOverlay.addEventListener('click', () => sideMenu?.classList.remove('open'));
+            
+            return; // 🔒 SAI AQUI - Não carrega eventos de profissional
+        }
+        
         // Seletor de paciente
         const pacienteSelect = document.getElementById('pacienteSelect');
         if (pacienteSelect) {
