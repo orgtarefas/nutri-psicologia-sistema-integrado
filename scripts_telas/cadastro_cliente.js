@@ -261,6 +261,13 @@ export class CadastroCliente {
             });
         });
 
+        document.querySelectorAll('.unlink-cliente').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const login = btn.getAttribute('data-login');
+                await this.desvincularPaciente(login);
+            });
+        });
+
         // Modal
         const modal = document.getElementById('clienteModal');
         const closeModalBtn = document.querySelector('.close-modal');
