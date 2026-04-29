@@ -164,7 +164,7 @@ export class PlanoAlimentarNutricionista {
         if (!this.selectedPaciente) return;
         
         try {
-            const plansRef = collection(window.db, 'planos_alimentares');
+            const plansRef = collection(db, 'planos_alimentares');
             const q = query(plansRef, where('paciente_login', '==', this.selectedPaciente.login));
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty) {
@@ -178,13 +178,13 @@ export class PlanoAlimentarNutricionista {
             this.currentMealPlan = null;
         }
     }
-
+    
     async saveMealPlan() {
         if (!this.selectedPaciente) {
             alert('❌ Selecione um paciente primeiro!');
             return;
         }
-
+    
         try {
             const mealPlanData = {
                 paciente_login: this.selectedPaciente.login,
@@ -202,11 +202,11 @@ export class PlanoAlimentarNutricionista {
                 restrictions: document.getElementById('restrictions')?.value || '',
                 goals: document.getElementById('goals')?.value || ''
             };
-
-            const plansRef = collection(window.db, 'planos_alimentares');
+            
+            const plansRef = collection(db, 'planos_alimentares');
             
             if (this.currentMealPlan?.id) {
-                const planDoc = doc(window.db, 'planos_alimentares', this.currentMealPlan.id);
+                const planDoc = doc(db, 'planos_alimentares', this.currentMealPlan.id);
                 await updateDoc(planDoc, mealPlanData);
                 alert('✅ Plano atualizado com sucesso!');
             } else {
