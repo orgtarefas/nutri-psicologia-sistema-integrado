@@ -85,7 +85,6 @@ async function uploadParaImgbb(imagemBase64) {
             throw new Error('API key do ImgBB não configurada');
         }
         
-        // Remover o prefixo "data:image/jpeg;base64," se existir
         const base64Data = imagemBase64.split(',')[1] || imagemBase64;
         
         const formData = new FormData();
@@ -119,7 +118,7 @@ async function uploadParaImgbb(imagemBase64) {
 // Export all necessary modules
 export { 
     // Firebase instances
-    db, 
+    db,      // ✅ db é exportado daqui (depois de criado)
     auth,
     appCheck,
     
