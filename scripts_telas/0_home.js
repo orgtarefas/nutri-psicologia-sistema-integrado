@@ -1,3 +1,5 @@
+// 0_home.js - CORRIJA A IMPORTAÇÃO
+
 import { 
     db, 
     collection, 
@@ -10,7 +12,9 @@ import {
     createUserWithEmailAndPassword, 
     signOut, 
     serverTimestamp,
-    updateDoc
+    updateDoc,
+    query,
+    where
 } from '../0_firebase_api_config.js';
 import { deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { HomeCliente } from './home_cliente.js';
