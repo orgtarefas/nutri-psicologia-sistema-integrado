@@ -125,16 +125,22 @@ export class FuncoesCompartilhadas {
     // ==================== FUNÇÕES DE PACIENTE ====================
     
     static async loadPacientesList(profissionalLogin = null) {
+        // 🔒 SÓ PROFISSIONAL PODE CARREGAR LISTA DE PACIENTES
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        
+        // Se for paciente, retorna lista vazia
+        if (currentUser.cargo === 'paciente') {
+            console.log('🔒 Paciente não tem permissão para ver lista de pacientes');
+            return [];
+        }
+        
         try {
-            // Se não tem profissionalLogin, busca do usuário logado
             if (!profissionalLogin) {
-                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
                 profissionalLogin = currentUser.login;
             }
             
             console.log('🔍 Buscando pacientes vinculados ao profissional:', profissionalLogin);
             
-            // Busca o documento do profissional
             const profissionalRef = doc(db, "logins", profissionalLogin);
             const profissionalDoc = await getDoc(profissionalRef);
             
@@ -146,11 +152,8 @@ export class FuncoesCompartilhadas {
             const profissionalData = profissionalDoc.data();
             const pacientesMap = profissionalData.pacientes || {};
             
-            console.log('📋 Mapa de pacientes encontrado:', Object.keys(pacientesMap).length);
-            
             const pacientesList = [];
             
-            // Para cada paciente no mapa, buscar os dados completos
             for (const [pacienteLogin, pacienteNome] of Object.entries(pacientesMap)) {
                 try {
                     const pacienteRef = doc(db, "logins", pacienteLogin);
@@ -175,7 +178,6 @@ export class FuncoesCompartilhadas {
                             plano: pacienteData.plano
                         });
                     } else {
-                        // Se o documento do paciente não existe, pelo menos adiciona com nome do mapa
                         pacientesList.push({
                             login: pacienteLogin,
                             nome: pacienteNome,
