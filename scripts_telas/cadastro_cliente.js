@@ -220,24 +220,14 @@ export class CadastroCliente {
         }
         
         return filteredList.map(c => `
-            <tr>
-                <td><strong>${c.nome || 'N/A'}</strong></td>
-                <td><code class="login-code">${c.login || 'N/A'}</code></td>
-                <td>
-                    ${c.telefone ? `<div class="contact-info">📱 ${c.telefone}</div>` : ''}
-                    ${c.whatsapp ? `<div class="contact-info">💬 ${c.whatsapp}</div>` : ''}
-                    ${c.email ? `<div class="contact-info">📧 ${c.email}</div>` : ''}
-                 </td>
-                <td>${this.funcoes.formatDateToDisplay(c.dataNascimento) || 'N/I'}</td>
-                <td>${this.funcoes.calcularIdade(c.dataNascimento)} anos</td>
-                <td>
-                    <span class="status-badge ${c.status_ativo !== false ? 'active' : 'inactive'}">
-                        ${c.status_ativo !== false ? 'Ativo' : 'Inativo'}
-                    </span>
-                 </td>
+            <table>
+                <td>...</td>
+                <td>...</td>
                 <td class="actions">
                     <button class="btn-icon view-cliente" data-login="${c.login}" title="Ver Detalhes">👁️</button>
                     <button class="btn-icon edit-cliente" data-login="${c.login}" title="Editar">✏️</button>
+                    <!-- BOTÃO DESVINCULAR -->
+                    <button class="btn-icon unlink-cliente" data-login="${c.login}" title="Desvincular" style="color: #dc2626;">🔗❌</button>
                     ${!c.hasUltimoLogin ? 
                         `<button class="btn-icon codigo-acesso" data-login="${c.login}" title="Código de Acesso">📱</button>` :
                         `<button class="btn-icon reset-senha" data-login="${c.login}" title="Resetar Senha">🔑</button>`
@@ -247,7 +237,7 @@ export class CadastroCliente {
                         `<button class="btn-icon activate-cliente" data-login="${c.login}" title="Ativar">▶️</button>`
                     }
                 </td>
-             </tr>
+            </tr>
         `).join('');
     }
 
@@ -530,4 +520,27 @@ export class CadastroCliente {
             alert('❌ Erro: ' + error.message);
         }
     }
+
+    async desvincularPaciente(login) {
+        try {
+            if (!confirm(`Desvincular paciente ${login}?`)) return;
+            
+            // Remove do MAPA de pacientes
+            const profissionalRef = doc(db, "logins", this.userInfo.login);
+            const profissionalDoc = await getDoc(profissionalRef);
+            const pacientesAtuais = profissionalDoc.data().pacientes || {};
+            
+            delete pacientesAtuais[login];
+            
+            await updateDoc(profissionalRef, {
+                pacientes: pacientesAtuais
+            });
+            
+            alert(`✅ Paciente ${login} desvinculado com sucesso!`);
+            await this.loadClientes();
+        } catch (error) {
+            alert('❌ Erro: ' + error.message);
+        }
+    }
+    
 }
